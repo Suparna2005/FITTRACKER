@@ -28,6 +28,7 @@ class User(Base):
     # Food / cuisine preference (optional — drives diet chart language)
     diet_cuisine = Column(String, nullable=True, default="Generic Indian")
     diet_type = Column(String, nullable=True, default="No Preference")
+    body_fat = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

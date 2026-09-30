@@ -57,6 +57,7 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     - Equipment Available: {user_data.equipment}
     - Age: {user_data.age} | Gender: {user_data.gender}
     - Initial Weight: {user_data.weight} | Initial Height: {user_data.height}
+    - Body Fat/Structure: {getattr(user_data, 'body_fat', 'Unknown')}
     - Blood Pressure: {user_data.blood_pressure} | Blood Group: {user_data.blood_group}
     - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}
     

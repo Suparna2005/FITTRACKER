@@ -111,6 +111,7 @@ export function TopBar({ user, onNav, onLogout, active, unread = 0, onBell }) {
   </div>
   <div className="flex gap-2.5 flex-wrap items-center">
   {btn('profile', 'Profile')}
+  {btn('tutorial', 'Tutorial')}
   {btn('guide', 'Muscle Guide')}
   {btn('split', 'Workout Split')}
   <button onClick={onBell} title="Notifications — always delivered, no keys needed"

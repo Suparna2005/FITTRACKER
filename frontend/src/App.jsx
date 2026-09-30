@@ -141,6 +141,30 @@ function App() {
   }
 
   const [signupForm, setSignupForm] = useState({ name: '', email: '', phone_number: '', password: '' })
+  const [resetForm, setResetForm] = useState({ identifier: '', new_password: '' })
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch('http://localhost:8000/reset_password/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetForm)
+      })
+      if (!res.ok) throw new Error('Account not found')
+      showToast('Password reset successfully! Please log in.')
+      setView('login')
+      setResetForm({ identifier: '', new_password: '' })
+    } catch { showToast('Account not found with that email/phone.') }
+    setLoading(false)
+  }
 
   const [profileForm, setProfileForm] = useState({
     email: '', phone_number: '',
@@ -148,7 +172,7 @@ function App() {
     notification_time: '06:00',
     age: '', gender: 'Male', weight: '', weight_unit: 'kg', height: '', height_unit: 'cm',
     blood_pressure: '', blood_group: 'O+', medical_conditions: '',
-    diet_cuisine: 'Generic Indian', diet_type: 'No Preference'
+    diet_cuisine: 'Generic Indian', diet_type: 'No Preference', body_fat: ''
   })
 
   const [logData, setLogData] = useState({
@@ -178,7 +202,8 @@ function App() {
         blood_pressure: user.blood_pressure || '',
         medical_conditions: user.medical_conditions || '',
         diet_cuisine: user.diet_cuisine || 'Generic Indian',
-        diet_type: user.diet_type || 'No Preference'
+        diet_type: user.diet_type || 'No Preference',
+        body_fat: user.body_fat || ''
       }))
     }
   }, [user])
@@ -258,7 +283,7 @@ function App() {
       setUser(data)
       try { localStorage.setItem('fitnessUserId', String(data.id)) } catch {}
       setView('dashboard')
-    } catch (err) { alert(err.message) }
+    } catch (err) { showToast(err.message) }
     setLoading(false)
   }
 
@@ -279,7 +304,7 @@ function App() {
       setUser(data)
       try { localStorage.setItem('fitnessUserId', String(data.id)) } catch {}
       setView('profile')
-    } catch (err) { alert(err.message) }
+    } catch (err) { showToast(err.message) }
     setLoading(false)
   }
 
@@ -304,8 +329,8 @@ function App() {
       const updatedUser = await res.json()
       setUser(updatedUser)
       setView('dashboard')
-      alert('Health Profile Updated Successfully!')
-    } catch (err) { alert(err.message) }
+      showToast('Health Profile Updated Successfully!')
+    } catch (err) { showToast(err.message) }
     setLoading(false)
   }
 
@@ -316,7 +341,7 @@ function App() {
     for (let ex of exercises) {
       let name = ex.selection === 'custom' ? ex.customName : ex.selection
       if (name && name.trim().length < 3) {
-        alert('Please select a valid exercise or type a custom exercise name (at least 3 characters long).')
+        showToast('Please select a valid exercise or type a custom exercise name (at least 3 characters long).')
         setLoading(false)
         return
       }
@@ -356,12 +381,12 @@ function App() {
         setUser(updatedUser)
       }
 
-      alert('Daily Progress Logged successfully! AI is tracking your data.')
+      showToast('Daily Progress Logged successfully! AI is tracking your data.')
       setView('dashboard')
       setExercises([{ selection: '', customName: '', sets: '', reps: '', weight: '' }])
       setLogData({ date: '', notes: '', workout_time: '', supplements: '', diet_followed: '', weight_today: '', height_today: '' })
       fetchHistory()
-    } catch { alert('Failed to log data') }
+    } catch { showToast('Failed to log data') }
     setLoading(false)
   }
 
@@ -373,12 +398,12 @@ function App() {
         { method: 'POST' }
       )).json()
       setPlan(data)
-    } catch { alert('Error generating plan.') }
+    } catch { showToast('Error generating plan.') }
     setLoading(false)
   }
 
   const fetchOldPlan = async () => {
-    if (!historyDate) { alert('Please select a date.'); return; }
+    if (!historyDate) { showToast('Please select a date.'); return; }
     setLoading(true)
     try {
       const data = await (await fetch(`http://localhost:8000/users/${user.id}/history?date=${historyDate}`)).json()
@@ -389,10 +414,10 @@ function App() {
           calorie_summary: data[0].workout_data?.calorie_summary || null
         })
       } else {
-        alert('No plan found for this date.')
+        showToast('No plan found for this date.')
         setPlan(null)
       }
-    } catch { alert('Error fetching history plan.') }
+    } catch { showToast('Error fetching history plan.') }
     setLoading(false)
   }
 
@@ -427,6 +452,29 @@ function App() {
         <p className="mt-7 text-sm text-zinc-400 text-center">New athlete?{' '}
           <span className="font-bold text-yellow-400 cursor-pointer hover:underline" onClick={() => setView('signup')}>Create account</span>
         </p>
+      </AuthShell>
+    )
+  }
+
+  if (view === 'forgot_password') {
+    return (
+      <AuthShell image={LOGIN_IMG} eyebrow="Account Recovery" title="RESET" highlight="CREDENTIALS."
+        sub="Enter your registered email or phone number to set a new password.">
+        <div className="md:hidden mb-6">
+          <h2 className="font-display text-3xl font-bold text-white">IRON<span className="gold-text">FORGE</span></h2>
+        </div>
+        <h2 className="font-display text-3xl font-bold text-white">SYSTEM RECOVERY</h2>
+        <p className="text-sm text-zinc-400 mb-7">Reset your secure access code</p>
+        <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
+          <input type="text" placeholder="Registered Email or Phone" value={resetForm.identifier}
+            onChange={e => setResetForm({ ...resetForm, identifier: e.target.value })} className="field-dark" required />
+          <input type="password" placeholder="New Password" value={resetForm.new_password}
+            onChange={e => setResetForm({ ...resetForm, new_password: e.target.value })} className="field-dark" required />
+          <button type="submit" disabled={loading} className="gold-btn font-extrabold py-4 rounded-2xl text-base mt-2">
+            {loading ? 'Processing...' : 'RESET PASSWORD →'}
+          </button>
+        </form>
+        <p className="mt-7 text-sm text-zinc-400 text-center cursor-pointer hover:text-yellow-400 font-bold" onClick={() => setView('login')}>← Back to Login</p>
       </AuthShell>
     )
   }
@@ -546,8 +594,69 @@ function App() {
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-blue-400/20 bg-blue-400/[0.04] p-5 md:p-6">
+                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅳ — BODY STRUCTURE</h3>
+                <p className="text-xs text-zinc-500 mb-4">Select your current estimated body fat. The AI uses this to calculate exact macro splits.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(() => {
+                    const options = [
+                      { 
+                        val: "Shredded (6-9%)", label: "Shredded", desc: "Extremely lean, deep definition.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(0.85)"
+                      },
+                      { 
+                        val: "Athletic (10-14%)", label: "Athletic", desc: "Visible abs, clear definition.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(0.95)"
+                      },
+                      { 
+                        val: "Fit (15-19%)", label: "Fit", desc: "Healthy weight, some definition.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.05)"
+                      },
+                      { 
+                        val: "Average (20-24%)", label: "Average", desc: "Normal build, slight softness.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.15)"
+                      },
+                      { 
+                        val: "Heavy (25-29%)", label: "Heavy / Soft", desc: "Higher body fat, extra cushion.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.28)"
+                      },
+                      { 
+                        val: "Obese (30%+)", label: "Obese", desc: "Significant body fat mass.", 
+                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.45)"
+                      }
+                    ];
+
+                    return options.map(opt => (
+                      <label key={opt.val} className={`group relative flex flex-col rounded-xl border cursor-pointer transition-all overflow-hidden ${
+                        profileForm.body_fat === opt.val 
+                          ? 'border-blue-400 bg-blue-400/10 shadow-[0_0_15px_rgba(96,165,250,0.15)]' 
+                          : 'border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/20'
+                      }`}>
+                        <input type="radio" name="body_fat" value={opt.val} 
+                          checked={profileForm.body_fat === opt.val}
+                          onChange={e => setProfileForm({ ...profileForm, body_fat: e.target.value })} 
+                          className="absolute opacity-0 w-0 h-0" />
+                        
+                        <div className="w-full h-44 relative flex items-center justify-center overflow-hidden bg-white/5 pt-2">
+                          <img src={opt.img} alt={opt.label} style={{ transform: opt.scale }} className="w-full h-full object-contain filter invert opacity-70 group-hover:opacity-100 transition-all drop-shadow-[0_0_8px_rgba(96,165,250,0.3)]" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                          {profileForm.body_fat === opt.val && <div className="absolute right-3 top-3 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_rgba(96,165,250,1)]"></div>}
+                        </div>
+                        
+                        <div className="p-4 pt-1">
+                          <span className="font-bold text-zinc-200 text-sm mt-2 block">{opt.label}</span>
+                          <span className="text-[10px] font-bold text-blue-300 mt-0.5 block">{opt.val.split(' ').pop()}</span>
+                          <span className="text-[11px] text-zinc-500 mt-2 leading-relaxed block">{opt.desc}</span>
+                        </div>
+                      </label>
+                    ));
+                  })()}
+                </div>
+              </div>
+
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅳ — ACCOUNT &amp; CONTACT</h3>
+                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅴ — ACCOUNT &amp; CONTACT</h3>
                 <p className="text-xs text-zinc-500 mb-4">Where your daily AI plans are sent</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
@@ -568,6 +677,110 @@ function App() {
               </button>
             </form>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (view === 'tutorial') {
+    return (
+      <div className="gym-page py-8 px-4">
+        <div className="max-w-4xl mx-auto space-y-8 fade-up">
+          <button onClick={() => setView('dashboard')} className="text-yellow-400 font-bold mb-2 hover:underline text-sm">← Back to Command Center</button>
+          <Panel kicker="SYSTEM TRAINING" title="INTERFACE TUTORIAL" sub="Learn exactly how to interact with the core modules.">
+            <div className="grid grid-cols-1 gap-12 mt-6">
+              
+              {/* Step 1 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">1.</span> Profile Form</h3>
+                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
+                  <div className="grid grid-cols-2 gap-4 mb-4 opacity-50 pointer-events-none">
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase mb-1 block">Age</label>
+                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-white font-mono flex items-center gap-1">
+                        <span>28</span><span className="border-r-2 border-yellow-400 animate-pulse h-4"></span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase mb-1 block">Goal</label>
+                      <div className="bg-yellow-400/10 border border-yellow-400/50 text-yellow-200 rounded-lg p-3 text-sm relative shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                        Build Muscle 
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
+                    <strong className="text-white">Action:</strong> Simply type your numbers in the fields. The AI uses your weight to calculate <span className="text-emerald-400 font-bold">calorie intake</span> and your goal to adjust <span className="text-orange-400 font-bold">workout volume</span>.
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">2.</span> Log Progress</h3>
+                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
+                  <div className="space-y-3 mb-4 opacity-50 pointer-events-none">
+                    <div className="flex gap-2">
+                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-300 flex-1 relative hidden md:block">
+                        <span className="text-zinc-500">Select exercise...</span>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                      </div>
+                      <div className="bg-yellow-400/10 border border-yellow-400/50 rounded-lg p-3 text-sm text-yellow-200 font-mono w-20 text-center flex justify-center items-center gap-0.5 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                        4<span className="border-r-2 border-yellow-400 animate-pulse h-4"></span>
+                      </div>
+                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-500 font-mono w-20 text-center">Reps</div>
+                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-500 font-mono w-24 text-center">Weight</div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
+                    <strong className="text-white">Action:</strong> Select an exercise from the dropdown (or type a custom one), then enter the <strong className="text-white">Sets</strong>, <strong className="text-white">Reps</strong>, and <strong className="text-white">Weight (kg)</strong> you actually lifted today. Click "Commit" to update your volume chart!
+                  </div>
+                </div>
+              </div>
+
+            {/* Step 3 */}
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">3.</span> Command Center</h3>
+              <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
+                <div className="mb-4 opacity-50 pointer-events-none">
+                  <div className="bg-yellow-400/10 border border-yellow-400/50 rounded-xl p-4 text-center relative shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+                    <span className="font-bold text-yellow-400 tracking-widest">GENERATE AI PLAN</span>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
+                  <strong className="text-white">Action:</strong> Hit this button every day. The AI Engine reads your vitals from the <strong className="text-white">Profile</strong> and your lifting data from the <strong className="text-white">Log Progress</strong> tab to calculate the perfect daily workout and diet chart!
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">4.</span> Muscle Guide</h3>
+              <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative flex flex-col md:flex-row gap-6 items-center">
+                <div className="w-full md:w-1/3 bg-black border border-white/10 rounded-xl p-4 relative h-40 flex items-center justify-center opacity-50">
+                   <div className="absolute inset-0 bg-[url('https://wger.de/static/images/muscles/muscular_system_front.svg')] bg-contain bg-center bg-no-repeat opacity-30"></div>
+                   <div className="absolute top-[20%] left-[25%] w-10 h-10 bg-red-500 rounded-full blur-sm"></div>
+                </div>
+                
+                <div className="flex-1 space-y-2 opacity-50 w-full pointer-events-none">
+                  <div className="border-l-2 border-zinc-700 pl-3 py-1">
+                    <div className="text-sm font-bold text-white">Front Deltoid</div>
+                  </div>
+                  
+                  <div className="border-l-2 border-yellow-400 bg-white/5 pl-3 py-2 rounded-r-lg relative shadow-[0_0_15px_rgba(250,204,21,0.1)]">
+                    <div className="text-sm font-bold text-yellow-400">Side Deltoid (Lateral)</div>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
+                <strong className="text-white">Action:</strong> Jump into the <strong className="text-white">Muscle Guide</strong> and hover your cursor over any sub-muscle in the list. The anatomical diagram will immediately isolate and highlight that specific muscle head!
+              </div>
+            </div>
+
+            </div>
+          </Panel>
         </div>
       </div>
     )
@@ -1024,6 +1237,13 @@ function App() {
           </>
         )}
       </div>
+
+      {toast && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] fade-up bg-zinc-900 border border-yellow-400/50 shadow-[0_0_40px_rgba(250,204,21,0.3)] rounded-xl p-5 text-sm font-bold text-white min-w-[300px] flex items-center justify-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

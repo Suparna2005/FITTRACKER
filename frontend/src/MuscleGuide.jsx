@@ -44,8 +44,9 @@ const MUSCLE_DB = [
     baseImg: "https://wger.de/static/images/muscles/muscular_system_front.svg",
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-2.svg"],
     heads: [
-      { name: "Front Deltoid (Anterior)", desc: "Pushes weight overhead and forward.", target: "Overhead Barbell Press", clip: "polygon(32% 0, 68% 0, 68% 100%, 32% 100%)" },
-      { name: "Side/Rear Deltoid", desc: "Creates shoulder width and the 'capped' look.", target: "Dumbbell Lateral Raises, Face Pulls", clip: "polygon(0 0, 32% 0, 32% 100%, 0 100%, 100% 0, 100% 100%, 68% 100%, 68% 0)" }
+      { name: "Front Deltoid (Anterior)", desc: "Pushes weight overhead and forward.", target: "Overhead Barbell Press, Front Raises", clip: "polygon(28% 0, 72% 0, 72% 100%, 28% 100%)" },
+      { name: "Side Deltoid (Lateral)", desc: "Creates shoulder width and the 'capped' look.", target: "Dumbbell Lateral Raises, Cable Laterals", clip: "polygon(22% 0, 28% 0, 28% 100%, 22% 100%)" },
+      { name: "Rear Deltoid (Posterior)", desc: "Pulls the shoulder blades back; crucial for posture.", target: "Face Pulls, Reverse Pec Deck, Bent-Over Flyes", clip: "polygon(0 0, 22% 0, 22% 100%, 0 100%)" }
     ]
   },
   {
@@ -61,8 +62,8 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-13.svg" // Brachialis
     ],
     heads: [
-      { name: "Short Head (Inner)", desc: "Provides width to the arm when viewed from the front.", target: "Wide-Grip Barbell Curls", clip: "polygon(22% 0, 78% 0, 78% 100%, 22% 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
-      { name: "Long Head (Outer)", desc: "Builds the bicep 'peak' when flexed.", target: "Incline Dumbbell Curls", clip: "polygon(0 0, 22% 0, 22% 100%, 0 100%, 100% 0, 100% 100%, 78% 100%, 78% 0)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
+      { name: "Short Head (Inner)", desc: "Provides width to the arm when viewed from the front.", target: "Wide-Grip Barbell Curls", clip: "polygon(25% 0, 75% 0, 75% 100%, 25% 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
+      { name: "Long Head (Outer)", desc: "Builds the bicep 'peak' when flexed.", target: "Incline Dumbbell Curls", clip: "polygon(0 0, 25% 0, 25% 100%, 0 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
       { name: "Brachialis", desc: "Sits under the bicep; pushes the whole muscle up.", target: "Hammer Curls", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-13.svg"] }
     ]
   },
@@ -77,7 +78,7 @@ const MUSCLE_DB = [
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-5.svg"],
     heads: [
       { name: "Long Head (Inner)", desc: "The largest head; requires arms to be overhead.", target: "Overhead Dumbbell Extensions", clip: "polygon(25% 0, 75% 0, 75% 100%, 25% 100%)" },
-      { name: "Lateral Head (Outer)", desc: "The 'horseshoe' shape on the outside of the arm.", target: "Rope Pushdowns", clip: "polygon(0 0, 25% 0, 25% 100%, 0 100%, 100% 0, 100% 100%, 75% 100%, 75% 0)" },
+      { name: "Lateral Head (Outer)", desc: "The 'horseshoe' shape on the outside of the arm.", target: "Rope Pushdowns", clip: "polygon(0 0, 25% 0, 25% 100%, 0 100%)" },
       { name: "Medial Head", desc: "Stabilizes the elbow at full extension.", target: "Reverse-Grip Pushdowns", clip: "polygon(0 35%, 100% 35%, 100% 100%, 0 100%)" }
     ]
   },

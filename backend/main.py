@@ -17,7 +17,7 @@ def _ensure_user_food_columns():
         if "users" not in insp.get_table_names():
             return
         existing = {c["name"] for c in insp.get_columns("users")}
-        for col in ("diet_cuisine", "diet_type"):
+        for col in ("diet_cuisine", "diet_type", "body_fat"):
             if col not in existing:
                 try:
                     # postgres
@@ -74,6 +74,7 @@ class UserCreate(BaseModel):
     # Optional food / cuisine preference (drives diet chart)
     diet_cuisine: Optional[str] = "Generic Indian"
     diet_type: Optional[str] = "No Preference"
+    body_fat: Optional[str] = None
 
 class WorkoutImport(BaseModel):
     user_id: int
@@ -131,6 +132,22 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
     if not db_user or db_user.password != user.password:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     return db_user
+
+class PasswordReset(BaseModel):
+    identifier: str
+    new_password: str
+
+@app.post("/reset_password/")
+def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(
+        (models.User.phone_number == data.identifier) | (models.User.email == data.identifier)
+    ).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    db_user.password = data.new_password
+    db.commit()
+    return {"status": "success", "message": "Password reset successfully."}
 
 @app.post("/log_history/")
 def log_history(log: ManualLog, db: Session = Depends(get_db)):
