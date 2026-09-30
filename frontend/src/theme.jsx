@@ -110,10 +110,11 @@ export function TopBar({ user, onNav, onLogout, active, unread = 0, onBell }) {
   </div>
   </div>
   <div className="flex gap-2.5 flex-wrap items-center">
-  {btn('profile', 'Profile')}
   {btn('tutorial', 'Tutorial')}
-  {btn('guide', 'Muscle Guide')}
+  {btn('profile', 'Profile')}
   {btn('split', 'Workout Split')}
+  {btn('vision', 'AI Vision')}
+  {btn('input', 'Log Progress')}
   <button onClick={onBell} title="Notifications — always delivered, no keys needed"
   className="relative font-bold text-sm px-4 py-2.5 rounded-xl text-zinc-200 border border-white/10 bg-white/5 hover:bg-white/10 transition">
   Inbox
@@ -121,7 +122,7 @@ export function TopBar({ user, onNav, onLogout, active, unread = 0, onBell }) {
   style={{ background: 'linear-gradient(135deg,#fde047,#f59e0b)' }}>{unread > 99 ? '99+' : unread}</span>
 )}
   </button>
-  {btn('input', 'Log Progress')}
+  {btn('guide', 'Muscle Guide')}
   <button onClick={onLogout}
   className="font-bold text-sm px-5 py-2.5 rounded-xl text-zinc-400 border border-white/10 hover:bg-white/5 transition">
   Logout

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import WorkoutSplitBuilder from './WorkoutSplitBuilder'
 import MuscleGuide from './MuscleGuide'
+import VisionHub from './VisionHub'
 import { AuthShell, TopBar, Panel, LOGIN_IMG, IRON_IMG, DARK_GYM_IMG, HERO_IMG } from './theme'
 
 const EXERCISE_DB = {
@@ -408,13 +409,37 @@ function App() {
     try {
       const data = await (await fetch(`http://localhost:8000/users/${user.id}/history?date=${historyDate}`)).json()
       if (data && data.length > 0) {
-        setPlan({
-          workout_plan: data[0].workout_data,
-          diet_chart: data[0].diet_data,
-          calorie_summary: data[0].workout_data?.calorie_summary || null
-        })
+        // Separate logged history from generated plans
+        const logs = data.filter(d => d.workout_data && d.workout_data.date);
+        const plans = data.filter(d => d.workout_data && d.workout_data.day);
+        
+        const primaryData = logs.length > 0 ? logs[0] : plans[0];
+        
+        if (primaryData) {
+          if (primaryData.workout_data.date) {
+            // It's a Logged Workout (Manual or Webcam)
+            setPlan({
+              is_log: true,
+              log_notes: primaryData.workout_data.notes,
+              workout_plan: {
+                day: `LOGGED BATTLE (${primaryData.workout_data.date})`,
+                focus: "Actual exercises performed:",
+                exercises: primaryData.workout_data.exercises || []
+              },
+              diet_chart: null
+            });
+          } else {
+            // It's a Generated Plan
+            setPlan({
+              is_log: false,
+              workout_plan: primaryData.workout_data,
+              diet_chart: primaryData.diet_data,
+              calorie_summary: primaryData.workout_data?.calorie_summary || null
+            });
+          }
+        }
       } else {
-        showToast('No plan found for this date.')
+        showToast('No history found for this date.')
         setPlan(null)
       }
     } catch { showToast('Error fetching history plan.') }
@@ -565,9 +590,8 @@ function App() {
                   <select required value={profileForm.experience_level} onChange={e => setProfileForm({ ...profileForm, experience_level: e.target.value })} className="field-dark">
                     <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
                   </select>
-                  <select required value={profileForm.equipment} onChange={e => setProfileForm({ ...profileForm, equipment: e.target.value })} className="field-dark">
-                    <option>Full Gym</option><option>Dumbbells Only</option><option>Bodyweight</option>
-                  </select>
+                  <input type="text" required placeholder="Available Equipment (e.g. Full Gym, or Dumbbells, Bench)" value={profileForm.equipment}
+                    onChange={e => setProfileForm({ ...profileForm, equipment: e.target.value })} className="field-dark" />
                   <TimePicker value={profileForm.notification_time}
                     onChange={v => setProfileForm({ ...profileForm, notification_time: v })} />
                 </div>
@@ -968,6 +992,16 @@ function App() {
           <MuscleGuide onClose={() => setView('dashboard')} />
         )}
 
+        {view === 'vision' && (
+          <VisionHub 
+            user={user} 
+            plan={plan}
+            onClose={() => setView('dashboard')} 
+            onNavigate={(v) => setView(v)} 
+            updateUser={(updated) => { setUser(updated); showToast("Profile Updated from Vision Scanner!"); setView("profile"); }}
+          />
+        )}
+
         {needsProfile && view === 'dashboard' && (
           <div className="mb-6 rounded-2xl border border-yellow-400/40 bg-yellow-400/10 p-5 flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -1103,9 +1137,26 @@ function App() {
                 </div>
 
                 <button onClick={generatePlan} disabled={loading || needsProfile}
-                  className="gold-btn font-extrabold py-4 px-8 rounded-2xl w-full text-base">
+                  className="gold-btn font-extrabold py-4 px-8 rounded-2xl w-full text-base shadow-[0_0_20px_rgba(250,204,21,0.2)]">
                   {loading ? 'ANALYZING DATA...' : 'GENERATE NEXT AI PLAN'}
                 </button>
+                
+                <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Or view past workouts:</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="date" 
+                      max={new Date().toISOString().slice(0, 10)}
+                      value={historyDate} 
+                      onChange={e => setHistoryDate(e.target.value)} 
+                      className="field-dark flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none cursor-pointer"
+                      style={{ colorScheme: 'dark' }}
+                    />
+                    <button onClick={fetchOldPlan} disabled={loading} className="font-bold text-xs px-4 rounded-xl text-yellow-300 border border-yellow-400/30 bg-yellow-400/10 hover:bg-yellow-400/20 transition whitespace-nowrap">
+                      Search 🔍
+                    </button>
+                  </div>
+                </div>
 
                 {plan && (
                   <div className="mt-5 space-y-3 overflow-auto max-h-[32rem] pr-1 nice-scroll">
@@ -1164,6 +1215,13 @@ function App() {
                         </span>
                       </div>
                       <p className="text-sm text-yellow-300/90 mb-3 font-semibold">{plan.workout_plan?.focus || ''}</p>
+                      
+                      {plan.is_log && plan.log_notes && (
+                        <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-emerald-200 text-xs italic">
+                          {plan.log_notes}
+                        </div>
+                      )}
+                      
                       <div className="space-y-2">
                         {(plan.workout_plan?.exercises || []).map((ex, i) => (
                           <div key={i} className="bg-white/[0.04] border border-white/10 p-3 rounded-xl flex justify-between items-center">
@@ -1180,6 +1238,7 @@ function App() {
                       </div>
                     </div>
 
+                    {!plan.is_log && (
                     <div className="border border-emerald-400/20 bg-emerald-400/[0.06] p-4 rounded-2xl">
                       <h4 className="font-display font-bold text-white tracking-wide">WAR-RATIONS — {plan.diet_chart?.daily_calories || plan.diet_chart?.calories || ''}{' '}
                         {(plan.diet_chart?.daily_calories || plan.diet_chart?.calories) ? 'kcal' : ''}</h4>
@@ -1230,6 +1289,7 @@ function App() {
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
                 )}
               </Panel>

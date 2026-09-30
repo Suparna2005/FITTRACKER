@@ -477,6 +477,19 @@ def delete_notification(notif_id: int, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+class VisionRequest(BaseModel):
+    image_base64: str
+    mode: Optional[str] = "food"
+
+@app.post("/analyze_vision/")
+def analyze_vision_image(req: VisionRequest):
+    return ai_service.analyze_vision_image(req.image_base64, req.mode)
+
+@app.post("/analyze_food_image/")
+def analyze_food_image(req: VisionRequest):
+    return ai_service.analyze_vision_image(req.image_base64, "food")
+
+
 def _inbox(db, user_id: int, title: str, body: str, channel: str = "auto"):
     db.add(models.Notification(user_id=user_id, title=title, body=body, channel=channel))
     db.commit()
