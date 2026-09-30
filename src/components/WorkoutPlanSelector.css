@@ -1,0 +1,35 @@
+/* WorkoutPlanSelector.css
+   Extra micro-animations & utilities not covered by Tailwind base.
+   Import this in WorkoutPlanSelector.jsx if you're not using a Tailwind CDN/JIT build.
+*/
+
+/* Smooth card lift */
+.plan-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
+}
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.25);
+}
+
+/* Bounce-in success icon */
+@keyframes bounce-in {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.success-icon {
+  animation: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Shimmer loading state (optional) */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

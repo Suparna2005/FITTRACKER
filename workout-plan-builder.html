@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Workout Plan Builder – Fitness Tracker</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+  --bg1:#0f0c29;--bg2:#302b63;--bg3:#24243e;
+  --card:rgba(255,255,255,.06);--border:rgba(255,255,255,.12);
+  --accent:#6366f1;--accent2:#8b5cf6;--green:#22c55e;
+  }
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;
+  background-color:#09090b;
+  background-image:linear-gradient(180deg,rgba(9,9,11,.9),rgba(9,9,11,.84) 45%,rgba(9,9,11,.96)),
+  url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1920&auto=format&fit=crop');
+  background-size:cover;background-position:center;background-attachment:fixed;
+  padding:32px 16px 64px;color:#fff}
+  .container{max-width:1020px;margin:0 auto}
+  .header{text-align:center;margin-bottom:24px}
+  .header-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);
+  padding:6px 18px;border-radius:999px;color:rgba(255,255,255,.7);font-size:13px;margin-bottom:14px}
+  .header h1{font-size:clamp(28px,5vw,42px);font-weight:900}
+  .header h1 span{background:linear-gradient(90deg,#fef08a,#facc15,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .header p{color:rgba(255,255,255,.5);margin-top:8px;font-size:15px}
+  .steps{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+  .step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.4);transition:all .3s}
+  .step-dot.active{background:#4f46e5;color:#fff;box-shadow:0 0 0 4px rgba(99,102,241,.3)}
+  .step-dot.done{background:var(--green);color:#fff}
+  .step-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.35)}
+  .step-label.active,.step-label.done{color:#fff}
+  .step-line{width:32px;height:2px;background:rgba(255,255,255,.15)}
+  .step-line.done{background:var(--green)}
+
+  .panel{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:20px}
+  .panel-title{font-size:15px;font-weight:800;letter-spacing:.4px;margin-bottom:4px}
+  .panel-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px}
+
+  /* Mode cards */
+  .modes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .mode-card{background:var(--card);border:2px solid var(--border);border-radius:18px;padding:18px;cursor:pointer;
+  text-align:left;color:#fff;transition:all .22s;font-family:inherit;width:100%}
+  .mode-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+  .mode-card.selected{background:rgba(99,102,241,.18);border-color:var(--accent);box-shadow:0 12px 32px rgba(99,102,241,.3)}
+  .mode-icon{font-size:30px;margin-bottom:6px}
+  .mode-name{font-weight:800;font-size:16px;margin-bottom:4px}
+  .mode-desc{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.5}
+  .mode-check{margin-top:10px;font-size:12px;font-weight:800;color:#a5b4fc;display:none}
+  .mode-card.selected .mode-check{display:block}
+
+  /* Days selector */
+  .days-row{display:flex;gap:10px;flex-wrap:wrap}
+  .days-btn{flex:1;min-width:110px;background:rgba(255,255,255,.06);border:2px solid var(--border);color:#fff;
+  border-radius:14px;padding:12px;cursor:pointer;font-weight:800;font-size:14px;transition:all .2s;font-family:inherit}
+  .days-btn small{display:block;font-weight:500;font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+  .days-btn.selected{background:#4f46e5;border-color:#818cf8;box-shadow:0 8px 24px rgba(99,102,241,.35)}
+  .days-btn.selected small{color:rgba(255,255,255,.8)}
+
+  .section-title{text-align:left;color:#c7d2fe;font-weight:800;margin:6px 0 14px;font-size:16px}
+  .splits-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .split-card{background:var(--card);border:2px solid var(--border);border-radius:20px;padding:20px;cursor:pointer;
+  text-align:left;color:#fff;transition:all .25s;position:relative;font-family:inherit;width:100%}
+  .split-card:hover{background:rgba(99,102,241,.15);border-color:var(--accent);transform:translateY(-4px);box-shadow:0 16px 40px rgba(99,102,241,.25)}
+  .split-icon{font-size:30px;margin-bottom:8px}
+  .split-name{font-weight:800;font-size:17px;margin-bottom:5px}
+  .split-badge{display:inline-block;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:999px;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .split-desc{color:rgba(255,255,255,.55);font-size:13px;line-height:1.5;margin-bottom:12px}
+  .schedule-preview{border-top:1px solid rgba(255,255,255,.1);padding-top:10px}
+  .preview-label{color:rgba(255,255,255,.3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .day-dots{display:flex;gap:4px}
+  .day-dot{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:rgba(255,255,255,.2)}
+  .day-dot.active{background:#4f46e5;color:#fff}
+  .select-arrow{margin-top:10px;color:#818cf8;font-weight:700;font-size:13px}
+
+  .back-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  color:#fff;font-size:18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s}
+  .back-btn:hover{background:rgba(255,255,255,.15)}
+  .customize-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .customize-title{flex:1;min-width:200px}
+  .customize-title h2{font-size:20px;font-weight:800}
+  .customize-title p{color:rgba(255,255,255,.45);font-size:13px;margin-top:2px}
+  .day-counter{background:rgba(255,255,255,.08);border-radius:999px;padding:6px 14px;font-size:13px;white-space:nowrap}
+  .day-counter strong{font-weight:800}
+  .day-counter span{color:rgba(255,255,255,.5)}
+
+  .combos-section{margin-bottom:14px}
+  .combos-label{color:rgba(255,255,255,.6);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+  .combos-row{display:flex;flex-wrap:wrap;gap:8px}
+  .combo-wrapper{position:relative}
+  .combo-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;
+  font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;font-family:inherit}
+  .combo-btn:hover,.combo-btn.open{background:#4f46e5;border-color:#6366f1}
+  .combo-btn.single{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}
+  .combo-btn.single:hover{background:#16a34a;border-color:#22c55e}
+  .combo-dropdown{position:absolute;top:110%;left:0;z-index:50;background:#1e1b4b;border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;min-width:160px;box-shadow:0 10px 30px rgba(0,0,0,.5);overflow:hidden;display:none}
+  .combo-dropdown.show{display:block}
+  .combo-dropdown-title{color:rgba(255,255,255,.4);font-size:11px;padding:8px 12px 4px}
+  .combo-day-btn{display:block;width:100%;text-align:left;background:none;border:none;color:#e0e7ff;font-size:13px;
+  padding:7px 14px;cursor:pointer;transition:background .15s;font-family:inherit}
+  .combo-day-btn:hover{background:rgba(99,102,241,.2)}
+
+  .week-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:20px}
+  .day-card{background:#1e1b4b;border:2px solid #312e81;border-radius:16px;padding:16px;transition:border-color .2s}
+  .day-card.has-muscles{background:#1e293b;border-color:#4f46e5}
+  .day-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+  .day-name{font-weight:700;color:#e0e7ff;font-size:14px}
+  .day-subtitle{font-size:11px;color:#818cf8}
+  .day-actions{display:flex;gap:6px}
+  .edit-btn{background:rgba(255,255,255,.1);border:none;border-radius:8px;color:#fff;font-size:11px;padding:5px 10px;
+  cursor:pointer;font-weight:700;transition:background .2s;font-family:inherit}
+  .edit-btn:hover,.edit-btn.done{background:#4f46e5}
+  .clear-btn{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.5);
+  font-size:11px;padding:4px 8px;cursor:pointer;font-family:inherit}
+  .clear-btn:hover{color:#fca5a5;border-color:#ef4444}
+  .tags-area{display:flex;flex-wrap:wrap;min-height:28px}
+  .muscle-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;
+  font-weight:600;color:#fff;margin:2px;white-space:nowrap}
+  .tag-remove{background:none;border:none;color:rgba(255,255,255,.85);cursor:pointer;font-size:11px;padding:0;margin-left:2px}
+  .rest-hint{font-size:12px;color:rgba(255,255,255,.3)}
+  .picker{margin-top:12px;border-top:1px solid rgba(255,255,255,.1);padding-top:10px;display:none}
+  .picker.show{display:block}
+  .picker-label{color:rgba(255,255,255,.4);font-size:11px;margin-bottom:6px}
+  .picker-btn{margin:2px;padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.05);color:#fff;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+  .picker-btn.active{border-color:transparent;transform:scale(1.05)}
+
+  .warn{background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.4);color:#fde68a;font-size:12.5px;
+  border-radius:12px;padding:10px 14px;margin-bottom:16px;line-height:1.5}
+  .btn-row{display:flex;gap:12px;flex-wrap:wrap}
+  .btn-primary{flex:2;min-width:200px;padding:14px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
+  border:none;border-radius:16px;font-size:16px;font-weight:800;cursor:pointer;
+  box-shadow:0 8px 24px rgba(99,102,241,.35);transition:all .2s;font-family:inherit}
+  .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 30px rgba(99,102,241,.45)}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-secondary{flex:1;min-width:150px;padding:14px 24px;background:rgba(255,255,255,.08);color:#fff;
+  border:1px solid rgba(255,255,255,.15);border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+  .btn-secondary:hover{background:rgba(255,255,255,.14)}
+  .btn-green{width:100%;padding:18px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;
+  border-radius:16px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(34,197,94,.3);transition:all .2s;font-family:inherit}
+  .btn-green:hover{transform:translateY(-2px)}
+  .stats-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .stat-card{flex:1;min-width:120px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:14px 12px;text-align:center}
+  .stat-val{font-size:26px;font-weight:900}
+  .stat-lbl{font-size:12px;color:rgba(255,255,255,.5);margin-top:4px}
+  .day-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;padding:10px 14px;margin-bottom:8px}
+  .day-row.active-row{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3)}
+  .day-abbr{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;flex-shrink:0;background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
+  .day-abbr.active-abbr{background:#4f46e5;color:#fff}
+  .success{text-align:center;padding:60px 0}
+  .success-icon{font-size:64px;margin-bottom:12px;display:block;animation:bounce .6s infinite alternate}
+  @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+  .hidden{display:none!important}
+  .toast(){position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:#16a34a;color:#fff;
+  padding:12px 22px;border-radius:999px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);
+  transition:transform .3s;z-index:100}
+  .toast().show{transform:translateX(-50%) translateY(0)}
+  @media(max-width:600px){.splits-grid,.week-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+  <div class="header-badge"> Fitness Tracker</div>
+  <h1>Build Your <span>Weekly Plan</span></h1>
+  <p>Full-body, single-muscle days, or smart combos — your week, your rules</p>
+  </div>
+
+  <div class="steps" id="steps">
+  <div class="step-dot active" id="dot1">1</div>
+  <div class="step-label active" id="lbl1">Training Style</div>
+  <div class="step-line" id="line1"></div>
+  <div class="step-dot" id="dot2">2</div>
+  <div class="step-label" id="lbl2">Customize</div>
+  <div class="step-line" id="line2"></div>
+  <div class="step-dot" id="dot3">3</div>
+  <div class="step-label" id="lbl3">Save Plan</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1">
+  <div class="panel">
+  <div class="panel-title">① How do you want to train?</div>
+  <div class="panel-sub">Pick a training style — you can still edit every day afterwards.</div>
+  <div class="modes-grid" id="modesGrid"></div>
+  </div>
+
+  <div class="panel">
+  <div class="panel-title">② How many days per week?</div>
+  <div class="panel-sub">Rest days are auto-balanced. You can move them in the next step.</div>
+  <div class="days-row" id="daysRow"></div>
+  </div>
+
+  <p class="section-title" id="splitsTitle">Recommended splits</p>
+  <div class="splits-grid" id="splitsGrid"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="hidden">
+  <div class="customize-header">
+  <button class="back-btn" onclick="goStep(1)" title="Back">←</button>
+  <div class="customize-title">
+  <h2 id="splitTitle">Split Name</h2>
+  <p>Tap <strong>+ Edit</strong> to toggle muscles • <strong>✕ Clear</strong> to make a rest day • use quick buttons below</p>
+  </div>
+  <div class="day-counter"><strong id="workoutDayCount">0</strong><span> / 7 workout days</span></div>
+  </div>
+
+  <div class="combos-section">
+  <div class="combos-label"> Single muscle — tap, then pick a day</div>
+  <div class="combos-row" id="singlesRow"></div>
+  </div>
+
+  <div class="combos-section">
+  <div class="combos-label"> Smart combos — e.g. Back + Biceps, Chest + Triceps</div>
+  <div class="combos-row" id="combosRow"></div>
+  </div>
+
+  <div id="balanceWarn"></div>
+  <div class="week-grid" id="weekGrid"></div>
+
+  <div class="btn-row">
+  <button class="btn-secondary" onclick="goStep(1)">← Start Over</button>
+  <button class="btn-primary" id="reviewBtn" onclick="goStep(3)" disabled>Review Plan →</button>
+  </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" class="hidden">
+  <div class="customize-header" style="margin-bottom:20px">
+  <button class="back-btn" onclick="goStep(2)">←</button>
+  <h2 style="flex:1;font-weight:800;font-size:20px">Your Weekly Plan</h2>
+  </div>
+  <div id="savedView" class="hidden success">
+  <span class="success-icon"></span>
+  <h3 style="font-size:28px;font-weight:900;margin-bottom:8px">Plan Saved!</h3>
+  <p style="color:rgba(255,255,255,.5);margin-bottom:24px" id="savedSub">Time to crush it! </p>
+  <div class="btn-row" style="max-width:420px;margin:0 auto">
+  <button class="btn-secondary" onclick="goStep(1)">Create New Plan</button>
+  <button class="btn-secondary" onclick="downloadPlan()">⬇ Download</button>
+  </div>
+  </div>
+  <div id="reviewView">
+  <div class="stats-row" id="statsRow"></div>
+  <div id="balanceReview"></div>
+  <div id="dayList" style="margin-bottom:20px"></div>
+  <div class="btn-row">
+  <button class="btn-green" onclick="savePlan()"> Save My Workout Plan</button>
+  </div>
+  </div>
+  </div>
+
+</div>
+<div class="toast()" id="toast()"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+const MUSCLES = [
+  { id:"chest",  label:"Chest",  emoji:"", g:["#ef4444","#f97316"] },
+  { id:"back",  label:"Back",  emoji:"", g:["#3b82f6","#06b6d4"] },
+  { id:"shoulders", label:"Shoulders",  emoji:"", g:["#a855f7","#ec4899"] },
+  { id:"biceps",  label:"Biceps",  emoji:"", g:["#22c55e","#10b981"] },
+  { id:"triceps",  label:"Triceps",  emoji:"", g:["#eab308","#f59e0b"] },
+  { id:"legs",  label:"Legs",  emoji:"", g:["#6366f1","#8b5cf6"] },
+  { id:"glutes",  label:"Glutes",  emoji:"", g:["#f43f5e","#ec4899"] },
+  { id:"abs",  label:"Core/Abs",  emoji:"", g:["#14b8a6","#22c55e"] },
+  { id:"cardio",  label:"Cardio",  emoji:"", g:["#f97316","#ef4444"] },
+];
+
+const MODES = [
+  { id:"fullbody", icon:"", name:"Full Body",
+  desc:"Same full-body workout every training day. Best for beginners & 3-day weeks." },
+  { id:"single", icon:"", name:"One Muscle / Day",
+  desc:"A different body part each day (Bro Split). Max focus, one muscle at a time." },
+  { id:"combo", icon:"", name:"Smart Combos",
+  desc:"Pair synergies: Back+Biceps, Chest+Triceps, Legs+Glutes. Most popular." },
+  { id:"custom", icon:"", name:"Fully Custom",
+  desc:"Blank week. Mix singles + combos freely for every day." },
+];
+
+const FULL = ["chest","back","shoulders","biceps","triceps","legs","abs"];
+
+const SPLITS = [
+  { id:"fullbody3", mode:"fullbody", label:"Full Body • 3 Days", icon:"", badge:"Beginner Friendly", badgeColor:"#16a34a",
+  desc:"Train every major muscle each session, 3× per week. Full recovery between days.",
+  days:3,
+  schedule:{ Monday:FULL, Tuesday:[], Wednesday:FULL, Thursday:[], Friday:FULL, Saturday:[], Sunday:[] } },
+  { id:"fullbody4", mode:"fullbody", label:"Full Body • 4 Days", icon:"", badge:"Beginner +", badgeColor:"#16a34a",
+  desc:"Full-body engine 4× per week with mid-week rest days.",
+  days:4,
+  schedule:{ Monday:FULL, Tuesday:FULL, Wednesday:[], Thursday:FULL, Friday:FULL, Saturday:[], Sunday:[] } },
+  { id:"bro5", mode:"single", label:"Bro Split • 5 Days", icon:"", badge:"One muscle / day", badgeColor:"#d97706",
+  desc:"Classic single-part days: Chest → Back → Shoulders → Legs → Arms.",
+  days:5,
+  schedule:{ Monday:["chest"], Tuesday:["back"], Wednesday:["shoulders"], Thursday:["legs"], Friday:["biceps","triceps"], Saturday:[], Sunday:[] } },
+  { id:"bro6", mode:"single", label:"Bro Split • 6 Days", icon:"", badge:"Advanced", badgeColor:"#d97706",
+  desc:"Dedicate each day to one group + core/cardio finisher day.",
+  days:6,
+  schedule:{ Monday:["chest"], Tuesday:["back"], Wednesday:["shoulders"], Thursday:["legs","glutes"], Friday:["biceps","triceps"], Saturday:["abs","cardio"], Sunday:[] } },
+  { id:"ppl", mode:"combo", label:"Push / Pull / Legs", icon:"", badge:"Most Popular", badgeColor:"#2563eb",
+  desc:"Push (Chest+Shoulders+Triceps) • Pull (Back+Biceps) • Legs. Repeat 2×.",
+  days:6,
+  schedule:{ Monday:["chest","shoulders","triceps"], Tuesday:["back","biceps"], Wednesday:["legs","glutes"], Thursday:["chest","shoulders","triceps"], Friday:["back","biceps"], Saturday:["legs","glutes"], Sunday:[] } },
+  { id:"upper_lower", mode:"combo", label:"Upper / Lower • 4 Days", icon:"", badge:"Intermediate", badgeColor:"#7c3aed",
+  desc:"Alternate upper-body combos and lower-body combos, 4 days a week.",
+  days:4,
+  schedule:{ Monday:["chest","back","shoulders","biceps","triceps"], Tuesday:["legs","glutes","abs"], Wednesday:[], Thursday:["chest","back","shoulders","biceps","triceps"], Friday:["legs","glutes","abs"], Saturday:[], Sunday:[] } },
+  { id:"arnold", mode:"combo", label:"Arnold Split", icon:"", badge:"Classic Combos", badgeColor:"#db2777",
+  desc:"Chest+Back • Shoulders+Arms • Legs. Old-school mass builder.",
+  days:6,
+  schedule:{ Monday:["chest","back"], Tuesday:["shoulders","biceps","triceps"], Wednesday:["legs","glutes","abs"], Thursday:["chest","back"], Friday:["shoulders","biceps","triceps"], Saturday:["legs","glutes","abs"], Sunday:[] } },
+  { id:"custom", mode:"custom", label:"Build Your Own", icon:"", badge:"Fully Custom", badgeColor:"#db2777",
+  desc:"Blank week. Add single muscles or combos day-by-day yourself.",
+  days:0, schedule:null },
+];
+
+const COMBOS = [
+  { muscles:["back","biceps"],  label:"Back + Biceps",  icon:"", why:"Pull synergy" },
+  { muscles:["chest","triceps"],  label:"Chest + Triceps",  icon:"", why:"Push synergy" },
+  { muscles:["chest","shoulders","triceps"],label:"Push Day",  icon:"", why:"Chest+Shoulders+Triceps" },
+  { muscles:["back","biceps","abs"],  label:"Pull Day",  icon:"", why:"Back+Biceps+Core" },
+  { muscles:["legs","glutes"],  label:"Legs + Glutes",  icon:"", why:"Lower power" },
+  { muscles:["shoulders","abs"],  label:"Shoulders + Core", icon:"", why:"Stability" },
+  { muscles:["biceps","triceps"],  label:"Arms Day",  icon:"", why:"Biceps+Triceps" },
+  { muscles:["chest","back"],  label:"Chest + Back",  icon:"", why:"Arnold classic" },
+  { muscles:["shoulders","biceps","triceps"],label:"Shoulders + Arms",icon:"", why:"Delts & arms" },
+  { muscles:["legs","abs","cardio"],  label:"Legs + Core + Cardio", icon:"", why:"Conditioning" },
+];
+
+// ── STATE ────────────────────────────────────────────────────────────
+let currentStep = 1;
+let selectedMode = "combo";
+let selectedDays = 5;
+let selectedSplit = null;
+let schedule = Object.fromEntries(DAYS.map(d => [d, []]));
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function getMuscle(id){ return MUSCLES.find(m => m.id === id); }
+function tagHTML(id, removable=false, day=""){
+  const m = getMuscle(id); if(!m) return '';
+  const bg = `linear-gradient(135deg,${m.g[0]},${m.g[1]})`;
+  const rm = removable ? `<button class="tag-remove" onclick="event.stopPropagation;removeFromDay('${day}','${id}')" title="Remove">✕</button>` : '';
+  return `<span class="muscle-tag" style="background:${bg}">${m.emoji} ${m.label}${rm}</span>`;
+}
+function countWorkoutDays(){ return DAYS.filter(d => schedule[d] && schedule[d].length > 0).length; }
+function toast(msg){
+  const t = document.getElementById('toast()'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(=>t.classList.remove('show'), 2200);
+}
+function updateCounter(){
+  document.getElementById('workoutDayCount').textContent = countWorkoutDays();
+  document.getElementById('reviewBtn').disabled = countWorkoutDays() === 0;
+  renderBalance();
+}
+function muscleFrequency(){
+  const f = {}; MUSCLES.forEach(m=>f[m.id]=0);
+  DAYS.forEach(d => (schedule[d]||[]).forEach(m => { if(f[m]!==undefined) f[m]++; }));
+  return f;
+}
+function renderBalance(){
+  const f = muscleFrequency();
+  const trained = Object.entries(f).filter(([k,v])=>v>0 && k!=='cardio');
+  const never = MUSCLES.filter(m=>m.id!=='cardio' && !f[m.id]).map(m=>m.label);
+  let html = '';
+  if(countWorkoutDays()>0 && never.length>=4){
+  html = `<div class="warn"> Untrained this week: <strong>${never.join(', ')}</strong>. Consider adding them or switching to a Full-Body split.</div>`;
+  } else if(countWorkoutDays()>=6){
+  html = `<div class="warn" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.4);color:#bbf7d0"> ${countWorkoutDays()} training days — remember at least 1 full rest day for recovery.</div>`;
+  }
+  document.getElementById('balanceWarn').innerHTML = html;
+}
+
+// ── STEPS ────────────────────────────────────────────────────────────
+function goStep(n){
+  currentStep = n;
+  ['step1','step2','step3'].forEach((id,i)=>document.getElementById(id).classList.toggle('hidden', i+1!==n));
+  [1,2,3].forEach(i=>{
+  const dot=document.getElementById('dot'+i), lbl=document.getElementById('lbl'+i);
+  dot.classList.toggle('done', i<n); dot.classList.toggle('active', i===n);
+  dot.textContent = i<n ? '✓' : i;
+  lbl.classList.toggle('active', i<=n); lbl.classList.toggle('done', i<n);
+  if(i<3) document.getElementById('line'+i).classList.toggle('done', i<n);
+  });
+  if(n===3) buildReview();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── STEP 1 ───────────────────────────────────────────────────────────
+function buildModes(){
+  document.getElementById('modesGrid').innerHTML = MODES.map(m=>`
+  <button class="mode-card ${selectedMode===m.id?'selected':''}" onclick="selectMode('${m.id}')">
+  <div class="mode-icon">${m.icon}</div>
+  <div class="mode-name">${m.name}</div>
+  <div class="mode-desc">${m.desc}</div>
+  <div class="mode-check">✓ Selected</div>
+  </button>`).join('');
+}
+function buildDaysRow(){
+  const opts = [
+  {n:3,sub:"Beginner • full-body"},
+  {n:4,sub:"Balanced"},
+  {n:5,sub:"Bro split sweet spot"},
+  {n:6,sub:"PPL / advanced"},
+  ];
+  document.getElementById('daysRow').innerHTML = opts.map(o=>`
+  <button class="days-btn ${selectedDays===o.n?'selected':''}" onclick="selectDays(${o.n})">
+  ${o.n} days<small>${o.sub}</small>
+  </button>`).join('');
+}
+function selectMode(id){ selectedMode=id; buildModes(); buildSplits(); }
+function selectDays(n){ selectedDays=n; buildDaysRow(); buildSplits(); }
+
+function buildSplits(){
+  const list = SPLITS.filter(s=>{
+  if(selectedMode==="custom") return true;
+  if(s.mode!==selectedMode) return false;
+  if(s.mode==="custom") return false;
+  return true;
+  });
+  const ordered = [...list].sort((a,b)=>Math.abs(a.days-selectedDays)-Math.abs(b.days-selectedDays));
+  const custom = SPLITS.find(s=>s.id==="custom");
+  const show = selectedMode==="custom" ? [...ordered, custom] : [...ordered, custom];
+  document.getElementById('splitsTitle').textContent =
+  selectedMode==="fullbody" ? `Full-body plans (every session = whole body)` :
+  selectedMode==="single"  ? `One-muscle-a-day plans (different part each day)` :
+  selectedMode==="combo"  ? `Combo plans (Back+Biceps, Chest+Triceps, …)` :
+  `All templates — or start blank`;
+  document.getElementById('splitsGrid').innerHTML = show.map(sp=>{
+  const preview = sp.schedule ? `<div class="schedule-preview">
+  <div class="preview-label">Schedule preview • ${sp.days} days</div>
+  <div class="day-dots">${DAYS.map(d=>{
+  const a = sp.schedule[d] && sp.schedule[d].length>0;
+  return `<div class="day-dot ${a?'active':''}" title="${d}: ${(sp.schedule[d]||[]).join(', ')||'Rest'}">${d[0]}</div>`;
+  }).join('')}</div></div>` : `<div class="schedule-preview"><div class="preview-label">Blank week — you fill it</div></div>`;
+  return `<button class="split-card" onclick="selectSplit('${sp.id}')">
+  <div class="split-icon">${sp.icon}</div>
+  <div class="split-name">${sp.label}</div>
+  <span class="split-badge" style="background:${sp.badgeColor}">${sp.badge}</span>
+  <p class="split-desc">${sp.desc}</p>${preview}
+  <div class="select-arrow">Select →</div></button>`;
+  }).join('');
+}
+
+function selectSplit(id){
+  selectedSplit = SPLITS.find(s=>s.id===id);
+  schedule = selectedSplit.schedule
+  ? Object.fromEntries(DAYS.map(d=>[d,[...(selectedSplit.schedule[d]||[])]]))
+  : Object.fromEntries(DAYS.map(d=>[d,[]]));
+  document.getElementById('splitTitle').textContent = `${selectedSplit.icon} ${selectedSplit.label}`;
+  buildSingles(); buildCombos(); buildWeekGrid(); updateCounter(); goStep(2);
+}
+
+// ── STEP 2 ───────────────────────────────────────────────────────────
+function dropdownHTML(key, label, icon, single=false){
+  return `<div class="combo-wrapper">
+  <button class="combo-btn ${single?'single':''}" onclick="toggleDropdown('${key}',this)">${icon} ${label} <span style="opacity:.5">▾</span></button>
+  <div class="combo-dropdown" id="dd-${key}">
+  <div class="combo-dropdown-title">Add to which day?</div>
+  ${DAYS.map(d=>`<button class="combo-day-btn" onclick="applyToDay('${key}','${d}')">${d} ${(schedule[d]||[]).length? '• '+schedule[d].length+' groups':'(rest)'}</button>`).join('')}
+  </div></div>`;
+}
+function buildSingles(){
+  document.getElementById('singlesRow').innerHTML =
+  MUSCLES.map(m=>dropdownHTML('s-'+m.id, m.label, m.emoji, true)).join('');
+}
+function buildCombos(){
+  document.getElementById('combosRow').innerHTML =
+  COMBOS.map((c,i)=>dropdownHTML('c-'+i, `${c.label}`, c.icon)).join('');
+}
+function toggleDropdown(key, btn){
+  const dd = document.getElementById('dd-'+key);
+  const wasOpen = dd.classList.contains('show');
+  document.querySelectorAll('.combo-dropdown').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.combo-btn').forEach(el=>el.classList.remove('open'));
+  if(!wasOpen){ dd.classList.add('show'); btn.classList.add('open'); }
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.combo-wrapper')){
+  document.querySelectorAll('.combo-dropdown').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.combo-btn').forEach(el=>el.classList.remove('open'));
+  }
+});
+function musclesForKey(key){
+  if(key.startsWith('s-')) return [key.slice(2)];
+  if(key.startsWith('c-')) return COMBOS[parseInt(key.slice(2))].muscles;
+  return [];
+}
+function applyToDay(key, day){
+  const muscles = musclesForKey(key);
+  schedule[day] = [...new Set([...(schedule[day]||[]), ...muscles])];
+  document.querySelectorAll('.combo-dropdown').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.combo-btn').forEach(el=>el.classList.remove('open'));
+  refreshDayCard(day); updateCounter();
+  toast(`${muscles.map(id=>getMuscle(id).label).join(' + ')} → ${day}`);
+}
+
+function buildWeekGrid(){
+  document.getElementById('weekGrid').innerHTML = DAYS.map(day=>dayCardHTML(day)).join('');
+}
+function dayCardHTML(day){
+  const muscles = schedule[day]||[];
+  const isRest = muscles.length===0;
+  const tags = isRest ? `<span class="rest-hint"> Rest — add a muscle or combo</span>`
+  : muscles.map(id=>tagHTML(id,true,day)).join('');
+  const pickerBtns = MUSCLES.map(m=>{
+  const active = muscles.includes(m.id);
+  const bg = active ? `linear-gradient(135deg,${m.g[0]},${m.g[1]})` : 'rgba(255,255,255,0.05)';
+  return `<button class="picker-btn ${active?'active':''}" style="background:${bg};border-color:${active?'transparent':'rgba(255,255,255,0.2)'}" onclick="toggleMuscle('${day}','${m.id}')">${m.emoji} ${m.label}</button>`;
+  }).join('');
+  return `<div class="day-card ${!isRest?'has-muscles':''}" id="card-${day}">
+  <div class="day-card-header">
+  <div><div class="day-name">${day}</div>
+  <div class="day-subtitle">${isRest?' Rest Day':`${muscles.length} group${muscles.length!==1?'s':''}`}</div></div>
+  <div class="day-actions">
+  ${!isRest?`<button class="clear-btn" onclick="clearDay('${day}')" title="Make rest day">✕</button>`:''}
+  <button class="edit-btn" onclick="togglePicker('${day}',this)">＋ Edit</button>
+  </div></div>
+  <div class="tags-area">${tags}</div>
+  <div class="picker" id="picker-${day}"><div class="picker-label">Tap to add / remove single muscles:</div>${pickerBtns}</div>
+  </div>`;
+}
+function refreshDayCard(day){
+  const card = document.getElementById('card-'+day); if(!card) return;
+  const wasOpen = document.getElementById('picker-'+day)?.classList.contains('show');
+  const tmp = document.createElement('div'); tmp.innerHTML = dayCardHTML(day);
+  card.replaceWith(tmp.firstChild);
+  if(wasOpen){
+  document.getElementById('picker-'+day).classList.add('show');
+  const b = document.querySelector(`#card-${day} .edit-btn`); if(b){b.textContent='Done ✓';b.classList.add('done');}
+  }
+}
+function togglePicker(day, btn){
+  const p = document.getElementById('picker-'+day);
+  const open = p.classList.contains('show');
+  p.classList.toggle('show', !open);
+  btn.textContent = open ? '＋ Edit' : 'Done ✓';
+  btn.classList.toggle('done', !open);
+}
+function toggleMuscle(day, muscleId){
+  const cur = schedule[day]||[];
+  schedule[day] = cur.includes(muscleId) ? cur.filter(x=>x!==muscleId) : [...cur, muscleId];
+  refreshDayCard(day);
+  const p = document.getElementById('picker-'+day); if(p) p.classList.add('show');
+  const b = document.querySelector(`#card-${day} .edit-btn`); if(b){b.textContent='Done ✓';b.classList.add('done');}
+  updateCounter();
+}
+function removeFromDay(day, muscleId){
+  schedule[day] = (schedule[day]||[]).filter(x=>x!==muscleId);
+  refreshDayCard(day);
+  const p = document.getElementById('picker-'+day); if(p) p.classList.add('show');
+  const b = document.querySelector(`#card-${day} .edit-btn`); if(b){b.textContent='Done ✓';b.classList.add('done');}
+  updateCounter();
+}
+function clearDay(day){ schedule[day]=[]; refreshDayCard(day); updateCounter(); toast(`${day} → Rest day`); }
+
+// ── STEP 3 ───────────────────────────────────────────────────────────
+function buildReview(){
+  const n = countWorkoutDays();
+  document.getElementById('statsRow').innerHTML = [
+  { v:n, l:'Workout Days' }, { v:7-n, l:'Rest Days' }, { v:selectedSplit?.icon||'', l:selectedSplit?.label||'Custom' },
+  ].map(s=>`<div class="stat-card"><div class="stat-val">${s.v}</div><div class="stat-lbl">${s.l}</div></div>`).join('');
+  const f = muscleFrequency();
+  const never = MUSCLES.filter(m=>m.id!=='cardio'&&!f[m.id]).map(m=>m.label);
+  document.getElementById('balanceReview').innerHTML = never.length&&never.length<4
+  ? `<div class="warn">ℹ Not trained this week: <strong>${never.join(', ')}</strong> — fine for a focused block, or go back and add them.</div>` : '';
+  document.getElementById('dayList').innerHTML = DAYS.map(day=>{
+  const ms = schedule[day]||[]; const rest = ms.length===0;
+  return `<div class="day-row ${!rest?'active-row':''}">
+  <div class="day-abbr ${!rest?'active-abbr':''}">${day.slice(0,3)}</div>
+  <div style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:2px">
+  ${rest?'<span style="color:rgba(255,255,255,.3);font-size:13px">Rest Day </span>':ms.map(id=>tagHTML(id)).join('')}
+  </div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4)">${rest?'':ms.length+' group'+(ms.length>1?'s':'')}</div>
+  </div>`;
+  }).join('');
+  document.getElementById('savedView').classList.add('hidden');
+  document.getElementById('reviewView').classList.remove('hidden');
+}
+function currentPlan(){
+  return { splitType:selectedSplit?.id||'custom', splitLabel:selectedSplit?.label||'Custom',
+  mode:selectedMode, daysPerWeek:countWorkoutDays(), schedule, savedAt:new Date.toISOString };
+}
+async function savePlan(){
+  const plan = currentPlan();
+  localStorage.setItem('fitnessWorkoutPlan', JSON.stringify(plan));
+  // try backend (optional)
+  try{
+  const uid = localStorage.getItem('fitnessUserId');
+  if(uid){
+  await fetch(`http://localhost:8000/workout_plans/?user_id=${uid}`, {
+  method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(plan) });
+  }
+  }catch(e){ console.warn('backend save skipped', e); }
+  console.log(' Plan saved:', plan);
+  document.getElementById('savedSub').innerHTML =
+  `Your <strong>${plan.splitLabel}</strong> plan (${plan.daysPerWeek} days/week) is ready. Time to crush it! `;
+  document.getElementById('savedView').classList.remove('hidden');
+  document.getElementById('reviewView').classList.add('hidden');
+  toast('Plan saved ');
+}
+function downloadPlan(){
+  const blob = new Blob([JSON.stringify(currentPlan(),null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'workout-plan.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+buildModes(); buildDaysRow(); buildSplits();
+</script>
+</body>
+</html>

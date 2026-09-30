@@ -28,7 +28,26 @@ def _deep_parse(obj):
                 return obj
     return obj
 
-def generate_plan(user_data, history_data, plan_type="1-day"):
+def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None, target_day=None):
+    split_txt = ""
+    try:
+        if workout_split and workout_split.get("schedule"):
+            sched = workout_split.get("schedule") or {}
+            if target_day and sched.get(target_day):
+                split_txt = f"\n    - Custom split '{workout_split.get('splitLabel', '')}': today ({target_day}) train {', '.join(sched.get(target_day) or [])}. Respect this split."
+            else:
+                split_txt = f"\n    - Custom split '{workout_split.get('splitLabel', '')}': {sched}. Respect it when picking body parts."
+    except Exception:
+        split_txt = ""
+    day_txt = f"\n    - Plan day: {target_day}." if target_day else ""
+    diet_txt = ""
+    try:
+        cui = getattr(user_data, "diet_cuisine", None)
+        dty = getattr(user_data, "diet_type", None)
+        if cui or dty:
+            diet_txt = f"\n    - Diet: cuisine '{cui or 'Generic Indian'}', habit '{dty or 'No Preference'}'. Write all meals in that cuisine."
+    except Exception:
+        diet_txt = ""
     prompt = f"""
     You are an expert AI personal trainer, doctor, and nutritionist. Return valid json only.
     
@@ -39,7 +58,7 @@ def generate_plan(user_data, history_data, plan_type="1-day"):
     - Age: {user_data.age} | Gender: {user_data.gender}
     - Initial Weight: {user_data.weight} | Initial Height: {user_data.height}
     - Blood Pressure: {user_data.blood_pressure} | Blood Group: {user_data.blood_group}
-    - Medical Conditions / Injuries: {user_data.medical_conditions}
+    - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}
     
     History of last 7 days (Includes Daily Weight, Diet Followed, Supplements, and Workouts):
     {history_data}
@@ -47,8 +66,8 @@ def generate_plan(user_data, history_data, plan_type="1-day"):
     Based on their specific health vitals, injuries, goals, AND their strict target timeframe ({user_data.target_timeframe}), generate a {plan_type} plan.
     IMPORTANT: If they have a tight timeframe, significantly adjust the intensity of the workout and macro strictly to ensure they meet their goal within that time limit. Pick specific body parts and exact workouts.
     Return json object with exactly two root keys: "workout_plan" and "diet_chart".
-    "workout_plan" must be an object (not a string) like {{"day": "Monday", "focus": "...", "exercises": [{{"name": "...", "sets": 4, "reps": "8-10", "rest": "90s"}}]}}.
-    "diet_chart" must be an object (not a string). All reps/rest values must be quoted strings.
+    "workout_plan" must be an object (not a string) like {{"day": "{target_day or 'Monday'}", "focus": "...", "exercises": [{{"name": "...", "sets": 4, "reps": "8-10", "rest": "90s"}}]}}.
+    "diet_chart" must be an object like {{"daily_calories": 2000, "meals": [{{"name": "Breakfast", "meal": "..."}}, {{"name": "Lunch", "meal": "..."}}]}}. All reps/rest values must be quoted strings.
     """
     
     api_key = os.getenv("GROQ_API_KEY")
@@ -71,9 +90,9 @@ def generate_plan(user_data, history_data, plan_type="1-day"):
                 "daily_calories": 2800,
                 "macros": {"protein": "160g", "carbs": "300g", "fats": "70g"},
                 "meals": [
-                    {"time": "8:00 AM", "meal": "Oatmeal with whey protein and berries"},
-                    {"time": "1:00 PM", "meal": "Chicken breast, brown rice, and broccoli"},
-                    {"time": "7:00 PM", "meal": "Salmon, sweet potato, and asparagus"}
+                    {"name": "Breakfast", "meal": "Oatmeal with whey protein and berries"},
+                    {"name": "Lunch", "meal": "Chicken breast, brown rice, and broccoli"},
+                    {"name": "Dinner", "meal": "Salmon, sweet potato, and asparagus"}
                 ]
             }
         }

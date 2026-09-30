@@ -25,6 +25,10 @@ class User(Base):
     blood_group = Column(String, nullable=True)
     medical_conditions = Column(String, nullable=True)
 
+    # Food / cuisine preference (optional — drives diet chart language)
+    diet_cuisine = Column(String, nullable=True, default="Generic Indian")
+    diet_type = Column(String, nullable=True, default="No Preference")
+
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class DailyWorkout(Base):
@@ -36,3 +40,27 @@ class DailyWorkout(Base):
     workout_data = Column(JSON) # AI generated workout
     diet_data = Column(JSON) # AI generated diet chart
     status = Column(String, default="pending")
+
+class WorkoutPlan(Base):
+    __tablename__ = "workout_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    split_type = Column(String, default="custom")
+    split_label = Column(String, default="Custom")
+    mode = Column(String, default="custom")
+    days_per_week = Column(Integer, default=0)
+    schedule = Column(JSON, default=dict)  # {Monday: [muscles], ...}
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Notification(Base):
+    """Zero-key inbox: always delivered, no Twilio/SMTP needed."""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    title = Column(String, default="IronForge")
+    body = Column(Text, default="")
+    channel = Column(String, default="inapp")  # inapp | sms | email | auto
+    is_read = Column(Integer, default=0)  # 0 unread, 1 read
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
