@@ -20,7 +20,188 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
   const fileInputRef = useRef(null);
   const poseRef = useRef(null);
   const handsRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const lastVoiceTriggerTimeRef = useRef(0);
   const workoutStatsRef = useRef({ sets: 1, reps: 0 });
+  const liveTrackerRef = useRef({
+    setCount: 1,
+    repCount: 0,
+    waitingForSignal: 1,
+    isResting: false,
+    restStartTime: 0,
+    lastRepTime: Date.now(),
+    repState: 'up'
+  });
+
+  const formatWaitingMessage = (targetSet) => {
+    const fingerText = targetSet === 1 ? '1 FINGER' : `${targetSet} FINGERS`;
+    return `[WAITING FOR ${fingerText} OR SAY 'START' FOR SET ${targetSet}]`;
+  };
+
+  const startSet = (targetSet = null, source = 'VOICE') => {
+    const tracker = liveTrackerRef.current;
+    if (targetSet !== null && targetSet !== undefined) {
+      tracker.setCount = targetSet;
+      tracker.repCount = 0;
+    }
+    tracker.waitingForSignal = 0;
+    tracker.isResting = false;
+    tracker.lastRepTime = Date.now();
+    workoutStatsRef.current = { sets: tracker.setCount, reps: tracker.repCount };
+
+    setRealtimeWarning(`🎤 ${source} DETECTED! STARTING SET ${tracker.setCount}`);
+    const repEl = document.getElementById('repCounter');
+    if (repEl) {
+      repEl.innerText = `SET: ${tracker.setCount} | REPS: ${tracker.repCount}`;
+    }
+    const restTimerEl = document.getElementById('restTimer');
+    if (restTimerEl) restTimerEl.style.display = 'none';
+  };
+
+  const startVoiceRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition API not supported in this browser.");
+      setIsVoiceActive(false);
+      setVoiceTranscript("Voice recognition not supported in this browser");
+      return;
+    }
+
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch(e) {}
+      recognitionRef.current = null;
+    }
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+
+      rec.onstart = () => {
+        setIsVoiceActive(true);
+        setVoiceTranscript('Listening for "start set 1", "set 2", "go"...');
+      };
+
+      rec.onresult = (event) => {
+        let interimText = '';
+        let finalText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const res = event.results[i];
+          const text = res[0] ? res[0].transcript : '';
+          if (res.isFinal) {
+            finalText += text;
+          } else {
+            interimText += text;
+          }
+        }
+
+        const raw = (finalText || interimText).toLowerCase().trim();
+        if (raw) {
+          setVoiceTranscript(raw);
+        }
+
+        const clean = raw.replace(/[^a-z0-9\s]/g, ' ').trim();
+        if (!clean) return;
+
+        const numberMap = {
+          "1": 1, "one": 1, "first": 1,
+          "2": 2, "two": 2, "second": 2,
+          "3": 3, "three": 3, "third": 3,
+          "4": 4, "four": 4, "fourth": 4,
+          "5": 5, "five": 5, "fifth": 5
+        };
+
+        let targetSetNum = null;
+
+        for (const [key, num] of Object.entries(numberMap)) {
+          if (
+            clean.includes(`set ${key}`) ||
+            clean.includes(`set number ${key}`) ||
+            clean.includes(`start set ${key}`) ||
+            clean.includes(`begin set ${key}`) ||
+            clean.includes(`start ${key}`) ||
+            clean.includes(`begin ${key}`) ||
+            clean === `set ${key}` ||
+            clean === key
+          ) {
+            targetSetNum = num;
+            break;
+          }
+        }
+
+        const now = Date.now();
+
+        // 1. Explicit set number command (e.g. "start set 2", "set 2", "2")
+        if (targetSetNum !== null) {
+          const currentTracker = liveTrackerRef.current;
+          // Trigger if set changed OR if currently waiting for start signal
+          if (currentTracker.setCount !== targetSetNum || currentTracker.waitingForSignal > 0 || now - lastVoiceTriggerTimeRef.current > 800) {
+            lastVoiceTriggerTimeRef.current = now;
+            startSet(targetSetNum, `VOICE "SET ${targetSetNum}"`);
+            setVoiceTranscript(`✓ Triggered Set ${targetSetNum}`);
+          }
+          return;
+        }
+
+        // 2. Generic start command (e.g. "start", "go", "begin") -> ONLY process if no numbers and debounced
+        if (now - lastVoiceTriggerTimeRef.current < 1200) {
+          return;
+        }
+
+        if (
+          clean.includes('start') ||
+          clean.includes('begin') ||
+          clean.includes('go') ||
+          clean.includes('ready') ||
+          clean.includes('next') ||
+          clean === 'set'
+        ) {
+          lastVoiceTriggerTimeRef.current = now;
+          const targetSet = liveTrackerRef.current.waitingForSignal || liveTrackerRef.current.setCount;
+          startSet(targetSet, `VOICE "${clean}"`);
+          setVoiceTranscript(`✓ Triggered Set ${targetSet}`);
+        }
+      };
+
+      rec.onerror = (e) => {
+        console.warn("Speech recognition error:", e.error);
+        if (e.error === 'not-allowed') {
+          setIsVoiceActive(false);
+          setVoiceTranscript('Microphone permission blocked');
+        } else if (e.error === 'no-speech') {
+          setVoiceTranscript('Listening...');
+        }
+      };
+
+      rec.onend = () => {
+        // Continuous auto-restart with safety delay
+        if (streamRef.current) {
+          setTimeout(() => {
+            try {
+              if (streamRef.current && recognitionRef.current) {
+                recognitionRef.current.start();
+              }
+            } catch (err) {
+              console.log("Speech restart ignored:", err);
+            }
+          }, 350);
+        } else {
+          setIsVoiceActive(false);
+        }
+      };
+
+      rec.start();
+      recognitionRef.current = rec;
+      setIsVoiceActive(true);
+    } catch(err) {
+      console.error("Failed to start speech recognition:", err);
+      setIsVoiceActive(false);
+    }
+  };
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -34,6 +215,11 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
     if (handsRef.current) {
       handsRef.current.close();
       handsRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch(e){}
+      recognitionRef.current = null;
+      setIsVoiceActive(false);
     }
   };
 
@@ -56,7 +242,17 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
     await new Promise(r => setTimeout(r, 100));
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: mode === 'form' ? 'user' : 'environment' },
+          audio: mode === 'form'
+        });
+      } catch(e) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: mode === 'form' ? 'user' : 'environment' }
+        });
+      }
       streamRef.current = stream;
       
       let attempts = 0;
@@ -69,8 +265,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
         videoRef.current.srcObject = stream;
         try { await videoRef.current.play(); } catch(e){}
         
-// Start real-time skeleton tracking for form mode
-
+        // Start real-time skeleton tracking for form mode
         if (mode === 'form' && window.Pose) {
           poseRef.current = new window.Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -94,6 +289,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             });
             
             handsRef.current.onResults((results) => {
+               const tracker = liveTrackerRef.current;
                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                  const landmarks = results.multiHandLandmarks[0];
                  let count = 0;
@@ -105,16 +301,14 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                  if (dist(landmarks[12], landmarks[0]) > dist(landmarks[10], landmarks[0])) count++; // Middle
                  if (dist(landmarks[16], landmarks[0]) > dist(landmarks[14], landmarks[0])) count++; // Ring
                  if (dist(landmarks[20], landmarks[0]) > dist(landmarks[18], landmarks[0])) count++; // Pinky
+                 if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++; // Thumb
                  
-                 // Thumb is extended if its tip (4) is further from the pinky base (17) than the IP joint (3)
-                 if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++;
-                 if (count === waitingForSignal) {
-                    waitingForSignal = 0; // Signal matched! Start set.
-                    setRealtimeWarning("SIGNAL DETECTED! START SET " + setCount);
+                 if (tracker.waitingForSignal > 0 && count === tracker.waitingForSignal) {
+                    startSet(tracker.waitingForSignal, 'HAND SIGNAL');
                  }
-                 
-                 if (waitingForSignal > 0) {
-                     setRealtimeWarning(`HAND DETECTED: ${count} FINGERS. NEED ${waitingForSignal}`);
+                 if (tracker.waitingForSignal > 0) {
+                     const repEl = document.getElementById('repCounter');
+                     if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
                  }
                  
                  // Draw the hand landmarks so user can see it's working
@@ -125,24 +319,16 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                      window.drawLandmarks(ctx, landmarks, {color: '#60a5fa', lineWidth: 1, radius: 2});
                  }
                } else {
-                 fingerSignalConsecutiveFrames = 0;
-                 if (waitingForSignal > 0) {
-                     setRealtimeWarning(`SHOW ${waitingForSignal} FINGERS TO START SET ${isResting ? setCount + 1 : setCount}`);
+                 if (tracker.waitingForSignal > 0) {
+                     const repEl = document.getElementById('repCounter');
+                     if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
                  }
                }
             });
           }
 
-          
-          let repCount = 0;
-          let waitingForSignal = 1; // 1 means waiting for 1 finger to start Set 1. 2 means waiting for 2 fingers for Set 2.
-          let fingerSignalDetected = 0;
-          let fingerSignalConsecutiveFrames = 0;
-          let setCount = 1;
-          let repState = 'up'; // Tracks the phase of the movement
-          let lastRepTime = Date.now();
-          let isResting = false;
-          let restStartTime = 0;
+          // Voice recognition setup for hands-free voice controls
+          startVoiceRecognition();
           
           poseRef.current.onResults((results) => {
             const canvas = canvasOverlayRef.current;
@@ -153,19 +339,21 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const now = Date.now();
+            const tracker = liveTrackerRef.current;
             
             // Check if user stopped moving for > 5 seconds (Resting Phase)
-            if (repCount > 0 && (now - lastRepTime) > 5000 && waitingForSignal === 0) {
-              if (!isResting) {
-                isResting = true;
-                restStartTime = now;
-                const nextSet = setCount + 1;
-                waitingForSignal = nextSet > 5 ? 5 : nextSet; // Cap at 5 fingers
-                fingerSignalConsecutiveFrames = 0;
-                setRealtimeWarning(`RESTING. SHOW ${waitingForSignal} FINGERS TO START SET ${nextSet}`);
+            if (tracker.repCount > 0 && (now - tracker.lastRepTime) > 5000 && tracker.waitingForSignal === 0) {
+              if (!tracker.isResting) {
+                tracker.isResting = true;
+                tracker.restStartTime = now;
+                const nextSet = tracker.setCount + 1;
+                const targetSet = nextSet > 5 ? 5 : nextSet;
+                tracker.waitingForSignal = targetSet;
+                tracker.setCount = targetSet;
+                const fingerText = targetSet === 1 ? '1 FINGER' : `${targetSet} FINGERS`;
+                setRealtimeWarning(`RESTING. SHOW ${fingerText} OR SAY 'START' FOR SET ${targetSet}`);
               }
             }
-            
             
             if (results.poseLandmarks && window.drawConnectors && window.drawLandmarks) {
               let skeletonColor = '#10b981'; // Green (Good Form)
@@ -174,18 +362,103 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               
               // Helper to handle rep completion and reset logic
               const triggerRep = () => {
-                if (waitingForSignal > 0) return; // DON'T count reps if waiting for start signal
-                if (isResting) {
+                if (tracker.waitingForSignal > 0) return; // DON'T count reps if waiting for start signal
+                if (tracker.isResting) {
                   // Starting a new set!
-                  setCount++;
-                  repCount = 0;
-                  isResting = false;
+                  tracker.setCount++;
+                  tracker.repCount = 0;
+                  tracker.isResting = false;
                 }
-                repCount++;
-                lastRepTime = now;
+                tracker.repCount++;
+                tracker.lastRepTime = now;
               };
               
-              if (exStr.includes('squat')) {
+              if (exStr.includes('deadlift')) {
+                // 1. DEADLIFT: Hip Hinge & Spine Alignment
+                const shoulder = results.poseLandmarks[11];
+                const hip = results.poseLandmarks[23];
+                const knee = results.poseLandmarks[25];
+                const ear = results.poseLandmarks[7];
+                
+                if (shoulder && hip && knee) {
+                  const hipAngle = calculateAngle(shoulder, hip, knee);
+                  const spineAngle = ear ? calculateAngle(ear, shoulder, hip) : 180;
+                  const isBadForm = spineAngle < 140 || hipAngle < 50;
+                  
+                  if (isBadForm) {
+                    skeletonColor = '#ef4444'; // RED for bad form
+                    setRealtimeWarning("BAD FORM: KEEP SPINE NEUTRAL & HIPS HINGED!");
+                  } else if (hipAngle > 160) {
+                    if (tracker.repState === 'down') { triggerRep(); tracker.repState = 'up'; }
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("PERFECT LOCKOUT");
+                  } else if (hipAngle < 115) {
+                    tracker.repState = 'down';
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("GOOD: HINGE AT HIPS");
+                  } else {
+                    skeletonColor = '#f59e0b';
+                    setRealtimeWarning("GOOD: DRIVE THROUGH HEELS");
+                  }
+                }
+              } else if (exStr.includes('press') || exStr.includes('overhead')) {
+                // 2. OVERHEAD PRESS: Overhead Lockout & Lower Back Arching
+                const shoulder = results.poseLandmarks[11];
+                const elbow = results.poseLandmarks[13];
+                const wrist = results.poseLandmarks[15];
+                const hip = results.poseLandmarks[23];
+                const ear = results.poseLandmarks[7];
+
+                if (shoulder && elbow && wrist && hip) {
+                  const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+                  const bodyLeanAngle = ear ? calculateAngle(ear, shoulder, hip) : 180;
+                  const isBadForm = bodyLeanAngle < 145; // Arching back too far
+
+                  if (isBadForm) {
+                    skeletonColor = '#ef4444';
+                    setRealtimeWarning("BAD FORM: DO NOT ARCH LOWER BACK!");
+                  } else if (wrist.y < shoulder.y && elbowAngle > 150) {
+                    if (tracker.repState === 'down') { triggerRep(); tracker.repState = 'up'; }
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("PERFECT OVERHEAD LOCKOUT");
+                  } else if (elbowAngle < 85) {
+                    tracker.repState = 'down';
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("GOOD: CONTROL LOWERING");
+                  } else {
+                    skeletonColor = '#f59e0b';
+                    setRealtimeWarning("GOOD: PRESS STRAIGHT UP");
+                  }
+                }
+              } else if (exStr.includes('lunge')) {
+                // 3. LUNGES: Knee Depth & Knee-over-Ankle Alignment
+                const hip = results.poseLandmarks[23];
+                const knee = results.poseLandmarks[25];
+                const ankle = results.poseLandmarks[27];
+
+                if (hip && knee && ankle) {
+                  const kneeAngle = calculateAngle(hip, knee, ankle);
+                  const kneeOverAnkleDiff = Math.abs(knee.x - ankle.x);
+                  const isBadForm = kneeOverAnkleDiff > 0.18; // Knee shooting far past ankle
+
+                  if (isBadForm) {
+                    skeletonColor = '#ef4444';
+                    setRealtimeWarning("BAD FORM: KEEP KNEE ALIGNED OVER ANKLE!");
+                  } else if (kneeAngle > 155) {
+                    if (tracker.repState === 'down') { triggerRep(); tracker.repState = 'up'; }
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("PERFECT STANDING POSITION");
+                  } else if (kneeAngle < 100) {
+                    tracker.repState = 'down';
+                    skeletonColor = '#10b981';
+                    setRealtimeWarning("PERFECT LUNGE DEPTH");
+                  } else {
+                    skeletonColor = '#f59e0b';
+                    setRealtimeWarning("GOOD: KEEP TORSO UPRIGHT");
+                  }
+                }
+              } else if (exStr.includes('squat')) {
+                // 4. SQUATS: Knee Depth & Chest Caving
                 const hip = results.poseLandmarks[23];
                 const knee = results.poseLandmarks[25];
                 const ankle = results.poseLandmarks[27];
@@ -199,22 +472,22 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                   
                   if (isBadForm) {
                       skeletonColor = '#ef4444'; // RED for bad form
-                      if (waitingForSignal === 0) setRealtimeWarning("BAD FORM: KEEP CHEST UP!");
+                      setRealtimeWarning("BAD FORM: KEEP CHEST UP!");
                   } else if (angle > 160) {
-                    if (repState === 'down') { triggerRep(); repState = 'up'; }
+                    if (tracker.repState === 'down') { triggerRep(); tracker.repState = 'up'; }
                     skeletonColor = '#10b981';
-                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
+                    setRealtimeWarning("PERFECT FORM");
                   } else if (angle < 100) {
-                    repState = 'down';
+                    tracker.repState = 'down';
                     skeletonColor = '#10b981';
-                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
+                    setRealtimeWarning("PERFECT FORM");
                   } else {
                     skeletonColor = '#f59e0b'; // Yellow mid-rep
-                    if (waitingForSignal === 0) setRealtimeWarning("GOOD: SQUEEZE THE REP");
+                    setRealtimeWarning("GOOD: SQUEEZE THE REP");
                   }
                 }
               } else {
-                // Default: Arm Extension (Bicep Curl)
+                // 5. BICEP CURL / ARM EXTENSION: Elbow Pinning
                 const shoulder = results.poseLandmarks[11];
                 const elbow = results.poseLandmarks[13];
                 const wrist = results.poseLandmarks[15];
@@ -228,18 +501,18 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                   
                   if (isBadForm) {
                       skeletonColor = '#ef4444'; // RED for bad form
-                      if (waitingForSignal === 0) setRealtimeWarning("BAD FORM: KEEP ELBOWS PINNED!");
+                      setRealtimeWarning("BAD FORM: KEEP ELBOWS PINNED!");
                   } else if (angle > 150) {
-                    if (repState === 'up') { triggerRep(); repState = 'down'; }
+                    if (tracker.repState === 'up') { triggerRep(); tracker.repState = 'down'; }
                     skeletonColor = '#10b981';
-                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
+                    setRealtimeWarning("PERFECT FORM");
                   } else if (angle < 60) {
-                    repState = 'up';
+                    tracker.repState = 'up';
                     skeletonColor = '#10b981';
-                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
+                    setRealtimeWarning("PERFECT FORM");
                   } else {
                     skeletonColor = '#f59e0b'; // Yellow mid-rep
-                    if (waitingForSignal === 0) setRealtimeWarning("GOOD: SQUEEZE THE REP");
+                    setRealtimeWarning("GOOD: SQUEEZE THE REP");
                   }
                 }
               }
@@ -247,16 +520,20 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               // Update direct DOM elements
               const repCounterEl = document.getElementById('repCounter');
               if (repCounterEl) {
-                repCounterEl.innerText = `SET: ${setCount} | REPS: ${repCount}`;
+                if (tracker.waitingForSignal > 0) {
+                  repCounterEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
+                } else {
+                  repCounterEl.innerText = `SET: ${tracker.setCount} | REPS: ${tracker.repCount}`;
+                }
               }
               
               // Sync to React Ref for Saving
-              workoutStatsRef.current = { sets: setCount, reps: repCount };
+              workoutStatsRef.current = { sets: tracker.setCount, reps: tracker.repCount };
               
               const restTimerEl = document.getElementById('restTimer');
               if (restTimerEl) {
-                if (isResting) {
-                  const restSeconds = Math.floor((now - restStartTime) / 1000);
+                if (tracker.isResting) {
+                  const restSeconds = Math.floor((now - tracker.restStartTime) / 1000);
                   restTimerEl.innerText = `REST GAP: ${restSeconds}s`;
                   restTimerEl.style.display = 'block';
                 } else {
@@ -275,7 +552,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) { requestAnimationFrame(processFrame); return; }
               try { 
                 await poseRef.current.send({image: videoRef.current}); 
-                if (handsRef.current && waitingForSignal > 0) {
+                if (handsRef.current) {
                    await handsRef.current.send({image: videoRef.current});
                 }
               } catch(e){
@@ -416,32 +693,45 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
         const updatedUser = await response.json();
         if (updateUser) updateUser(updatedUser);
         
-      } else if (activeMode === 'form' && result?.detected_exercise) {
-        // Construct the log payload using the real-time tracked data!
-        const stats = workoutStatsRef.current;
-        const payload = {
-          user_id: user.id,
-          date: new Date().toISOString().split('T')[0],
-          volume: 0,
-          notes: `[AI Form Coach] Score: ${result.form_score}/100. Critique: ${result.critique}`,
-          exercises: [{
-            name: result.detected_exercise,
-            sets: stats.sets,
-            reps: stats.reps,
-            weight: 0
-          }]
-        };
-        
-        await fetch('http://localhost:8000/log_history/', {
+      } else if (activeMode === 'food' && result?.food_name) {
+        const response = await fetch('http://localhost:8000/log_food/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            user_id: user.id,
+            food_name: result.food_name,
+            calories: Number(result.estimated_calories) || 0,
+            protein_g: Number(result.protein_g) || 0,
+            carbs_g: Number(result.carbs_g) || 0,
+            fats_g: Number(result.fats_g) || 0,
+            date: new Date().toISOString().split('T')[0]
+          })
         });
-        
-        alert(`Successfully logged ${stats.sets} sets of ${result.detected_exercise} to today's workout history!`);
-        
+        const resData = await response.json();
+        alert(resData.message || `Successfully logged ${result.food_name} (${result.estimated_calories} kcal) to database!`);
+
+      } else if (activeMode === 'form' && result?.detected_exercise) {
+        // Construct the log payload using real-time tracked sets & reps
+        const stats = workoutStatsRef.current;
+        const response = await fetch('http://localhost:8000/log_workout/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user.id,
+            exercise_name: result.detected_exercise,
+            sets: stats.sets || 1,
+            reps: stats.reps || 0,
+            weight: 0,
+            form_score: result.form_score || 100,
+            critique: result.critique || 'Good execution',
+            date: new Date().toISOString().split('T')[0]
+          })
+        });
+        const resData = await response.json();
+        alert(resData.message || `Successfully logged ${stats.sets} sets of ${result.detected_exercise} to database!`);
+
       } else {
-        alert("Action not supported for this mode yet.");
+        alert("Action completed!");
       }
     } catch (err) {
       alert("Error saving data");
@@ -501,12 +791,14 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                 id="exerciseSelector"
                 value={selectedExercise}
                 onChange={(e) => setSelectedExercise(e.target.value)}
-                className="bg-black/60 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/50 rounded-lg px-3 py-2 outline-none text-sm shadow-xl"
+                className="bg-black/80 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
               >
                 <option value="Auto-Detect">✨ Auto-Detect Exercise</option>
                 <option value="Bicep Curl">Bicep Curl</option>
                 <option value="Squat">Squat</option>
+                <option value="Deadlift">Deadlift</option>
                 <option value="Overhead Press">Overhead Press</option>
+                <option value="Lunges">Lunges</option>
                 {todaysExercises.length > 0 ? (
                   <optgroup label="Today's AI Plan">
                     {todaysExercises.map((ex, i) => <option key={i} value={ex.name}>{ex.name}</option>)}
@@ -520,11 +812,32 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             )}
             
             {activeMode === 'form' && (
-              <div className="bg-blue-500/20 border border-blue-500/50 backdrop-blur-md px-2 py-1 rounded-md flex items-center gap-1.5 w-max shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">Grip & Barbell Tracking Active</span>
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="bg-blue-500/20 border border-blue-500/50 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-max shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                  <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">Biomechanical Skeleton Active</span>
+                </div>
+
+                <div className="bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-md px-3.5 py-2 rounded-xl flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isVoiceActive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`}></span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest flex items-center gap-1">
+                      ⚡ Deepgram Nova-3 / AI Voice Active
+                    </span>
+                    <span className="text-[11px] font-extrabold text-white max-w-[280px] truncate">
+                      {voiceTranscript || 'Say "Start set 1", "Set 2", "Go"...'}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={startVoiceRecognition}
+                    className="ml-1 text-[10px] font-bold bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-200 border border-emerald-400/40 px-2 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                    title="Restart Deepgram Nova-3 AI Voice Engine"
+                  >
+                    ↻ Mic
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -535,7 +848,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                 Cancel ✕
               </button>
               <div id="repCounter" className="bg-black/80 backdrop-blur-xl border-2 border-emerald-500 text-emerald-400 font-display font-black text-3xl px-6 py-2 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                SET: 1 | REPS: 0
+                [WAITING FOR 1 FINGER OR SAY 'START' FOR SET 1]
               </div>
               <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border-2 border-blue-500 text-blue-400 font-display font-black text-xl px-6 py-2 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse">
                 REST GAP: 0s
@@ -712,14 +1025,14 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                     )}
 
                     <div className="pt-4 flex flex-wrap gap-3">
-                      <button onClick={handleAcceptData} className="bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm py-3 px-6 rounded-xl transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      <button onClick={handleAcceptData} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-base py-3 px-6 rounded-xl transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center">
                         ✓ SAVE TO PROFILE
                       </button>
-                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="bg-white/5 hover:bg-white/10 text-white font-bold text-sm py-3 px-6 rounded-xl border border-white/10 transition-colors">
+                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-white/5 hover:bg-white/10 text-white font-bold text-base py-3 px-6 rounded-xl border border-white/10 transition-colors flex items-center justify-center">
                         Scan Again
                       </button>
-                      <button onClick={() => { setImgPreview(null); setResult(null); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-sm py-3 px-6 rounded-xl border border-red-500/20 transition-colors">
-                        Discard (Don't Save)
+                      <button onClick={() => { setImgPreview(null); setResult(null); }} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-base py-3 px-6 rounded-xl border border-red-500/20 transition-colors flex items-center justify-center">
+                        Discard
                       </button>
                     </div>
                   </div>

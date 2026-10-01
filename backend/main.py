@@ -9,7 +9,7 @@ from typing import List, Optional
 # Create tables
 models.Base.metadata.create_all(bind=engine)
 
-# ── Lightweight auto-migration for new optional columns (postgres + sqlite) ──
+# ── Lightweight auto-migration for all optional user columns (postgres + sqlite) ──
 def _ensure_user_food_columns():
     try:
         from sqlalchemy import inspect, text
@@ -17,21 +17,18 @@ def _ensure_user_food_columns():
         if "users" not in insp.get_table_names():
             return
         existing = {c["name"] for c in insp.get_columns("users")}
-        for col in ("diet_cuisine", "diet_type", "body_fat"):
+        # All columns defined in User model
+        user_cols = [col.name for col in models.User.__table__.columns]
+        for col in user_cols:
             if col not in existing:
                 try:
-                    # postgres
                     with engine.begin() as conn:
-                        conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} VARCHAR"))
-                except Exception:
-                    try:
-                        # sqlite fallback
-                        with engine.begin() as conn:
-                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} VARCHAR"))
-                    except Exception as e:
-                        print(f"migration skipped for {col}: {e}")
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} VARCHAR"))
+                    print(f"Auto-added missing column '{col}' to users table.")
+                except Exception as e:
+                    print(f"Migration skipped for {col}: {e}")
     except Exception as e:
-        print(f"column ensure skipped: {e}")
+        print(f"Column ensure skipped: {e}")
 
 _ensure_user_food_columns()
 
@@ -170,6 +167,79 @@ def log_history(log: ManualLog, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
+class FoodLogRequest(BaseModel):
+    user_id: int
+    food_name: str
+    calories: int
+    protein_g: Optional[int] = 0
+    carbs_g: Optional[int] = 0
+    fats_g: Optional[int] = 0
+    date: Optional[str] = None
+
+@app.post("/log_food/")
+def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
+    import datetime
+    log_date = log.date or datetime.date.today().isoformat()
+    food_note = f"[Auto-Food Vision] {log.food_name}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g)"
+    
+    db_workout = models.DailyWorkout(
+        user_id=log.user_id,
+        workout_data={
+            "date": log_date,
+            "volume": 0,
+            "notes": food_note,
+            "exercises": []
+        },
+        diet_data={
+            "daily_calories": log.calories,
+            "macros": {
+                "protein": f"{log.protein_g}g",
+                "carbs": f"{log.carbs_g}g",
+                "fats": f"{log.fats_g}g"
+            },
+            "meals": [
+                {"name": "Vision Scanned Meal", "meal": f"{log.food_name} — {log.calories} kcal"}
+            ]
+        },
+        status="completed"
+    )
+    db.add(db_workout)
+    db.commit()
+    return {"status": "success", "message": f"Successfully logged {log.food_name} ({log.calories} kcal)!"}
+
+class WorkoutLogRequest(BaseModel):
+    user_id: int
+    exercise_name: str
+    sets: int
+    reps: int
+    weight: Optional[int] = 0
+    form_score: Optional[int] = 100
+    critique: Optional[str] = "Good form"
+    date: Optional[str] = None
+
+@app.post("/log_workout/")
+def log_workout(req: WorkoutLogRequest, db: Session = Depends(get_db)):
+    import datetime
+    log_date = req.date or datetime.date.today().isoformat()
+    db_workout = models.DailyWorkout(
+        user_id=req.user_id,
+        workout_data={
+            "date": log_date,
+            "volume": req.sets * req.reps * req.weight,
+            "notes": f"[AI Form Coach] Score: {req.form_score}/100. Critique: {req.critique}",
+            "exercises": [{
+                "name": req.exercise_name,
+                "sets": req.sets,
+                "reps": req.reps,
+                "weight": req.weight
+            }]
+        },
+        status="completed"
+    )
+    db.add(db_workout)
+    db.commit()
+    return {"status": "success", "message": f"Logged {req.sets} sets of {req.exercise_name}!"}
+
 @app.post("/generate_plan/")
 def generate_user_plan(user_id: int, plan_type: str = "1-day", use_split: bool = True, day: Optional[str] = None, db: Session = Depends(get_db)):
     import datetime as _dt
@@ -204,7 +274,13 @@ def generate_user_plan(user_id: int, plan_type: str = "1-day", use_split: bool =
 
     target_day = day or _dt.datetime.now().strftime("%A")
 
-    plan = ai_service.generate_plan(user, history, plan_type, workout_split=workout_split, target_day=target_day)
+    # Fetch active discomfort logs from the last 14 days
+    active_discomforts = db.query(models.DiscomfortLog).filter(
+        models.DiscomfortLog.user_id == user.id,
+        models.DiscomfortLog.status == "active"
+    ).order_by(models.DiscomfortLog.created_at.desc()).limit(5).all()
+
+    plan = ai_service.generate_plan(user, history, plan_type, workout_split=workout_split, target_day=target_day, discomfort_logs=active_discomforts)
 
     # persist split + calorie context with the generated day so history maintains intake-vs-burn
     wp = dict(plan.get("workout_plan", {}) or {})
@@ -506,3 +582,89 @@ def analyze_food_image(req: VisionRequest):
 def _inbox(db, user_id: int, title: str, body: str, channel: str = "auto"):
     db.add(models.Notification(user_id=user_id, title=title, body=body, channel=channel))
     db.commit()
+
+
+# ── Discomfort & Injury Recovery Endpoints ──
+class DiscomfortLogCreate(BaseModel):
+    user_id: int
+    exercise_name: str
+    feeling_description: str
+    severity: Optional[str] = "Moderate"
+    timing: Optional[str] = "During exercise"
+
+@app.post("/log_discomfort/")
+def log_discomfort(payload: DiscomfortLogCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Analyze with AI Doctor & Trainer engine
+    recommendation = ai_service.analyze_discomfort(
+        user, 
+        payload.exercise_name, 
+        payload.feeling_description, 
+        payload.severity, 
+        payload.timing
+    )
+    
+    log_row = models.DiscomfortLog(
+        user_id=user.id,
+        exercise_name=payload.exercise_name,
+        feeling_description=payload.feeling_description,
+        severity=payload.severity,
+        timing=payload.timing,
+        ai_recommendation=recommendation,
+        status="active"
+    )
+    db.add(log_row)
+    db.commit()
+    db.refresh(log_row)
+    
+    # Auto inbox advisory notification
+    try:
+        cause = recommendation.get('probable_cause', '')[:120]
+        doc_adv = recommendation.get('doctor_advice', '')[:120]
+        trn_adv = recommendation.get('trainer_advice', '')[:120]
+        body = f"AI Health Advisory — {payload.exercise_name} ({payload.severity} Discomfort):\n\n" \
+               f"🩺 Probable Cause: {cause}...\n\n" \
+               f"💊 Doctor Advice: {doc_adv}...\n\n" \
+               f"🏋️‍♂️ Trainer Form Cue: {trn_adv}...\n\n" \
+               f"⚡ Tomorrow's workout plan will automatically adapt to protect this area."
+        _inbox(db, user.id, f"🚨 AI Medical Advisory: {payload.exercise_name}", body, channel="health")
+    except Exception as e:
+        print(f"Failed to write discomfort notification: {e}")
+        
+    return log_row
+
+@app.get("/users/{user_id}/discomfort_logs")
+def get_discomfort_logs(user_id: int, status: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.DiscomfortLog).filter(models.DiscomfortLog.user_id == user_id)
+    if status:
+        query = query.filter(models.DiscomfortLog.status == status)
+    return query.order_by(models.DiscomfortLog.created_at.desc()).all()
+
+@app.delete("/discomfort_logs/{log_id}")
+def delete_discomfort_log(log_id: int, db: Session = Depends(get_db)):
+    row = db.query(models.DiscomfortLog).filter(models.DiscomfortLog.id == log_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Discomfort log not found")
+    db.delete(row)
+    db.commit()
+    return {"status": "ok"}
+
+
+class AudioPayload(BaseModel):
+    audio_base64: str
+
+@app.post("/transcribe_audio_base64/")
+def transcribe_audio_base64(payload: AudioPayload):
+    import base64
+    try:
+        audio_bytes = base64.b64decode(payload.audio_base64)
+        result = ai_service.transcribe_audio(audio_bytes, "audio.webm")
+        return result
+    except Exception as e:
+        print(f"Error in transcribe_audio_base64: {e}")
+        return {"error": str(e)}
+
+

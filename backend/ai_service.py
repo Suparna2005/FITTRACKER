@@ -28,7 +28,7 @@ def _deep_parse(obj):
                 return obj
     return obj
 
-def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None, target_day=None):
+def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None, target_day=None, discomfort_logs=None):
     split_txt = ""
     try:
         if workout_split and workout_split.get("schedule"):
@@ -48,6 +48,25 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
             diet_txt = f"\n    - Diet: cuisine '{cui or 'Generic Indian'}', habit '{dty or 'No Preference'}'. Write all meals in that cuisine."
     except Exception:
         diet_txt = ""
+
+    discomfort_txt = ""
+    if discomfort_logs and len(discomfort_logs) > 0:
+        disc_lines = []
+        for d in discomfort_logs:
+            ex = getattr(d, 'exercise_name', d.get('exercise_name') if isinstance(d, dict) else '')
+            feel = getattr(d, 'feeling_description', d.get('feeling_description') if isinstance(d, dict) else '')
+            sev = getattr(d, 'severity', d.get('severity') if isinstance(d, dict) else '')
+            rec = getattr(d, 'ai_recommendation', d.get('ai_recommendation') if isinstance(d, dict) else {}) or {}
+            subs = rec.get('safe_substitutions', []) if isinstance(rec, dict) else []
+            sub_str = ", ".join(subs) if subs else "safer alternative exercises"
+            disc_lines.append(f"- Reported Pain/Discomfort during '{ex}': '{feel}' (Severity: {sev}). Doctor/Trainer Rec: Avoid aggravating '{ex}'. Use substitutes: {sub_str}.")
+        
+        discomfort_txt = f"""
+    CRITICAL HEALTH & SAFETY ADAPTATIONS (ACTIVE USER DISCOMFORTS LOGGED):
+    {chr(10).join(disc_lines)}
+    SAFETY MANDATE: You MUST modify today's workout plan to protect the athlete! Exclude or modify aggravating exercises, replace them with safer alternatives, or focus on non-injured body parts. Add a key "adapted_for_discomfort" inside "workout_plan" object with a short summary string describing how the plan was modified to keep the athlete safe.
+    """
+
     prompt = f"""
     You are an expert AI personal trainer, doctor, and nutritionist. Return valid json only.
     
@@ -59,7 +78,7 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     - Initial Weight: {user_data.weight} | Initial Height: {user_data.height}
     - Body Fat/Structure: {getattr(user_data, 'body_fat', 'Unknown')}
     - Blood Pressure: {user_data.blood_pressure} | Blood Group: {user_data.blood_group}
-    - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}
+    - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}{discomfort_txt}
     
     History of last 7 days (Includes Daily Weight, Diet Followed, Supplements, and Workouts):
     {history_data}
@@ -67,7 +86,7 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     Based on their specific health vitals, injuries, goals, AND their strict target timeframe ({user_data.target_timeframe}), generate a {plan_type} plan.
     IMPORTANT: If they have a tight timeframe, significantly adjust the intensity of the workout and macro strictly to ensure they meet their goal within that time limit. Pick specific body parts and exact workouts.
     Return json object with exactly two root keys: "workout_plan" and "diet_chart".
-    "workout_plan" must be an object (not a string) like {{"day": "{target_day or 'Monday'}", "focus": "...", "exercises": [{{"name": "...", "sets": 4, "reps": "8-10", "rest": "90s"}}]}}.
+    "workout_plan" must be an object (not a string) like {{"day": "{target_day or 'Monday'}", "focus": "...", "adapted_for_discomfort": "...", "exercises": [{{"name": "...", "sets": 4, "reps": "8-10", "rest": "90s"}}]}}.
     "diet_chart" must be an object like {{"daily_calories": 2000, "meals": [{{"name": "Breakfast", "meal": "..."}}, {{"name": "Lunch", "meal": "..."}}]}}. All reps/rest values must be quoted strings.
     """
     
@@ -270,10 +289,204 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
     else:
         return {
             "food_name": "API Error (Mock)",
-                "estimated_calories": 450,
-                "protein_g": 42,
-                "carbs_g": 45,
-                "fats_g": 8,
-                "confidence": "Mock Fallback (API Error)"
+            "estimated_calories": 450,
+            "protein_g": 42,
+            "carbs_g": 45,
+            "fats_g": 8,
+            "confidence": "Mock Fallback (API Error)"
+        }
+
+def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, severity: str = "Moderate", timing: str = "During exercise"):
+    """
+    Analyzes workout pain/discomfort from both a Medical Doctor and Physical Trainer perspective.
+    Returns JSON object with:
+    - probable_cause (string)
+    - doctor_advice (string)
+    - trainer_advice (string)
+    - safe_substitutions (list of strings)
+    - next_day_plan_adjustment (string)
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    
+    prompt = f"""
+    You are an expert Sports Medicine Physician (Doctor) and Biomechanics Strength Coach (Trainer).
+    An athlete reported a physical problem / pain / discomfort while exercising:
+    
+    Athlete Profile:
+    - Age: {getattr(user_data, 'age', 'Unknown')} | Gender: {getattr(user_data, 'gender', 'Unknown')}
+    - Goal: {getattr(user_data, 'goal', 'General Fitness')} | Experience: {getattr(user_data, 'experience_level', 'Intermediate')}
+    - Known Medical Conditions: {getattr(user_data, 'medical_conditions', 'None')}
+    
+    Discomfort Report:
+    - Exercise Performed: {exercise_name}
+    - Sensation / Problem Description: {feeling_description}
+    - Pain/Severity Level: {severity}
+    - Timing: {timing}
+    
+    Provide a dual Medical Doctor & Physical Trainer assessment. Return ONLY a valid raw JSON object (no markdown, no string backticks) with keys:
+    1. "probable_cause": Clear explanation of why this pain/discomfort is occurring (biomechanical strain, form collapse, tendon stress, joint friction, etc.).
+    2. "doctor_advice": Medical treatment & safety guidance (e.g. R.I.C.E. protocol, ice/heat therapy, rest duration, hydration, and RED FLAG warning signs when to seek immediate emergency/doctor care).
+    3. "trainer_advice": Practical gym form corrections and cues (e.g., stance width, elbow angle, grip width, eccentric tempo, load drop).
+    4. "safe_substitutions": Array of 3-4 safe alternative exercises that target similar muscles without stressing the affected joint/area.
+    5. "next_day_plan_adjustment": Clear statement of how tomorrow's workout plan will be adapted to allow recovery while keeping progress.
+    """
+    
+    mock_response = {
+        "probable_cause": f"The reported sensation during {exercise_name} ('{feeling_description}') is likely caused by biomechanical form collapse or acute tendon/ligament stress under load.",
+        "doctor_advice": f"Follow the R.I.C.E protocol (Rest, Ice for 15-20 min, Compression, Elevation). Avoid heavy loading on this joint for 24-48h. Seek immediate medical evaluation if you experience numbness, swelling, or sharp joint locking.",
+        "trainer_advice": f"For {exercise_name}, drop working weight by 25-30%. Focus on strict alignment, engage core stability before initating reps, and control the 3-second lowering phase.",
+        "safe_substitutions": [f"Goblet / Neutral-grip alternative to {exercise_name}", "Dumbbell Supported Movement", "Bodyweight Tempo Reps"],
+        "next_day_plan_adjustment": f"Tomorrow's AI plan will automatically avoid direct heavy strain on {exercise_name}, substitute safer movements, and prioritize non-injured body parts."
+    }
+
+    if not api_key:
+        return mock_response
+        
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a dual Sports Medicine Doctor and Master Trainer. Return valid raw JSON object only. No markdown."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3
+    }
+    
+    try:
+        req = urllib.request.Request(
+            url, 
+            data=json.dumps(payload).encode('utf-8'), 
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+                'User-Agent': 'FitnessTracker/1.0'
             }
+        )
+        with urllib.request.urlopen(req) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            content = result["choices"][0]["message"]["content"].strip()
+            if content.startswith("```"):
+                content = content.strip("`")
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+            parsed = json.loads(_repair_json(content))
+            return _deep_parse(parsed)
+    except Exception as e:
+        print(f"Error calling Groq for discomfort analysis: {e}")
+        return mock_response
+
+
+def transcribe_audio_groq(audio_bytes: bytes, filename: str = "audio.webm") -> dict:
+    """Transcribes audio using Groq's high-speed Whisper AI (whisper-large-v3-turbo) and GROQ_API_KEY."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return {"error": "GROQ_API_KEY is missing from backend/.env file!"}
+
+    url = "https://api.groq.com/openai/v1/audio/transcriptions"
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+    
+    body = bytearray()
+    
+    # Model: whisper-large-v3-turbo
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(b'Content-Disposition: form-data; name="model"\r\n\r\n')
+    body.extend(b'whisper-large-v3-turbo\r\n')
+    
+    # Fitness prompt guide for maximum accuracy on set numbers
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(b'Content-Disposition: form-data; name="prompt"\r\n\r\n')
+    body.extend(b'Fitness workout voice commands: start set 1, start set 2, set 3, set 4, set 5, go, begin, next set\r\n')
+    
+    # Language
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(b'Content-Disposition: form-data; name="language"\r\n\r\n')
+    body.extend(b'en\r\n')
+    
+    # File content
+    body.extend(f"--{boundary}\r\n".encode('utf-8'))
+    body.extend(f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'.encode('utf-8'))
+    body.extend(b'Content-Type: audio/webm\r\n\r\n')
+    body.extend(audio_bytes)
+    body.extend(b'\r\n')
+    
+    # End boundary
+    body.extend(f"--{boundary}--\r\n".encode('utf-8'))
+
+    req = urllib.request.Request(
+        url,
+        data=bytes(body),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return data
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode('utf-8')
+        print("Groq Audio API HTTP Error:", err_body)
+        return {"error": f"Groq Whisper API HTTP {e.code}: {err_body}"}
+    except Exception as e:
+        print("Groq Audio API Error:", e)
+        return {"error": str(e)}
+
+
+def transcribe_audio_deepgram(audio_bytes: bytes, mime_type: str = "audio/webm") -> dict:
+    """Transcribes audio using Deepgram's Nova-3 AI model (model=nova-3) and DEEPGRAM_API_KEY."""
+    api_key = os.getenv("DEEPGRAM_API_KEY")
+    if not api_key:
+        return {"error": "DEEPGRAM_API_KEY is missing from backend/.env file!"}
+
+    # Deepgram Nova-3 REST API endpoint
+    url = "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&language=en"
+
+    req = urllib.request.Request(
+        url,
+        data=audio_bytes,
+        headers={
+            "Authorization": f"Token {api_key.strip()}",
+            "Content-Type": mime_type
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            res_data = json.loads(resp.read().decode('utf-8'))
+            transcript = ""
+            try:
+                transcript = res_data["results"]["channels"][0]["alternatives"][0]["transcript"]
+            except Exception:
+                transcript = ""
+            return {"text": transcript, "model": "Deepgram Nova-3", "raw": res_data}
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode('utf-8')
+        print("Deepgram Nova-3 HTTP Error:", err_body)
+        return {"error": f"Deepgram Nova-3 API HTTP {e.code}: {err_body}"}
+    except Exception as e:
+        print("Deepgram Nova-3 Error:", e)
+        return {"error": str(e)}
+
+
+def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> dict:
+    """Smart Speech AI Router: Tries Deepgram Nova-3 first if DEEPGRAM_API_KEY exists, else falls back to Groq Whisper."""
+    deepgram_key = os.getenv("DEEPGRAM_API_KEY")
+    if deepgram_key and deepgram_key.strip():
+        res = transcribe_audio_deepgram(audio_bytes)
+        if "text" in res and res["text"]:
+            return res
+        elif "error" not in res:
+            return res
+            
+    # Fallback to Groq Whisper AI (whisper-large-v3-turbo)
+    return transcribe_audio_groq(audio_bytes, filename)
+
+
+
 

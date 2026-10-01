@@ -65,3 +65,18 @@ class Notification(Base):
     channel = Column(String, default="inapp")  # inapp | sms | email | auto
     is_read = Column(Integer, default=0)  # 0 unread, 1 read
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class DiscomfortLog(Base):
+    """Logs workout pain/discomfort, AI Doctor/Trainer analysis, and adaptation data."""
+    __tablename__ = "discomfort_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    exercise_name = Column(String, index=True)
+    feeling_description = Column(Text)
+    severity = Column(String, default="Moderate") # Mild, Moderate, Severe
+    timing = Column(String, default="During exercise") # During exercise, Post set, Post workout
+    ai_recommendation = Column(JSON) # Probable cause, Doctor advice, Trainer advice, Substitutions
+    status = Column(String, default="active") # active, resolved
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

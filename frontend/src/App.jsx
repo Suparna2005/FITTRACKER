@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import WorkoutSplitBuilder from './WorkoutSplitBuilder'
 import MuscleGuide from './MuscleGuide'
 import VisionHub from './VisionHub'
+import DiscomfortHub from './DiscomfortHub'
 import { AuthShell, TopBar, Panel, LOGIN_IMG, IRON_IMG, DARK_GYM_IMG, HERO_IMG } from './theme'
 
 const EXERCISE_DB = {
@@ -711,97 +712,67 @@ function App() {
       <div className="gym-page py-8 px-4">
         <div className="max-w-4xl mx-auto space-y-8 fade-up">
           <button onClick={() => setView('dashboard')} className="text-yellow-400 font-bold mb-2 hover:underline text-sm">← Back to Command Center</button>
-          <Panel kicker="SYSTEM TRAINING" title="INTERFACE TUTORIAL" sub="Learn exactly how to interact with the core modules.">
-            <div className="grid grid-cols-1 gap-12 mt-6">
+          <Panel kicker="SYSTEM TRAINING" title="IRONFORGE TUTORIAL" sub="Master the AI modules to transform your training.">
+            <div className="grid grid-cols-1 gap-8 mt-6">
               
               {/* Step 1 */}
               <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">1.</span> Profile Form</h3>
-                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
-                  <div className="grid grid-cols-2 gap-4 mb-4 opacity-50 pointer-events-none">
-                    <div>
-                      <label className="text-[10px] text-zinc-500 uppercase mb-1 block">Age</label>
-                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-white font-mono flex items-center gap-1">
-                        <span>28</span><span className="border-r-2 border-yellow-400 animate-pulse h-4"></span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-zinc-500 uppercase mb-1 block">Goal</label>
-                      <div className="bg-yellow-400/10 border border-yellow-400/50 text-yellow-200 rounded-lg p-3 text-sm relative shadow-[0_0_15px_rgba(250,204,21,0.2)]">
-                        Build Muscle 
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
-                    <strong className="text-white">Action:</strong> Simply type your numbers in the fields. The AI uses your weight to calculate <span className="text-emerald-400 font-bold">calorie intake</span> and your goal to adjust <span className="text-orange-400 font-bold">workout volume</span>.
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">1.</span> AI Vision (The Core Engine)</h3>
+                <div className="bg-[#0a0a0c] border border-emerald-500/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
+                    <strong className="text-white block mb-2 text-base">Action: Click "AI Vision" in the top bar.</strong>
+                    This is your gateway to Edge AI and Cloud LLMs. 
+                    <br/><br/>
+                    • <strong className="text-emerald-400">AI Form Coach:</strong> Turn on your webcam while lifting. The AI tracks your skeletal joints at 60 FPS and flashes Green for perfect form or Red if you break posture. Hold up fingers to start sets hands-free!
+                    <br/><br/>
+                    • <strong className="text-blue-400">Auto-Food Logger:</strong> Snap a picture of your plate to automatically extract macros and calories.
                   </div>
                 </div>
               </div>
 
               {/* Step 2 */}
               <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">2.</span> Log Progress</h3>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">2.</span> 🩺 AI Doctor (Injury Management)</h3>
+                <div className="bg-[#0a0a0c] border border-blue-500/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(59,130,246,0.05)]">
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
+                    <strong className="text-white block mb-2 text-base">Action: Click "AI Doctor" when experiencing pain.</strong>
+                    If a joint or muscle hurts, DO NOT train through it blindly. Open the AI Doctor, click on the exact body part that hurts, and describe the pain. The Multimodal LLM will analyze the biomechanics and suggest immediate form corrections or alternative exercises.
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">3.</span> Workout Split Builder</h3>
+                <div className="bg-[#0a0a0c] border border-yellow-400/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(250,204,21,0.05)]">
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
+                    <strong className="text-white block mb-2 text-base">Action: Click "Workout Split".</strong>
+                    Stop guessing what to train. Hit the "Generate AI Split" button. The engine reads your profile goals (e.g., Build Muscle), your experience level, and your available equipment, and builds a meticulously customized 7-day training protocol.
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">4.</span> Muscle Guide</h3>
                 <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
-                  <div className="space-y-3 mb-4 opacity-50 pointer-events-none">
-                    <div className="flex gap-2">
-                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-300 flex-1 relative hidden md:block">
-                        <span className="text-zinc-500">Select exercise...</span>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
-                      </div>
-                      <div className="bg-yellow-400/10 border border-yellow-400/50 rounded-lg p-3 text-sm text-yellow-200 font-mono w-20 text-center flex justify-center items-center gap-0.5 shadow-[0_0_15px_rgba(250,204,21,0.2)]">
-                        4<span className="border-r-2 border-yellow-400 animate-pulse h-4"></span>
-                      </div>
-                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-500 font-mono w-20 text-center">Reps</div>
-                      <div className="bg-black border border-white/10 rounded-lg p-3 text-sm text-zinc-500 font-mono w-24 text-center">Weight</div>
-                    </div>
-                  </div>
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
-                    <strong className="text-white">Action:</strong> Select an exercise from the dropdown (or type a custom one), then enter the <strong className="text-white">Sets</strong>, <strong className="text-white">Reps</strong>, and <strong className="text-white">Weight (kg)</strong> you actually lifted today. Click "Commit" to update your volume chart!
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
+                    <strong className="text-white block mb-2 text-base">Action: Click "Muscle Guide".</strong>
+                    Explore an interactive anatomical map. Hover or click on any muscle group (Pectorals, Lats, Quads) to instantly see the primary exercises that target that specific fiber.
                   </div>
                 </div>
               </div>
 
-            {/* Step 3 */}
-            <div>
-              <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">3.</span> Command Center</h3>
-              <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
-                <div className="mb-4 opacity-50 pointer-events-none">
-                  <div className="bg-yellow-400/10 border border-yellow-400/50 rounded-xl p-4 text-center relative shadow-[0_0_15px_rgba(250,204,21,0.2)]">
-                    <span className="font-bold text-yellow-400 tracking-widest">GENERATE AI PLAN</span>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
-                  </div>
-                </div>
-                <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
-                  <strong className="text-white">Action:</strong> Hit this button every day. The AI Engine reads your vitals from the <strong className="text-white">Profile</strong> and your lifting data from the <strong className="text-white">Log Progress</strong> tab to calculate the perfect daily workout and diet chart!
-                </div>
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div>
-              <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">4.</span> Muscle Guide</h3>
-              <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative flex flex-col md:flex-row gap-6 items-center">
-                <div className="w-full md:w-1/3 bg-black border border-white/10 rounded-xl p-4 relative h-40 flex items-center justify-center opacity-50">
-                   <div className="absolute inset-0 bg-[url('https://wger.de/static/images/muscles/muscular_system_front.svg')] bg-contain bg-center bg-no-repeat opacity-30"></div>
-                   <div className="absolute top-[20%] left-[25%] w-10 h-10 bg-red-500 rounded-full blur-sm"></div>
-                </div>
-                
-                <div className="flex-1 space-y-2 opacity-50 w-full pointer-events-none">
-                  <div className="border-l-2 border-zinc-700 pl-3 py-1">
-                    <div className="text-sm font-bold text-white">Front Deltoid</div>
-                  </div>
-                  
-                  <div className="border-l-2 border-yellow-400 bg-white/5 pl-3 py-2 rounded-r-lg relative shadow-[0_0_15px_rgba(250,204,21,0.1)]">
-                    <div className="text-sm font-bold text-yellow-400">Side Deltoid (Lateral)</div>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-400 animate-pulse"></div>
+              {/* Step 5 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">5.</span> Log Progress</h3>
+                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
+                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
+                    <strong className="text-white block mb-2 text-base">Action: Click "Log Progress".</strong>
+                    Manually enter the Sets, Reps, and Weight you lifted today. Click "Commit" to update your volume chart! The AI uses this data to adjust your future splits and calculate progressive overload.
                   </div>
                 </div>
               </div>
-              <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl mt-4 text-sm text-zinc-400">
-                <strong className="text-white">Action:</strong> Jump into the <strong className="text-white">Muscle Guide</strong> and hover your cursor over any sub-muscle in the list. The anatomical diagram will immediately isolate and highlight that specific muscle head!
-              </div>
-            </div>
 
             </div>
           </Panel>
@@ -1002,6 +973,16 @@ function App() {
           />
         )}
 
+        {view === 'discomfort' && (
+          <div className="mb-8">
+            <DiscomfortHub 
+              user={user} 
+              onClose={() => setView('dashboard')} 
+              onPlanGenerated={() => { setView('dashboard'); generatePlan(); }}
+            />
+          </div>
+        )}
+
         {needsProfile && view === 'dashboard' && (
           <div className="mb-6 rounded-2xl border border-yellow-400/40 bg-yellow-400/10 p-5 flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -1053,8 +1034,12 @@ function App() {
                     className="gold-btn font-extrabold py-4 px-8 rounded-2xl text-base whitespace-nowrap">
                     {loading ? 'ANALYZING...' : 'GENERATE AI PLAN'}
                   </button>
+                  <button onClick={() => setView('discomfort')}
+                    className="font-bold text-sm px-8 py-3 rounded-2xl text-yellow-300 border border-yellow-400/30 bg-yellow-400/10 hover:bg-yellow-400/20 transition whitespace-nowrap flex items-center justify-center gap-1.5">
+                    🩺 Report Discomfort / Pain
+                  </button>
                   <button onClick={() => setView('split')}
-                    className="font-bold text-sm px-8 py-3.5 rounded-2xl text-zinc-100 border border-white/15 bg-white/5 hover:bg-white/10 transition whitespace-nowrap">
+                    className="font-bold text-sm px-8 py-3 rounded-2xl text-zinc-100 border border-white/15 bg-white/5 hover:bg-white/10 transition whitespace-nowrap">
                     {mySplit ? 'Edit my split' : '＋ Forge my split'}
                   </button>
                 </div>
@@ -1216,6 +1201,16 @@ function App() {
                       </div>
                       <p className="text-sm text-yellow-300/90 mb-3 font-semibold">{plan.workout_plan?.focus || ''}</p>
                       
+                      {plan.workout_plan?.adapted_for_discomfort && (
+                        <div className="mb-4 bg-blue-500/10 border border-blue-400/40 p-3 rounded-xl text-blue-200 text-xs font-semibold flex items-center gap-2">
+                          <span className="text-base">⚡</span>
+                          <div>
+                            <span className="font-bold text-white uppercase text-[10px] block text-blue-300">ADAPTED FOR RECOVERY</span>
+                            {plan.workout_plan.adapted_for_discomfort}
+                          </div>
+                        </div>
+                      )}
+
                       {plan.is_log && plan.log_notes && (
                         <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-emerald-200 text-xs italic">
                           {plan.log_notes}

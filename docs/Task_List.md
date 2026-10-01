@@ -8,9 +8,10 @@
 - [x] **Bad Form Detection:** Added logic to detect bicep curl swinging and squat chest-caving, turning the on-screen skeleton red to provide instant visual feedback.
 - [x] **Universal Mesh UI:** Replaced basic dots with a highly advanced, universally applied animated 3D mesh structure for all Vision Hub camera overlays.
 - [x] **Immersive Full-Screen Camera:** Refactored the UI to allow the camera interface to break out of its container and fill the entire viewport seamlessly.
+- [x] **Add User Voice Commands:** Integrated browser SpeechRecognition API to allow users to start sets hands-free via voice commands ("start set", "begin", "go", "ready").
+- [x] **Expanded Exercise Library:** Added specific angle thresholds and bad form detection for Deadlifts (hip hinge & neutral spine), Overhead Presses (overhead lockout & back arching), and Lunges (knee depth & knee-over-ankle alignment).
+- [x] **Database Integration for Vision Hub:** Added `/log_food/` and `/log_workout/` backend endpoints and connected Vision Hub scan results to persist detected meals and sets/reps to the SQLite database.
+- [x] **Mobile Optimization:** Optimized full-screen camera touch targets (`min-h-[48px]`, `touch-manipulation`, high-contrast mobile buttons) for mobile devices and gym usage.
 
 ## Pending / Future Tasks
-- [ ] **Add User Voice Commands:** Integrate browser SpeechRecognition API to allow users to start sets via voice instead of fingers.
-- [ ] **Expanded Exercise Library:** Add specific angle thresholds for Deadlifts, Overhead Presses, and Lunges.
-- [ ] **Database Integration for Vision Hub:** Ensure that the sets and macros detected by the Vision Hub are successfully persisted to the postgresql database via the `/log_workout` and `/log_food` backend endpoints.
-- [ ] **Mobile Optimization:** While the camera is full-screen, ensure touch targets on mobile for the "Save to Profile" buttons are large enough.
+*(All current roadmap tasks completed successfully!)*

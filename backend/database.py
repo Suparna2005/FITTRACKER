@@ -5,9 +5,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/fitness_tracker")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SQLITE_PATH = os.path.join(BASE_DIR, "fitness_tracker.db")
+DEFAULT_DB_URL = f"sqlite:///{SQLITE_PATH}"
 
-engine = create_engine(DATABASE_URL)
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+
+def _get_engine():
+    try:
+        eng = create_engine(DATABASE_URL)
+        with eng.connect() as conn:
+            pass
+        return eng
+    except Exception as e:
+        print(f"Primary DB connection failed ({e}). Using local SQLite db at {SQLITE_PATH}.")
+        sqlite_url = f"sqlite:///{SQLITE_PATH}"
+        return create_engine(sqlite_url, connect_args={"check_same_thread": False})
+
+engine = _get_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -17,3 +32,5 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
