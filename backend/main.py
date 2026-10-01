@@ -447,6 +447,19 @@ def get_notifications(user_id: int, limit: int = 20, db: Session = Depends(get_d
         {"id": r.id, "title": r.title, "body": r.body, "channel": r.channel,
          "is_read": bool(r.is_read), "created_at": str(r.created_at)} for r in rows]}
 
+@app.get("/clear_test_data")
+def clear_test_data(db: Session = Depends(get_db)):
+    """Wipes all test data except the User profiles."""
+    try:
+        db.query(models.DailyWorkout).delete()
+        db.query(models.Notification).delete()
+        db.query(models.WorkoutPlan).delete()
+        db.commit()
+        return {"status": "success", "message": "All test workout data, notifications, and plans have been deleted. Your user login is safe!"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
 
 @app.post("/notifications/{notif_id}/read")
 def mark_notification_read(notif_id: int, db: Session = Depends(get_db)):

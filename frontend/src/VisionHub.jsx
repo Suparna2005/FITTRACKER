@@ -19,6 +19,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const poseRef = useRef(null);
+  const handsRef = useRef(null);
   const workoutStatsRef = useRef({ sets: 1, reps: 0 });
 
   const stopCamera = () => {
@@ -29,6 +30,10 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
     if (poseRef.current) {
       poseRef.current.close();
       poseRef.current = null;
+    }
+    if (handsRef.current) {
+      handsRef.current.close();
+      handsRef.current = null;
     }
   };
 
@@ -48,14 +53,24 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
     setImgPreview(null);
     setResult(null);
     setShowCamera(true);
+    await new Promise(r => setTimeout(r, 100));
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       streamRef.current = stream;
+      
+      let attempts = 0;
+      while (!videoRef.current && attempts < 20) {
+         await new Promise(r => setTimeout(r, 50));
+         attempts++;
+      }
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        try { await videoRef.current.play(); } catch(e){}
         
-        // Start real-time skeleton tracking for form mode
+// Start real-time skeleton tracking for form mode
+
         if (mode === 'form' && window.Pose) {
           poseRef.current = new window.Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -66,8 +81,63 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
           });
+
+          if (window.Hands) {
+            handsRef.current = new window.Hands({
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+            handsRef.current.setOptions({
+              maxNumHands: 1,
+              modelComplexity: 1,
+              minDetectionConfidence: 0.5,
+              minTrackingConfidence: 0.5
+            });
+            
+            handsRef.current.onResults((results) => {
+               if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                 const landmarks = results.multiHandLandmarks[0];
+                 let count = 0;
+                 
+                 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+                 
+                 // A finger is raised if its tip is further from the wrist (0) than its PIP joint is
+                 if (dist(landmarks[8], landmarks[0]) > dist(landmarks[6], landmarks[0])) count++; // Index
+                 if (dist(landmarks[12], landmarks[0]) > dist(landmarks[10], landmarks[0])) count++; // Middle
+                 if (dist(landmarks[16], landmarks[0]) > dist(landmarks[14], landmarks[0])) count++; // Ring
+                 if (dist(landmarks[20], landmarks[0]) > dist(landmarks[18], landmarks[0])) count++; // Pinky
+                 
+                 // Thumb is extended if its tip (4) is further from the pinky base (17) than the IP joint (3)
+                 if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++;
+                 if (count === waitingForSignal) {
+                    waitingForSignal = 0; // Signal matched! Start set.
+                    setRealtimeWarning("SIGNAL DETECTED! START SET " + setCount);
+                 }
+                 
+                 if (waitingForSignal > 0) {
+                     setRealtimeWarning(`HAND DETECTED: ${count} FINGERS. NEED ${waitingForSignal}`);
+                 }
+                 
+                 // Draw the hand landmarks so user can see it's working
+                 const canvas = canvasOverlayRef.current;
+                 if (canvas && window.drawConnectors && window.drawLandmarks && window.HAND_CONNECTIONS) {
+                     const ctx = canvas.getContext('2d');
+                     window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#3b82f6', lineWidth: 4});
+                     window.drawLandmarks(ctx, landmarks, {color: '#60a5fa', lineWidth: 1, radius: 2});
+                 }
+               } else {
+                 fingerSignalConsecutiveFrames = 0;
+                 if (waitingForSignal > 0) {
+                     setRealtimeWarning(`SHOW ${waitingForSignal} FINGERS TO START SET ${isResting ? setCount + 1 : setCount}`);
+                 }
+               }
+            });
+          }
+
           
           let repCount = 0;
+          let waitingForSignal = 1; // 1 means waiting for 1 finger to start Set 1. 2 means waiting for 2 fingers for Set 2.
+          let fingerSignalDetected = 0;
+          let fingerSignalConsecutiveFrames = 0;
           let setCount = 1;
           let repState = 'up'; // Tracks the phase of the movement
           let lastRepTime = Date.now();
@@ -85,12 +155,17 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             const now = Date.now();
             
             // Check if user stopped moving for > 5 seconds (Resting Phase)
-            if (repCount > 0 && (now - lastRepTime) > 5000) {
+            if (repCount > 0 && (now - lastRepTime) > 5000 && waitingForSignal === 0) {
               if (!isResting) {
                 isResting = true;
                 restStartTime = now;
+                const nextSet = setCount + 1;
+                waitingForSignal = nextSet > 5 ? 5 : nextSet; // Cap at 5 fingers
+                fingerSignalConsecutiveFrames = 0;
+                setRealtimeWarning(`RESTING. SHOW ${waitingForSignal} FINGERS TO START SET ${nextSet}`);
               }
             }
+            
             
             if (results.poseLandmarks && window.drawConnectors && window.drawLandmarks) {
               let skeletonColor = '#10b981'; // Green (Good Form)
@@ -99,6 +174,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               
               // Helper to handle rep completion and reset logic
               const triggerRep = () => {
+                if (waitingForSignal > 0) return; // DON'T count reps if waiting for start signal
                 if (isResting) {
                   // Starting a new set!
                   setCount++;
@@ -113,16 +189,28 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                 const hip = results.poseLandmarks[23];
                 const knee = results.poseLandmarks[25];
                 const ankle = results.poseLandmarks[27];
-                if (hip && knee && ankle) {
+                const shoulder = results.poseLandmarks[11];
+                
+                if (hip && knee && ankle && shoulder) {
                   const angle = calculateAngle(hip, knee, ankle);
-                  if (angle > 160) {
+                  const backAngle = calculateAngle(shoulder, hip, knee);
+                  
+                  const isBadForm = backAngle < 60;
+                  
+                  if (isBadForm) {
+                      skeletonColor = '#ef4444'; // RED for bad form
+                      if (waitingForSignal === 0) setRealtimeWarning("BAD FORM: KEEP CHEST UP!");
+                  } else if (angle > 160) {
                     if (repState === 'down') { triggerRep(); repState = 'up'; }
                     skeletonColor = '#10b981';
+                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
                   } else if (angle < 100) {
                     repState = 'down';
                     skeletonColor = '#10b981';
+                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
                   } else {
                     skeletonColor = '#f59e0b'; // Yellow mid-rep
+                    if (waitingForSignal === 0) setRealtimeWarning("GOOD: SQUEEZE THE REP");
                   }
                 }
               } else {
@@ -130,16 +218,28 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                 const shoulder = results.poseLandmarks[11];
                 const elbow = results.poseLandmarks[13];
                 const wrist = results.poseLandmarks[15];
-                if (shoulder && elbow && wrist) {
+                const hip = results.poseLandmarks[23];
+                
+                if (shoulder && elbow && wrist && hip) {
                   const angle = calculateAngle(shoulder, elbow, wrist);
-                  if (angle > 150) {
+                  const upperArmAngle = calculateAngle(hip, shoulder, elbow);
+                  
+                  const isBadForm = upperArmAngle > 35;
+                  
+                  if (isBadForm) {
+                      skeletonColor = '#ef4444'; // RED for bad form
+                      if (waitingForSignal === 0) setRealtimeWarning("BAD FORM: KEEP ELBOWS PINNED!");
+                  } else if (angle > 150) {
                     if (repState === 'up') { triggerRep(); repState = 'down'; }
                     skeletonColor = '#10b981';
+                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
                   } else if (angle < 60) {
                     repState = 'up';
                     skeletonColor = '#10b981';
+                    if (waitingForSignal === 0) setRealtimeWarning("PERFECT FORM");
                   } else {
                     skeletonColor = '#f59e0b'; // Yellow mid-rep
+                    if (waitingForSignal === 0) setRealtimeWarning("GOOD: SQUEEZE THE REP");
                   }
                 }
               }
@@ -172,13 +272,31 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
           // Render Loop
           const processFrame = async () => {
             if (videoRef.current && poseRef.current && streamRef.current) {
-              try { await poseRef.current.send({image: videoRef.current}); } catch(e){}
+              if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) { requestAnimationFrame(processFrame); return; }
+              try { 
+                await poseRef.current.send({image: videoRef.current}); 
+                if (handsRef.current && waitingForSignal > 0) {
+                   await handsRef.current.send({image: videoRef.current});
+                }
+              } catch(e){
+                console.error("MediaPipe Error:", e);
+              }
               requestAnimationFrame(processFrame);
             }
           };
-          videoRef.current.onloadeddata = () => {
-            processFrame();
+          let loopStarted = false;
+          const startLoop = () => {
+             if (loopStarted) return;
+             loopStarted = true;
+             processFrame();
           };
+          
+          const checkReady = setInterval(() => {
+             if (videoRef.current && videoRef.current.videoWidth > 0) {
+                clearInterval(checkReady);
+                startLoop();
+             }
+          }, 50);
         }
       }
     } catch (err) {
@@ -431,11 +549,34 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
           )}
           
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-[60vh] object-cover" />
-          <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-[60vh] object-cover pointer-events-none z-10" />
+          <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-[60vh] object-cover pointer-events-none z-20" />
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* DYNAMIC HUD OVERLAYS */}
-          <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+          {/* UNIVERSAL SPATIAL MESH BACKGROUND */}
+          <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center overflow-hidden">
+            <style>{`
+              @keyframes meshMove {
+                0% { background-position: 0 0; }
+                100% { background-position: 0 40px; }
+              }
+              @keyframes meshPulse {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 0.8; }
+              }
+            `}</style>
+            <div className="absolute inset-0 z-0 mix-blend-screen" style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(16, 185, 129, 0.2) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(16, 185, 129, 0.2) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+              transform: 'perspective(600px) rotateX(60deg) translateY(-50px) scale(2)',
+              animation: 'meshMove 2s linear infinite, meshPulse 4s ease-in-out infinite',
+              transformOrigin: 'bottom'
+            }}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black z-10 pointer-events-none"></div>
+            
+            {/* DYNAMIC HUD OVERLAYS */}
             {activeMode === 'form' && (
               <div className={`absolute top-[10%] px-4 py-2 rounded-full border backdrop-blur-sm shadow-xl transition-colors duration-300 z-30 
                 ${realtimeWarning.includes('PERFECT') ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
@@ -446,15 +587,12 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             )}
 
             {activeMode === 'physique' && (
-              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <div className="relative w-full h-full flex items-center justify-center z-20">
                 {/* SVG Human Silhouette Outline */}
                 <svg viewBox="0 0 200 300" className="w-64 h-96 opacity-60 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
-                  {/* Head */}
                   <circle cx="100" cy="80" r="45" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
-                  {/* Torso */}
                   <path d="M 68 115 Q 20 130 10 220 L 10 300 L 190 300 L 190 220 Q 180 130 132 115" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
                 </svg>
-
                 {/* Animated Scan Line */}
                 <div className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_20px_4px_rgba(52,211,153,0.8)]" 
                      style={{ animation: 'scanline 3s cubic-bezier(0.4, 0, 0.2, 1) infinite', width: '100%', maxWidth: '300px', margin: '0 auto' }}></div>
@@ -466,19 +604,15 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             )}
 
             {activeMode === 'food' && (
-              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-emerald-500/40 border-dashed animate-[spin_10s_linear_infinite]">
+              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-emerald-500/40 border-dashed animate-[spin_10s_linear_infinite] z-20">
                 <div className="absolute inset-0 rounded-full bg-emerald-500/5 mix-blend-overlay"></div>
               </div>
             )}
             
             {activeMode === 'equipment' && (
-              <div className="relative w-full h-full p-12 flex items-center justify-center">
-                <div className="w-full h-full border border-emerald-500/20 grid grid-cols-3 grid-rows-3 gap-2">
-                  {[...Array(9)].map((_, i) => (
-                    <div key={i} className="border border-emerald-500/10 flex items-center justify-center">
-                      <div className="w-1 h-1 bg-emerald-500/30 rounded-full"></div>
-                    </div>
-                  ))}
+              <div className="relative w-full h-full flex items-center justify-center z-20">
+                <div className="z-20 text-[10px] font-black tracking-[0.3em] text-emerald-400 uppercase bg-black/50 px-4 py-2 rounded-full border border-emerald-500/30 backdrop-blur-sm animate-pulse">
+                  SPATIAL MESH SCANNER ACTIVE
                 </div>
               </div>
             )}

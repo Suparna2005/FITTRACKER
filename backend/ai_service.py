@@ -178,12 +178,16 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         "form": "Analyze the exercise form in this image. Identify the exercise. If they are holding a barbell or dumbbell, pay extremely close attention to their grip (horizontal/vertical, overhand/underhand) and flag any grip mistakes. If they are empty-handed, just critique their body posture. Return a raw JSON object (no markdown) with keys: 'detected_exercise' (string), 'form_score' (integer out of 100), 'critique' (string, focus on posture and grip), and 'correction_advice' (string)."
     }
     # Dynamically find the active vision model
-    active_vision_model = "llama-3.2-11b-vision-preview"
+    active_vision_model = "llama-3.2-11b-vision" # Default to the current production model
     try:
-        m_req = urllib.request.Request("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {api_key}"})
+        m_req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/models", 
+            headers={"Authorization": f"Bearer {api_key}", "User-Agent": "FitnessTracker/1.0"}
+        )
         with urllib.request.urlopen(m_req) as m_res:
             m_data = json.loads(m_res.read().decode('utf-8'))
-            vision_models = [m["id"] for m in m_data.get("data", []) if "vision" in m["id"].lower()]
+            models = [m["id"] for m in m_data.get("data", [])]
+            vision_models = [m for m in models if "vision" in m.lower() or "qwen" in m.lower()]
             if vision_models:
                 # Prefer 11b if available, otherwise just grab the first one
                 active_vision_model = next((m for m in vision_models if "11b" in m), vision_models[0])
