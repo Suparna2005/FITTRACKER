@@ -103,6 +103,28 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
     return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 Mild Strain</span>
   }
 
+  const parseRec = (recObj, exercise = '', feeling = '') => {
+    let rec = recObj;
+    if (typeof rec === 'string') {
+      try {
+        rec = JSON.parse(rec);
+      } catch (e) {
+        rec = {};
+      }
+    }
+    rec = rec || {};
+    
+    return {
+      probable_cause: rec.probable_cause || rec.cause || rec.reason || `Biomechanical strain or acute joint friction during ${exercise} ('${feeling}'). Likely due to form collapse, excessive load, or inadequate warm-up.`,
+      doctor_advice: rec.doctor_advice || rec.doctor || rec.first_aid || `Follow the R.I.C.E protocol (Rest, Ice for 15-20 min, Compression, Elevation). Avoid heavy loading on this joint for 24-48h. Seek medical evaluation if pain worsens.`,
+      trainer_advice: rec.trainer_advice || rec.trainer || rec.form_cue || `For ${exercise}, drop working weight by 25-30%. Focus on strict alignment, engage core stability before initiating reps, and control the eccentric lowering phase.`,
+      safe_substitutions: Array.isArray(rec.safe_substitutions) && rec.safe_substitutions.length > 0 
+        ? rec.safe_substitutions 
+        : [`Goblet / Neutral-grip alternative to ${exercise}`, "Dumbbell Supported Movement", "Bodyweight Tempo Reps"],
+      next_day_plan_adjustment: rec.next_day_plan_adjustment || `Tomorrow's AI plan will automatically avoid direct heavy strain on ${exercise}, substitute safer movements, and prioritize non-injured body parts.`
+    };
+  };
+
   return (
     <div className="space-y-6 fade-up">
       {/* Top Banner */}
@@ -251,88 +273,93 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
 
           {/* AI Output Column */}
           <div className="lg:col-span-6 space-y-5">
-            {activeAnalysis ? (
-              <div className="bg-black/60 border border-yellow-400/40 rounded-2xl p-5 md:p-6 space-y-5 shadow-[0_0_30px_rgba(250,204,21,0.1)] fade-up">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400 block">AI DIAGNOSTIC REPORT DEPLOYED</span>
-                    <h3 className="font-display font-bold text-xl text-white">
-                      {activeAnalysis.exercise_name}
-                    </h3>
-                  </div>
-                  {getSeverityBadge(activeAnalysis.severity)}
-                </div>
+            {activeAnalysis ? (() => {
+              const rec = parseRec(activeAnalysis.ai_recommendation, activeAnalysis.exercise_name || exerciseName, activeAnalysis.feeling_description || feelingDescription);
+              const feelingText = activeAnalysis.feeling_description || feelingDescription || 'Discomfort / Pain';
+              const timingText = activeAnalysis.timing || timing || 'During exercise';
 
-                {/* Patient / Athlete sensation recall */}
-                <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl text-xs text-zinc-300">
-                  <span className="text-zinc-500 font-bold uppercase text-[10px] block mb-1">Logged Sensation</span>
-                  "{activeAnalysis.feeling_description}" ({activeAnalysis.timing})
-                </div>
-
-                {/* Doctor Section */}
-                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 space-y-2">
-                  <div className="flex items-center gap-2 font-display font-bold text-red-200 text-sm">
-                    <span className="text-lg">🩺</span> DOCTOR ANALYSIS &amp; MEDICAL CARE
-                  </div>
-                  <div className="text-xs text-zinc-300 leading-relaxed">
-                    <strong className="text-white block mb-1">Probable Cause:</strong>
-                    {activeAnalysis.ai_recommendation?.probable_cause || activeAnalysis.ai_recommendation?.cause}
-                  </div>
-                  <div className="text-xs text-red-200/90 leading-relaxed pt-2 border-t border-red-500/20">
-                    <strong className="text-red-300 block mb-1">Immediate First Aid &amp; Safety:</strong>
-                    {activeAnalysis.ai_recommendation?.doctor_advice}
-                  </div>
-                </div>
-
-                {/* Trainer Section */}
-                <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 space-y-2">
-                  <div className="flex items-center gap-2 font-display font-bold text-yellow-200 text-sm">
-                    <span className="text-lg">🏋️‍♂️</span> TRAINER BIOMECHANICS &amp; FORM CORRECTION
-                  </div>
-                  <div className="text-xs text-zinc-200 leading-relaxed">
-                    {activeAnalysis.ai_recommendation?.trainer_advice}
-                  </div>
-                </div>
-
-                {/* Substitutions */}
-                {activeAnalysis.ai_recommendation?.safe_substitutions?.length > 0 && (
-                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4">
-                    <div className="flex items-center gap-2 font-display font-bold text-emerald-200 text-sm mb-2">
-                      <span className="text-lg">🛡️</span> RECOMMENDED SAFE EXERCISE SUBSTITUTIONS
+              return (
+                <div className="bg-black/60 border border-yellow-400/40 rounded-2xl p-5 md:p-6 space-y-5 shadow-[0_0_30px_rgba(250,204,21,0.1)] fade-up">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400 block">AI DIAGNOSTIC REPORT DEPLOYED</span>
+                      <h3 className="font-display font-bold text-xl text-white">
+                        {activeAnalysis.exercise_name || exerciseName || 'Exercise Issue'}
+                      </h3>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {activeAnalysis.ai_recommendation.safe_substitutions.map((sub, i) => (
-                        <span key={i} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/50 border border-emerald-400/40 text-emerald-200">
-                          ✓ {sub}
-                        </span>
-                      ))}
+                    {getSeverityBadge(activeAnalysis.severity || severity)}
+                  </div>
+
+                  {/* Patient / Athlete sensation recall */}
+                  <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl text-xs text-zinc-300">
+                    <span className="text-zinc-500 font-bold uppercase text-[10px] block mb-1">Logged Sensation</span>
+                    "{feelingText}" ({timingText})
+                  </div>
+
+                  {/* Doctor Section */}
+                  <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 font-display font-bold text-red-200 text-sm">
+                      <span className="text-lg">🩺</span> DOCTOR ANALYSIS &amp; MEDICAL CARE
+                    </div>
+                    <div className="text-xs text-zinc-300 leading-relaxed">
+                      <strong className="text-white block mb-1">Probable Cause:</strong>
+                      {rec.probable_cause}
+                    </div>
+                    <div className="text-xs text-red-200/90 leading-relaxed pt-2 border-t border-red-500/20">
+                      <strong className="text-red-300 block mb-1">Immediate First Aid &amp; Safety:</strong>
+                      {rec.doctor_advice}
                     </div>
                   </div>
-                )}
 
-                {/* Next-Day Plan Adaptation Banner */}
-                <div className="rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display font-bold text-blue-200 text-sm flex items-center gap-2">
-                      <span>⚡</span> ADAPTIVE NEXT-DAY WORKOUT GUARANTEE
-                    </span>
-                    <span className="text-[10px] font-bold text-blue-300 bg-blue-400/20 px-2 py-0.5 rounded-full">AUTOMATIC</span>
+                  {/* Trainer Section */}
+                  <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 font-display font-bold text-yellow-200 text-sm">
+                      <span className="text-lg">🏋️‍♂️</span> TRAINER BIOMECHANICS &amp; FORM CORRECTION
+                    </div>
+                    <div className="text-xs text-zinc-200 leading-relaxed">
+                      {rec.trainer_advice}
+                    </div>
                   </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed">
-                    {activeAnalysis.ai_recommendation?.next_day_plan_adjustment || 
-                      "Tomorrow's workout plan will automatically exclude aggravating lifts and replace them with safe, non-joint-straining movements!"}
-                  </p>
-                  {onPlanGenerated && (
-                    <button
-                      onClick={onPlanGenerated}
-                      className="mt-2 font-bold text-xs px-4 py-2 rounded-xl bg-blue-400 text-zinc-950 hover:bg-blue-300 transition w-full text-center block"
-                    >
-                      GENERATE ADAPTED WORKOUT PLAN NOW →
-                    </button>
+
+                  {/* Substitutions */}
+                  {rec.safe_substitutions?.length > 0 && (
+                    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4">
+                      <div className="flex items-center gap-2 font-display font-bold text-emerald-200 text-sm mb-2">
+                        <span className="text-lg">🛡️</span> RECOMMENDED SAFE EXERCISE SUBSTITUTIONS
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {rec.safe_substitutions.map((sub, i) => (
+                          <span key={i} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/50 border border-emerald-400/40 text-emerald-200">
+                            ✓ {sub}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
+
+                  {/* Next-Day Plan Adaptation Banner */}
+                  <div className="rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-display font-bold text-blue-200 text-sm flex items-center gap-2">
+                        <span>⚡</span> ADAPTIVE NEXT-DAY WORKOUT GUARANTEE
+                      </span>
+                      <span className="text-[10px] font-bold text-blue-300 bg-blue-400/20 px-2 py-0.5 rounded-full">AUTOMATIC</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      {rec.next_day_plan_adjustment}
+                    </p>
+                    {onPlanGenerated && (
+                      <button
+                        onClick={onPlanGenerated}
+                        className="mt-2 font-bold text-xs px-4 py-2 rounded-xl bg-blue-400 text-zinc-950 hover:bg-blue-300 transition w-full text-center block"
+                      >
+                        GENERATE ADAPTED WORKOUT PLAN NOW →
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
+              )
+            })() : (
               <div className="bg-black/30 border border-white/10 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[360px]">
                 <div className="w-16 h-16 rounded-full bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-3xl mb-4">
                   🩺
@@ -374,24 +401,27 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                   </div>
                   <p className="text-xs text-zinc-300 italic">"{log.feeling_description}"</p>
                   
-                  {log.ai_recommendation && (
-                    <div className="mt-2 text-xs text-zinc-400 space-y-1 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                      <div>
-                        <strong className="text-red-300 font-semibold">Doctor Advice: </strong> 
-                        {log.ai_recommendation.doctor_advice}
-                      </div>
-                      <div>
-                        <strong className="text-yellow-300 font-semibold">Trainer Advice: </strong> 
-                        {log.ai_recommendation.trainer_advice}
-                      </div>
-                      {log.ai_recommendation.safe_substitutions?.length > 0 && (
+                  {(() => {
+                    const rLog = parseRec(log.ai_recommendation, log.exercise_name, log.feeling_description);
+                    return (
+                      <div className="mt-2 text-xs text-zinc-400 space-y-1 bg-white/[0.02] p-3 rounded-xl border border-white/5">
                         <div>
-                          <strong className="text-emerald-300 font-semibold">Substitutions: </strong>
-                          {log.ai_recommendation.safe_substitutions.join(', ')}
+                          <strong className="text-red-300 font-semibold">Doctor Advice: </strong> 
+                          {rLog.doctor_advice}
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div>
+                          <strong className="text-yellow-300 font-semibold">Trainer Advice: </strong> 
+                          {rLog.trainer_advice}
+                        </div>
+                        {rLog.safe_substitutions?.length > 0 && (
+                          <div>
+                            <strong className="text-emerald-300 font-semibold">Substitutions: </strong>
+                            {rLog.safe_substitutions.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex items-center gap-2 self-end md:self-start">

@@ -307,8 +307,19 @@ def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, 
     - next_day_plan_adjustment (string)
     """
     api_key = os.getenv("GROQ_API_KEY")
-    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     
+    # Check for Emergency Red Flags (e.g. Chest Pain, Dizziness, Shortness of Breath)
+    lower_desc = (feeling_description or "").lower()
+    if any(k in lower_desc for k in ["chest pain", "heart", "dizziness", "shortness of breath", "blackout", "numbness", "passing out"]):
+        return {
+            "probable_cause": f"🚨 EMERGENCY MEDICAL RED FLAG: Chest pain or cardiovascular distress reported during {exercise_name} ('{feeling_description}'). This is NOT a routine muscle soreness issue and requires immediate medical evaluation.",
+            "doctor_advice": f"🚨 STOP ALL EXERCISE IMMEDIATELY! Sit or lie down in a cool, ventilated area. If chest tightness, pressure, radiating arm/jaw pain, or shortness of breath persists for more than a few minutes, CALL EMERGENCY SERVICES (911/112) OR GO TO THE NEAREST EMERGENCY ROOM IMMEDIATELY. Do not attempt further lifting or physical exertion.",
+            "trainer_advice": f"All weight training sessions for {exercise_name} and other lifts are SUSPENDED IMMEDIATELY. Prioritize a complete medical evaluation by a licensed physician before returning to the gym.",
+            "safe_substitutions": ["Complete Rest & Hydration", "Physician Medical Clearance", "Gentle Controlled Walking (Post-Clearance Only)"],
+            "next_day_plan_adjustment": "Workout plans are automatically PAUSED until medical clearance is completed."
+        }
+
     prompt = f"""
     You are an expert Sports Medicine Physician (Doctor) and Biomechanics Strength Coach (Trainer).
     An athlete reported a physical problem / pain / discomfort while exercising:
@@ -333,9 +344,9 @@ def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, 
     """
     
     mock_response = {
-        "probable_cause": f"The reported sensation during {exercise_name} ('{feeling_description}') is likely caused by biomechanical form collapse or acute tendon/ligament stress under load.",
-        "doctor_advice": f"Follow the R.I.C.E protocol (Rest, Ice for 15-20 min, Compression, Elevation). Avoid heavy loading on this joint for 24-48h. Seek immediate medical evaluation if you experience numbness, swelling, or sharp joint locking.",
-        "trainer_advice": f"For {exercise_name}, drop working weight by 25-30%. Focus on strict alignment, engage core stability before initating reps, and control the 3-second lowering phase.",
+        "probable_cause": f"Biomechanical strain or acute joint friction during {exercise_name} ('{feeling_description}'). Likely due to form collapse, excessive load, or inadequate warm-up.",
+        "doctor_advice": f"Follow the R.I.C.E protocol (Rest, Ice for 15-20 min, Compression, Elevation). Avoid heavy loading on this area for 24-48 hours. Seek medical attention if pain worsens or swelling develops.",
+        "trainer_advice": f"For {exercise_name}, drop working weight by 25-30%. Focus on strict spinal alignment, engage core stability before initiating reps, and control the 3-second eccentric phase.",
         "safe_substitutions": [f"Goblet / Neutral-grip alternative to {exercise_name}", "Dumbbell Supported Movement", "Bodyweight Tempo Reps"],
         "next_day_plan_adjustment": f"Tomorrow's AI plan will automatically avoid direct heavy strain on {exercise_name}, substitute safer movements, and prioritize non-injured body parts."
     }
