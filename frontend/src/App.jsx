@@ -710,67 +710,132 @@ function App() {
   if (view === 'tutorial') {
     return (
       <div className="gym-page py-8 px-4">
-        <div className="max-w-4xl mx-auto space-y-8 fade-up">
-          <button onClick={() => setView('dashboard')} className="text-yellow-400 font-bold mb-2 hover:underline text-sm">← Back to Command Center</button>
-          <Panel kicker="SYSTEM TRAINING" title="IRONFORGE TUTORIAL" sub="Master the AI modules to transform your training.">
-            <div className="grid grid-cols-1 gap-8 mt-6">
+        <div className="max-w-5xl mx-auto space-y-8 fade-up">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setView('dashboard')} className="text-yellow-400 font-extrabold flex items-center gap-2 hover:underline text-sm uppercase tracking-wider">
+              ← Back to Command Center
+            </button>
+            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+              Interactive User Manual
+            </span>
+          </div>
+
+          <Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
+            <div className="grid grid-cols-1 gap-12 mt-8">
               
-              {/* Step 1 */}
-              <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">1.</span> AI Vision (The Core Engine)</h3>
-                <div className="bg-[#0a0a0c] border border-emerald-500/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(16,185,129,0.05)]">
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
-                    <strong className="text-white block mb-2 text-base">Action: Click "AI Vision" in the top bar.</strong>
-                    This is your gateway to Edge AI and Cloud LLMs. 
-                    <br/><br/>
-                    • <strong className="text-emerald-400">AI Form Coach:</strong> Turn on your webcam while lifting. The AI tracks your skeletal joints at 60 FPS and flashes Green for perfect form or Red if you break posture. Hold up fingers to start sets hands-free!
-                    <br/><br/>
-                    • <strong className="text-blue-400">Auto-Food Logger:</strong> Snap a picture of your plate to automatically extract macros and calories.
+              {/* Step 1: AI Vision & Hands-Free Controls */}
+              <div className="bg-[#0a0a0c] border border-emerald-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(16,185,129,0.1)] overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-lg">1</span>
+                  <h3 className="text-2xl font-bold text-white tracking-wide">AI Vision Hub & Hands-Free Controls</h3>
+                </div>
+                
+                {/* Visual Process Diagram */}
+                <div className="my-6 rounded-2xl overflow-hidden border border-emerald-500/40 shadow-2xl relative group bg-black/60">
+                  <img 
+                    src="/tutorial/vision_tutorial.jpg" 
+                    alt="AI Vision & Hands-Free Process Diagram" 
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Process Diagram
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
+                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">🟢 60 FPS Biomechanics</div>
+                    <div className="text-xs text-zinc-300">Tracks skeletal joints in real-time. Flashes green for good posture and red for bad form cues.</div>
+                  </div>
+                  <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
+                    <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">🖐️ Hand Signal Control</div>
+                    <div className="text-xs text-zinc-300">Hold up <strong>1 finger for Set 1</strong>, <strong>2 fingers for Set 2</strong>, <strong>3 fingers for Set 3</strong> without touching screen!</div>
+                  </div>
+                  <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
+                    <div className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">🎤 Deepgram Nova-3 Voice</div>
+                    <div className="text-xs text-zinc-300">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, <em>"Set 3"</em>, or <em>"Go"</em> to change sets hands-free using AI voice!</div>
                   </div>
                 </div>
               </div>
 
-              {/* Step 2 */}
-              <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">2.</span> 🩺 AI Doctor (Injury Management)</h3>
-                <div className="bg-[#0a0a0c] border border-blue-500/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(59,130,246,0.05)]">
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
-                    <strong className="text-white block mb-2 text-base">Action: Click "AI Doctor" when experiencing pain.</strong>
-                    If a joint or muscle hurts, DO NOT train through it blindly. Open the AI Doctor, click on the exact body part that hurts, and describe the pain. The Multimodal LLM will analyze the biomechanics and suggest immediate form corrections or alternative exercises.
+              {/* Step 2: AI Doctor & Injury Management */}
+              <div className="bg-[#0a0a0c] border border-blue-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(59,130,246,0.1)] overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center font-black text-lg">2</span>
+                  <h3 className="text-2xl font-bold text-white tracking-wide">🩺 AI Doctor & Sports Trainer (Discomfort Logger)</h3>
+                </div>
+
+                {/* Visual Process Diagram */}
+                <div className="my-6 rounded-2xl overflow-hidden border border-blue-500/40 shadow-2xl relative group bg-black/60">
+                  <img 
+                    src="/tutorial/doctor_tutorial.jpg" 
+                    alt="AI Doctor & Injury Logger Process Diagram" 
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-blue-400 border border-blue-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Medical Protocol
                   </div>
+                </div>
+
+                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
+                  <p><strong className="text-blue-400 text-base">Action: Click "🩺 AI Doctor" button in top bar whenever feeling pain.</strong></p>
+                  <p>1. Select the exercise (e.g. Squat, Overhead Press) and describe your symptoms or pain severity.</p>
+                  <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (giving immediate care RICE instructions) and a <strong>Master Trainer</strong> (giving joint form cues & safe exercise substitutions).</p>
+                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-yellow-400/20 text-yellow-300 border border-yellow-400/40 text-[11px] font-extrabold px-2 py-0.5 rounded">⚡ ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
                 </div>
               </div>
 
-              {/* Step 3 */}
-              <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">3.</span> Workout Split Builder</h3>
-                <div className="bg-[#0a0a0c] border border-yellow-400/30 rounded-2xl p-5 md:p-8 relative shadow-[0_0_30px_rgba(250,204,21,0.05)]">
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
-                    <strong className="text-white block mb-2 text-base">Action: Click "Workout Split".</strong>
-                    Stop guessing what to train. Hit the "Generate AI Split" button. The engine reads your profile goals (e.g., Build Muscle), your experience level, and your available equipment, and builds a meticulously customized 7-day training protocol.
+              {/* Step 3: Auto-Food Vision Logger */}
+              <div className="bg-[#0a0a0c] border border-amber-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(245,158,11,0.1)] overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg">3</span>
+                  <h3 className="text-2xl font-bold text-white tracking-wide">🍎 Auto-Food Vision Logger & Macro Analysis</h3>
+                </div>
+
+                {/* Visual Process Diagram */}
+                <div className="my-6 rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl relative group bg-black/60">
+                  <img 
+                    src="/tutorial/food_tutorial.jpg" 
+                    alt="Auto Food Vision Logger Diagram" 
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Vision Macro AI
                   </div>
+                </div>
+
+                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
+                  <p><strong className="text-amber-400 text-base">Action: Click "AI Vision" → Select "Auto-Food Logger".</strong></p>
+                  <p>1. Snap a quick photo of your plate or meal.</p>
+                  <p>2. Llama-3.2 Vision automatically detects dish items, calculates estimated calories, and breaks down Protein, Carbs, and Fats macros.</p>
+                  <p>3. Click <strong>"✓ Save to Profile"</strong> to log nutrition directly to your database logs!</p>
                 </div>
               </div>
 
-              {/* Step 4 */}
-              <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">4.</span> Muscle Guide</h3>
-                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
-                    <strong className="text-white block mb-2 text-base">Action: Click "Muscle Guide".</strong>
-                    Explore an interactive anatomical map. Hover or click on any muscle group (Pectorals, Lats, Quads) to instantly see the primary exercises that target that specific fiber.
+              {/* Step 4: AI Workout Split Builder */}
+              <div className="bg-[#0a0a0c] border border-yellow-400/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(250,204,21,0.1)] overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-yellow-400/20 text-yellow-400 border border-yellow-400/40 flex items-center justify-center font-black text-lg">4</span>
+                  <h3 className="text-2xl font-bold text-white tracking-wide">⚡ AI Workout Split Builder & Muscle Guide</h3>
+                </div>
+
+                {/* Visual Process Diagram */}
+                <div className="my-6 rounded-2xl overflow-hidden border border-yellow-400/40 shadow-2xl relative group bg-black/60">
+                  <img 
+                    src="/tutorial/split_tutorial.jpg" 
+                    alt="AI Workout Split Builder Diagram" 
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-yellow-400 border border-yellow-400/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Custom AI Protocols
                   </div>
                 </div>
-              </div>
 
-              {/* Step 5 */}
-              <div>
-                <h3 className="text-xl font-bold text-white mb-4"><span className="text-yellow-400">5.</span> Log Progress</h3>
-                <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl p-5 md:p-8 relative">
-                  <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-zinc-400 leading-relaxed">
-                    <strong className="text-white block mb-2 text-base">Action: Click "Log Progress".</strong>
-                    Manually enter the Sets, Reps, and Weight you lifted today. Click "Commit" to update your volume chart! The AI uses this data to adjust your future splits and calculate progressive overload.
-                  </div>
+                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
+                  <p><strong className="text-yellow-400 text-base">Action: Click "Workout Split" on Dashboard.</strong></p>
+                  <p>1. Select your target goal (Build Muscle, Fat Loss, Powerlifting) and gym equipment available.</p>
+                  <p>2. The Groq LLM engine generates a 7-day personalized split with target muscle activation maps.</p>
+                  <p>3. Explore the <strong>"Muscle Guide"</strong> tab anytime to inspect 3D muscle anatomy fiber targets!</p>
                 </div>
               </div>
 
