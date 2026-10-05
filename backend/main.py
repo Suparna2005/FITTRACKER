@@ -174,13 +174,23 @@ class FoodLogRequest(BaseModel):
     protein_g: Optional[int] = 0
     carbs_g: Optional[int] = 0
     fats_g: Optional[int] = 0
+    serving_weight_g: Optional[int] = 0
+    ingredients: Optional[List[dict]] = None
+    scientific_notes: Optional[str] = None
     date: Optional[str] = None
 
 @app.post("/log_food/")
 def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
     import datetime
     log_date = log.date or datetime.date.today().isoformat()
-    food_note = f"[Auto-Food Vision] {log.food_name}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g)"
+    
+    ing_summary = ""
+    if log.ingredients:
+        ing_parts = [f"{i.get('name', 'Item')} ({i.get('weight_g', 0)}g - {i.get('calories', 0)} kcal)" for i in log.ingredients]
+        ing_summary = " | Ingredients: " + ", ".join(ing_parts)
+
+    weight_str = f" ({log.serving_weight_g}g total weight)" if log.serving_weight_g else ""
+    food_note = f"[Scientific Vision Food Log] {log.food_name}{weight_str}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g){ing_summary}"
     
     db_workout = models.DailyWorkout(
         user_id=log.user_id,
@@ -192,20 +202,23 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
         },
         diet_data={
             "daily_calories": log.calories,
+            "serving_weight_g": log.serving_weight_g or 0,
             "macros": {
                 "protein": f"{log.protein_g}g",
                 "carbs": f"{log.carbs_g}g",
                 "fats": f"{log.fats_g}g"
             },
+            "ingredients": log.ingredients or [],
+            "scientific_notes": log.scientific_notes or "",
             "meals": [
-                {"name": "Vision Scanned Meal", "meal": f"{log.food_name} — {log.calories} kcal"}
+                {"name": f"Vision Scanned Meal ({log.serving_weight_g or 'N/A'}g)", "meal": f"{log.food_name} — {log.calories} kcal"}
             ]
         },
         status="completed"
     )
     db.add(db_workout)
     db.commit()
-    return {"status": "success", "message": f"Successfully logged {log.food_name} ({log.calories} kcal)!"}
+    return {"status": "success", "message": f"Successfully logged {log.food_name} ({log.serving_weight_g or 'N/A'}g, {log.calories} kcal) to database!"}
 
 class WorkoutLogRequest(BaseModel):
     user_id: int

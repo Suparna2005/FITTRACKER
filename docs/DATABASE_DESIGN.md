@@ -30,12 +30,15 @@ The application currently utilizes **SQLite** for lightweight, serverless data p
 - `reps` (Integer)
 - `form_score` (Float, 0-100 based on AI Form Coach)
 
-### 4. Food Logs Table
+### 4. Food Logs Table (Stored inside DailyWorkout.diet_data)
 - `id` (UUID, Primary Key)
 - `user_id` (UUID, Foreign Key -> Users.id)
 - `date` (Date)
 - `food_name` (String)
+- `serving_weight_g` (Integer - Total estimated portion weight in grams)
 - `calories` (Integer)
 - `protein_g` (Float)
 - `carbs_g` (Float)
 - `fats_g` (Float)
+- `ingredients` (JSON Array - Itemized breakdown of ingredients with name, weight_g, calories, and macros)
+- `scientific_notes` (Text - Nutritional density & bio-diagnostic assessment)

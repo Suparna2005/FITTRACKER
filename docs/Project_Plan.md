@@ -29,3 +29,9 @@ This document outlines the full end-to-end implementation plan that was successf
 * **Form Correction (Red Signals):** Implemented strict biomechanical limits (e.g., stopping elbow swing in curls, preventing chest drops in squats). Triggered the on-screen skeleton to flash **RED** with real-time text warnings upon bad form.
 * **Immersive Full-Screen:** Refactored the DOM structure to break the camera feed out of its modal, snapping it to a `fixed inset-0` full-screen viewport for a native-app feel.
 * **Universal 3D Mesh:** Designed and applied an animated, 3D synthwave-style laser mesh overlay that runs globally behind all Vision Hub camera interactions.
+
+## Day 6: Scientific Vision Engine & Voice Control Upgrade
+* **Scientific Food & Ingredient Gram Scanner:** Upgraded the AI Vision prompt, backend handlers, and frontend UI to measure dish weights in **grams (g)**, extract itemized ingredient breakdowns with individual weights (`g`), calories (`kcal`), and macros, and generate nutritional density diagnostics.
+* **Database Integration:** Extended `/log_food/` and `/log_workout/` endpoints in FastAPI to persist full portion weights, ingredients, form critiques, and discomfort adaptations directly to SQLite.
+* **Voice AI Controls:** Integrated browser speech recognition to allow hands-free set initialization via natural voice commands ("start set 1", "set 2", "go").
+

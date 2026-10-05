@@ -17,8 +17,8 @@ The crown jewel of the platform. By pointing your webcam at yourself while lifti
 - **Form Correction:** If your elbows swing during a bicep curl or your chest caves during a squat, the skeleton flashes **RED** and provides instant visual feedback to correct your posture, preventing injury.
 - **Hands-Free Gesture Control:** Keep your phone on the bench. The AI tracks your hands—simply hold up 1 finger to start Set 1, 2 fingers for Set 2, etc.
 
-### 2. 📸 Auto-Food Logger (Vision-to-Macros)
-Stop searching databases for "Chicken Breast". Simply snap a photo of your plate. The backend Vision LLM will analyze the image, detect the food items, estimate the portion sizes, and automatically log the Calories, Protein, Carbs, and Fats directly to your daily profile.
+### 2. 📸 Scientific Auto-Food Logger (Vision-to-Grams & Macros)
+Stop searching databases for generic "Chicken Breast". Simply snap a photo of your plate. The backend Vision LLM scientifically analyzes the image to estimate exact dish portion weights in **grams (g)**, extract macronutrients (Protein, Carbs, Fats), generate an **itemized breakdown of individual ingredients with weight (g) and calories**, and provide nutritional density diagnostics directly logged to your daily profile.
 
 ### 3. 🧬 Physique Estimator
 Upload a photo or stand in front of the camera, align yourself with the on-screen silhouette, and the AI will analyze your body composition to estimate your current body fat percentage, providing a baseline for your fitness journey.

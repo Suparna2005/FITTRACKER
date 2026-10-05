@@ -40,7 +40,7 @@ The backend serves as a secure bridge to external APIs and manages persistent us
   * Intercepts Base64 images from the frontend.
   * Dynamically fetches available multimodal models from Groq.
   * Implements fallback logic (e.g., routing to `qwen-2.5-vl` if `llama-3.2-11b-vision` is unavailable).
-  * Prompts the AI and returns structured JSON responses.
+  * Prompts the AI and returns structured JSON responses (e.g. food vision parsing returns total portion weight in grams `serving_weight_g`, itemized ingredient breakdowns with `weight_g` & `calories`, and `scientific_notes`).
 
 ## 4. Hybrid AI Strategy
 

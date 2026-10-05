@@ -704,11 +704,15 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             protein_g: Number(result.protein_g) || 0,
             carbs_g: Number(result.carbs_g) || 0,
             fats_g: Number(result.fats_g) || 0,
+            serving_weight_g: Number(result.serving_weight_g) || 0,
+            ingredients: result.ingredients || [],
+            scientific_notes: result.scientific_notes || "",
             date: new Date().toISOString().split('T')[0]
           })
         });
         const resData = await response.json();
-        alert(resData.message || `Successfully logged ${result.food_name} (${result.estimated_calories} kcal) to database!`);
+        const weightText = result.serving_weight_g ? ` (${result.serving_weight_g}g)` : '';
+        alert(resData.message || `Successfully logged ${result.food_name}${weightText} (${result.estimated_calories} kcal) to database!`);
 
       } else if (activeMode === 'form' && result?.detected_exercise) {
         // Construct the log payload using real-time tracked sets & reps
@@ -966,23 +970,121 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                   <div className="space-y-4 fade-up">
                     {/* Dynamic Rendering Based on Mode */}
                     {activeMode === 'food' && (
-                      <>
-                        <h3 className="font-display text-3xl font-bold text-white">{result.food_name || 'Unknown Food'}</h3>
-                        <div className="flex flex-wrap gap-3">
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[100px]">
-                            <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Calories</div>
-                            <div className="text-xl font-bold text-white">{result.estimated_calories}</div>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[90px]">
-                            <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Protein</div>
-                            <div className="text-xl font-bold text-blue-400">{result.protein_g}g</div>
-                          </div>
-                          <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[90px]">
-                            <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Carbs</div>
-                            <div className="text-xl font-bold text-yellow-400">{result.carbs_g}g</div>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <h3 className="font-display text-3xl font-bold text-white tracking-wide">
+                            {result.food_name || 'Unknown Dish'}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {result.serving_weight_g && (
+                              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                ⚖️ Portion: {result.serving_weight_g} grams (g)
+                              </span>
+                            )}
+                            {result.confidence && (
+                              <span className="bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                🔬 {result.confidence}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </>
+
+                        {/* Macro & Portion Stats Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                          <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest mb-1 flex items-center gap-1">
+                              <span>⚖️ TOTAL WEIGHT</span>
+                            </div>
+                            <div className="text-2xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-emerald-400 font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1">⚡ CALORIES</div>
+                            <div className="text-2xl font-black text-white">{result.estimated_calories || 0}<span className="text-xs text-zinc-400 font-bold ml-0.5">kcal</span></div>
+                          </div>
+
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-blue-400 font-extrabold uppercase tracking-widest mb-1">💪 PROTEIN</div>
+                            <div className="text-2xl font-black text-blue-300">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest mb-1">🌾 CARBS</div>
+                            <div className="text-2xl font-black text-amber-300">{result.carbs_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-rose-400 font-extrabold uppercase tracking-widest mb-1">🥑 FATS</div>
+                            <div className="text-2xl font-black text-rose-300">{result.fats_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+                        </div>
+
+                        {/* Itemized Ingredients & Grams Breakdown */}
+                        {result.ingredients && result.ingredients.length > 0 && (
+                          <div className="bg-black/60 border border-white/10 rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                              <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                                🧪 SCIENTIFIC INGREDIENT &amp; GRAM BREAKDOWN
+                              </span>
+                              <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                                {result.ingredients.length} DETECTED COMPONENTS
+                              </span>
+                            </div>
+
+                            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                              {result.ingredients.map((ing, i) => {
+                                const ingWeight = Number(ing.weight_g) || 0;
+                                const totalWeight = Number(result.serving_weight_g) || 1;
+                                const weightPct = Math.min(100, Math.round((ingWeight / totalWeight) * 100));
+
+                                return (
+                                  <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl p-3 transition-colors">
+                                    <div className="flex items-center justify-between text-xs mb-1.5">
+                                      <div className="flex items-center gap-2 font-bold text-white">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        <span>{ing.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <span className="font-mono font-extrabold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[11px]">
+                                          {ingWeight}g
+                                        </span>
+                                        <span className="font-semibold text-zinc-300 text-[11px]">
+                                          {ing.calories || 0} kcal
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Gram Proportion Bar */}
+                                    <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden mb-1.5 flex">
+                                      <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, weightPct)}%` }}></div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                                      <span>Mass Share: {weightPct}% of plate</span>
+                                      <span className="font-mono">
+                                        P: <strong className="text-blue-300">{ing.protein_g ?? 0}g</strong> | 
+                                        C: <strong className="text-amber-300">{ing.carbs_g ?? 0}g</strong> | 
+                                        F: <strong className="text-rose-300">{ing.fats_g ?? 0}g</strong>
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Scientific Diagnostic Notes */}
+                        {result.scientific_notes && (
+                          <div className="bg-blue-950/20 border border-blue-500/30 rounded-2xl p-3.5 flex items-start gap-3">
+                            <span className="text-lg">🧬</span>
+                            <div>
+                              <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5">NUTRITIONAL DENSITY DIAGNOSIS</div>
+                              <p className="text-xs text-zinc-300 leading-relaxed m-0">{result.scientific_notes}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {activeMode === 'physique' && (

@@ -12,6 +12,7 @@
 - [x] **Expanded Exercise Library:** Added specific angle thresholds and bad form detection for Deadlifts (hip hinge & neutral spine), Overhead Presses (overhead lockout & back arching), and Lunges (knee depth & knee-over-ankle alignment).
 - [x] **Database Integration for Vision Hub:** Added `/log_food/` and `/log_workout/` backend endpoints and connected Vision Hub scan results to persist detected meals and sets/reps to the SQLite database.
 - [x] **Mobile Optimization:** Optimized full-screen camera touch targets (`min-h-[48px]`, `touch-manipulation`, high-contrast mobile buttons) for mobile devices and gym usage.
+- [x] **Scientific Food & Ingredient Gram Scanner:** Upgraded backend Vision prompts, mock fallbacks, database schemas, and frontend UI to display portion weight in grams (g), itemized ingredient breakdowns with grams and calories per item, macro distribution, and nutritional density diagnostics.
 
 ## Pending / Future Tasks
 *(All current roadmap tasks completed successfully!)*

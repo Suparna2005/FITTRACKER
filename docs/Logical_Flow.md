@@ -29,7 +29,7 @@ stateDiagram-v2
 * **Bicep Curls:** Calculates the angle between Hip -> Shoulder -> Elbow. If this angle exceeds 35°, the user is swinging their arm to cheat. The skeleton turns red.
 * **Squats:** Calculates the angle between Shoulder -> Hip -> Knee. If this angle drops below 60°, the user's chest is caving forward. The skeleton turns red.
 
-## 2. Auto-Food Logger Flow
+## 2. Scientific Auto-Food Logger Flow
 
 ```mermaid
 sequenceDiagram
@@ -39,10 +39,13 @@ sequenceDiagram
     participant Groq_Vision
     
     User->>Frontend: Snaps photo of plate
-    Frontend->>Frontend: Compresses to Base64
+    Frontend->>Frontend: Resizes & Compresses to Base64
     Frontend->>Backend: POST /analyze_vision/ (mode: 'food')
-    Backend->>Groq_Vision: Prompt + Image Data
-    Groq_Vision-->>Backend: Raw JSON (Macros & Calories)
-    Backend-->>Frontend: Parsed JSON
-    Frontend->>User: Displays Food UI
+    Backend->>Groq_Vision: Prompt (Gram Weights, Ingredients & Macro breakdown) + Base64
+    Groq_Vision-->>Backend: JSON (serving_weight_g, calories, macros, ingredients breakdown with grams, scientific_notes)
+    Backend-->>Frontend: Parsed Scientific JSON
+    Frontend->>User: Displays Gram Weight Badge, Macro Cards, Ingredient Table & Bio Diagnostics
+    User->>Frontend: Clicks "SAVE TO PROFILE"
+    Frontend->>Backend: POST /log_food/ (user_id, food_name, calories, macros, serving_weight_g, ingredients)
+    Backend-->>Frontend: Persisted to DailyWorkout diet_data in SQLite
 ```
