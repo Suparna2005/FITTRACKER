@@ -130,6 +130,45 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     return db_user
 
+class GoogleLoginRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    google_id: Optional[str] = None
+    picture: Optional[str] = None
+
+@app.post("/google_login/")
+def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
+    if not req.email:
+        raise HTTPException(status_code=400, detail="Email is required for Google login")
+    
+    # Check if user exists by email
+    db_user = db.query(models.User).filter(models.User.email == req.email).first()
+    
+    if not db_user:
+        # Auto-create user account with Google credentials
+        user_name = req.name or req.email.split("@")[0].capitalize()
+        db_user = models.User(
+            name=user_name,
+            email=req.email,
+            phone_number=f"google_{req.google_id or req.email}",
+            password="google_oauth_authenticated",
+            goal="Build Muscle",
+            experience_level="Intermediate",
+            equipment="Full Gym",
+            age=25,
+            gender="Male",
+            weight="70",
+            height="175",
+            blood_pressure="120/80",
+            blood_group="O+",
+            medical_conditions="None"
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+    return db_user
+
 class PasswordReset(BaseModel):
     identifier: str
     new_password: str

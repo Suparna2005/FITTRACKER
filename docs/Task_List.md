@@ -13,6 +13,7 @@
 - [x] **Database Integration for Vision Hub:** Added `/log_food/` and `/log_workout/` backend endpoints and connected Vision Hub scan results to persist detected meals and sets/reps to the SQLite database.
 - [x] **Mobile Optimization:** Optimized full-screen camera touch targets (`min-h-[48px]`, `touch-manipulation`, high-contrast mobile buttons) for mobile devices and gym usage.
 - [x] **Scientific Food & Ingredient Gram Scanner:** Upgraded backend Vision prompts, mock fallbacks, database schemas, and frontend UI to display portion weight in grams (g), itemized ingredient breakdowns with grams and calories per item, macro distribution, and nutritional density diagnostics.
+- [x] **Google Account Sign-In (OAuth2):** Integrated Google Identity Services SDK on the frontend and `/google_login/` backend authentication endpoint to enable one-click sign-in and automatic account creation with Google accounts.
 
 ## Pending / Future Tasks
 *(All current roadmap tasks completed successfully!)*
