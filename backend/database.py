@@ -3,9 +3,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path=ENV_PATH)
+
 SQLITE_PATH = os.path.join(BASE_DIR, "fitness_tracker.db")
 DEFAULT_DB_URL = f"sqlite:///{SQLITE_PATH}"
 
