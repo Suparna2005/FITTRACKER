@@ -533,31 +533,7 @@ function App() {
               </svg>
             </div>
             <h3 className="font-display text-2xl font-bold text-white tracking-wide">Sign in with Google</h3>
-            <p className="text-xs text-zinc-400 mt-1">Choose an account to enter IronForge AI</p>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <div 
-              onClick={() => submitGoogleAuth('athlete@gmail.com', 'Alex Mercer')}
-              className="group flex items-center justify-between p-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/50 rounded-2xl cursor-pointer transition-all active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center font-bold text-white text-sm shadow">
-                  A
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Alex Mercer</div>
-                  <div className="text-xs text-zinc-400 font-mono">athlete@gmail.com</div>
-                </div>
-              </div>
-              <span className="text-xs font-bold text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">Continue →</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-[1px] bg-white/10 flex-1" />
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR ENTER GOOGLE EMAIL</span>
-            <div className="h-[1px] bg-white/10 flex-1" />
+            <p className="text-xs text-zinc-400 mt-1">Enter your Google email address to authorize access</p>
           </div>
 
           <form onSubmit={(e) => {
@@ -565,20 +541,26 @@ function App() {
             if (googleEmailInput.trim()) {
               submitGoogleAuth(googleEmailInput.trim());
             }
-          }} className="flex flex-col gap-3">
-            <input 
-              type="email"
-              placeholder="athlete@gmail.com"
-              value={googleEmailInput}
-              onChange={(e) => setGoogleEmailInput(e.target.value)}
-              className="w-full bg-black/60 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white outline-none"
-              required
-            />
+          }} className="flex flex-col gap-4">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                Google Account Email
+              </label>
+              <input 
+                type="email"
+                placeholder="your.email@gmail.com"
+                value={googleEmailInput}
+                onChange={(e) => setGoogleEmailInput(e.target.value)}
+                className="w-full bg-black/60 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-3.5 text-sm text-white outline-none"
+                required
+                autoFocus
+              />
+            </div>
             <button 
               type="submit"
               className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] text-sm uppercase tracking-wide"
             >
-              Authorize Google Account →
+              Continue with Google Account →
             </button>
           </form>
 
