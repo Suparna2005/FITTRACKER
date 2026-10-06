@@ -596,7 +596,7 @@ function App() {
     return (
       <>
         {renderGoogleModal()}
-        <AuthShell image={LOGIN_IMG} eyebrow="AI Coaching Engine v2" title="TRAIN LIKE" highlight="A MACHINE."
+        <AuthShell image={LOGIN_IMG} eyebrow="AI Gym Intelligence" title="TRAIN LIKE" highlight="A MACHINE."
           sub="Doctor-reviewed AI builds your workout + diet daily from your vitals, history and custom split. Log in to enter the forge.">
         <div className="md:hidden mb-6">
           <h2 className="text-3xl font-extrabold text-[#F4F7F8]">IRON<span className="text-[#C7F36B]">FORGE</span></h2>
