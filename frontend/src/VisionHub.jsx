@@ -1127,20 +1127,20 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                     )}
 
                     <div className="pt-4 flex flex-wrap gap-3">
-                      <button onClick={handleAcceptData} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-base py-3 px-6 rounded-xl transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center">
+                      <button onClick={handleAcceptData} className="min-h-[48px] btn-lime font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center">
                         ✓ SAVE TO PROFILE
                       </button>
-                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-white/5 hover:bg-white/10 text-white font-bold text-base py-3 px-6 rounded-xl border border-white/10 transition-colors flex items-center justify-center">
+                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] btn-outline font-bold text-base py-3 px-6 rounded-xl flex items-center justify-center">
                         Scan Again
                       </button>
-                      <button onClick={() => { setImgPreview(null); setResult(null); }} className="min-h-[48px] touch-manipulation flex-1 md:flex-initial bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-base py-3 px-6 rounded-xl border border-red-500/20 transition-colors flex items-center justify-center">
+                      <button onClick={() => { setImgPreview(null); setResult(null); }} className="min-h-[48px] font-bold text-base py-3 px-6 rounded-xl bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 flex items-center justify-center">
                         Discard
                       </button>
                     </div>
                   </div>
                 )
               ) : (
-                <div className="text-zinc-500 text-sm">Transmitting to neural network...</div>
+                <div className="text-[#ACBAC2] text-sm">Transmitting to neural network...</div>
               )}
             </div>
           </div>
@@ -1153,68 +1153,68 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
       {!showCamera && !imgPreview && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Module 1: Form Coach */}
-          <div className="group relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)] hover:border-emerald-400/60 transition-all cursor-pointer" onClick={() => handleScanClick('form')}>
-            <div className="h-40 relative bg-zinc-900 border-b border-white/5 overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('form')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=600" className="absolute w-full h-full object-cover opacity-30 mix-blend-luminosity group-hover:opacity-50 transition" alt="Coach" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-emerald-400">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse">Live</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
             </div>
             <div className="p-5 relative z-10">
-              <h4 className="font-bold text-white text-lg mb-1">AI Form Coach</h4>
-              <p className="text-sm text-zinc-400 mb-4 h-10">Capture a photo of your exercise form. AI analyzes your joint angles to detect mistakes.</p>
-              <button className="text-sm font-extrabold bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] w-full py-2.5 rounded-xl transition-all active:scale-95">
+              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">AI Form Coach</h4>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Capture a photo of your exercise form. AI analyzes your joint angles to detect mistakes.</p>
+              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
             </div>
           </div>
 
           {/* Module 2: Auto-Food Logger */}
-          <div className="group relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)] hover:border-emerald-400/60 transition-all cursor-pointer" onClick={() => handleScanClick('food')}>
-            <div className="h-40 relative bg-zinc-900 border-b border-white/5 overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('food')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600" className="absolute w-full h-full object-cover opacity-40 group-hover:opacity-60 transition" alt="Food" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-emerald-400">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse">Live</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
             </div>
             <div className="p-5 relative z-10">
-              <h4 className="font-bold text-white text-lg mb-1">Auto-Food Logger</h4>
-              <p className="text-sm text-zinc-400 mb-4 h-10">Snap a picture of your plate. AI detects the food, estimates portion sizes, and extracts macros.</p>
-              <button className="text-sm font-extrabold bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] w-full py-2.5 rounded-xl transition-all active:scale-95">
+              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Auto-Food Logger</h4>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap a picture of your plate. AI detects the food, estimates portion sizes, and extracts macros.</p>
+              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
             </div>
           </div>
 
           {/* Module 3: Body Fat Scanner */}
-          <div className="group relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)] hover:border-emerald-400/60 transition-all cursor-pointer" onClick={() => handleScanClick('physique')}>
-            <div className="h-40 relative bg-zinc-900 border-b border-white/5 overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('physique')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://wger.de/static/images/muscles/muscular_system_front.svg" className="absolute w-full h-full object-contain filter invert opacity-30 mt-4 transition group-hover:opacity-50" alt="Anatomy" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-emerald-400">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse">Live</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
             </div>
             <div className="p-5 relative z-10">
-              <h4 className="font-bold text-white text-lg mb-1">Physique Estimator</h4>
-              <p className="text-sm text-zinc-400 mb-4 h-10">Upload a selfie. AI estimates your exact body fat stage by analyzing your silhouette.</p>
-              <button className="text-sm font-extrabold bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] w-full py-2.5 rounded-xl transition-all">
+              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Physique Estimator</h4>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie. AI estimates your exact body fat stage by analyzing your silhouette.</p>
+              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
             </div>
           </div>
 
           {/* Module 4: Gym Equipment Scanner */}
-          <div className="group relative rounded-2xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)] hover:border-emerald-400/60 transition-all cursor-pointer" onClick={() => handleScanClick('equipment')}>
-            <div className="h-40 relative bg-zinc-900 border-b border-white/5 overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('equipment')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=600" className="absolute w-full h-full object-cover opacity-30 mix-blend-luminosity transition group-hover:opacity-50" alt="Gym" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-emerald-400">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse">Live</div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
             </div>
             <div className="p-5 relative z-10">
-              <h4 className="font-bold text-white text-lg mb-1">Equipment Scanner</h4>
-              <p className="text-sm text-zinc-400 mb-4 h-10">Pan your camera around a hotel gym. AI detects all weights and builds a custom plan.</p>
-              <button className="text-sm font-extrabold bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)] w-full py-2.5 rounded-xl transition-all">
+              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Equipment Scanner</h4>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Pan your camera around a hotel gym. AI detects all weights and builds a custom plan.</p>
+              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
             </div>

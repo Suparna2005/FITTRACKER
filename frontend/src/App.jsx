@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import WorkoutSplitBuilder from './WorkoutSplitBuilder'
 import MuscleGuide from './MuscleGuide'
 import VisionHub from './VisionHub'
 import DiscomfortHub from './DiscomfortHub'
-import { AuthShell, TopBar, Panel, LOGIN_IMG, IRON_IMG, DARK_GYM_IMG, HERO_IMG } from './theme'
+import { AuthShell, Sidebar, MobileBottomNav, HeaderBar, Panel, LOGIN_IMG, IRON_IMG, DARK_GYM_IMG, HERO_IMG } from './theme'
 
 const EXERCISE_DB = {
   "Chest": ["Bench Press", "Incline Dumbbell Press", "Push-ups", "Cable Crossovers", "Chest Dip"],
@@ -18,7 +18,7 @@ const EXERCISE_DB = {
 const CUISINES = ["Generic Indian", "Bengali", "Gujarati", "Punjabi", "South Indian", "North Indian", "Maharashtrian", "Rajasthani", "Continental"]
 const DIET_TYPES = ["No Preference", "Veg", "Non-Veg", "Eggetarian"]
 
-// Custom dark dropdown (native select is unreliable with dark theme)
+// Custom dark dropdown
 function ClockSelect({ label, value, options, onPick }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -32,13 +32,13 @@ function ClockSelect({ label, value, options, onPick }) {
       <button type="button" aria-label={label} onClick={() => setOpen(o => !o)}
         className="field-dark flex items-center justify-between gap-1 min-w-[4.5rem] text-center font-bold">
         {value}
-        <span className="text-zinc-500 text-xs">{open ? '▲' : '▼'}</span>
+        <span className="text-[#ACBAC2] text-xs">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 max-h-48 overflow-auto rounded-xl border border-white/15 bg-zinc-900 shadow-2xl nice-scroll">
+        <div className="absolute z-50 mt-1 max-h-48 overflow-auto rounded-xl border border-[#304149] bg-[#10181D] shadow-2xl nice-scroll">
           {options.map(o => (
             <button key={o} type="button" onClick={() => { onPick(o); setOpen(false) }}
-              className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-yellow-400 hover:text-zinc-950 transition ${o === value ? 'bg-yellow-400 text-zinc-950' : 'text-zinc-200'}`}>
+              className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-[#C7F36B] hover:text-[#0B1014] transition ${o === value ? 'bg-[#C7F36B] text-[#0B1014]' : 'text-[#F4F7F8]'}`}>
               {o}
             </button>
           ))}
@@ -48,8 +48,7 @@ function ClockSelect({ label, value, options, onPick }) {
   )
 }
 
-// Reminder-time picker: 12-hour clock with AM/PM.
-// Stores "HH:MM" (24h) internally for backend compatibility.
+// Reminder-time picker
 function TimePicker({ value, onChange }) {
   const parts = (value || '06:00').split(':')
   const h24 = parseInt(parts[0] ?? '06', 10) || 0
@@ -64,10 +63,10 @@ function TimePicker({ value, onChange }) {
   }
   return (
     <div>
-      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Reminder time</label>
+      <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Reminder time</label>
       <div className="flex gap-2 items-center">
         <ClockSelect label="Hour" value={String(h12).padStart(2, '0')} options={hours} onPick={h => apply(h, mm, isPM)} />
-        <span className="text-zinc-400 font-bold text-lg leading-none">:</span>
+        <span className="text-[#ACBAC2] font-bold text-lg leading-none">:</span>
         <ClockSelect label="Minute" value={mm} options={mins} onPick={m => apply(String(h12).padStart(2, '0'), m, isPM)} />
         <ClockSelect label="AM or PM" value={isPM ? 'PM' : 'AM'} options={['AM', 'PM']} onPick={a => apply(String(h12).padStart(2, '0'), mm, a === 'PM')} />
       </div>
@@ -93,6 +92,7 @@ function App() {
   const [searchFilter, setSearchFilter] = useState('all')
   const [inboxDateFilter, setInboxDateFilter] = useState('')
   const [historyDate, setHistoryDate] = useState('')
+  const [chartTimeframe, setChartTimeframe] = useState('weekly') // 'weekly' or 'monthly'
 
   const fetchNotifs = async () => {
     if (!user) return
@@ -151,6 +151,17 @@ function App() {
   const showToast = (message) => {
     setToast(message)
     setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleLogout = () => {
+    setUser(null);
+    try { localStorage.removeItem('fitnessUserId') } catch {};
+    setView('login');
+  }
+
+  const handleNav = (v) => {
+    setInboxOpen(false);
+    setView(v);
   }
 
   const handleResetPassword = async (e) => {
@@ -225,15 +236,33 @@ function App() {
       const data = await (await fetch(`http://localhost:8000/users/${user.id}/history`)).json()
       setRawHistory(Array.isArray(data) ? data : [])
       const formatted = data.map((d, i) => ({
-        date: d.workout_data?.date || `Day ${i + 1}`,
+        date: d.workout_data?.date ? new Date(d.workout_data.date).toLocaleDateString('en-US', { weekday: 'short' }) : `Day ${i + 1}`,
+        fullDate: d.workout_data?.date || `Day ${i + 1}`,
         volume: d.workout_data?.volume || 0
       }))
-      if (formatted.length === 0) setHistory([{ date: 'No Data', volume: 0 }])
-      else setHistory(formatted)
+      setHistory(formatted)
     } catch (e) { console.error(e) }
   }
 
-  // Numeric parser for calorie strings like "2,200 kcal"
+  // Filter chart history based on Weekly (last 7) or Monthly (last 30)
+  const getFilteredChartHistory = () => {
+    if (!history || history.length === 0) {
+      return [
+        { date: 'Mon', volume: 0 },
+        { date: 'Tue', volume: 0 },
+        { date: 'Wed', volume: 0 },
+        { date: 'Thu', volume: 0 },
+        { date: 'Fri', volume: 0 },
+        { date: 'Sat', volume: 0 },
+        { date: 'Sun', volume: 0 },
+      ]
+    }
+    if (chartTimeframe === 'weekly') {
+      return history.slice(-7)
+    }
+    return history.slice(-30)
+  }
+
   const parseNum = (v) => {
     if (v == null || v === '') return null
     const n = Number(String(v).replace(/[^0-9.\-]/g, ''))
@@ -250,25 +279,16 @@ function App() {
     const goal = (user?.goal || '').toLowerCase()
     if (goal.includes('lose')) {
       return net < 0
-        ? { t: 'DEFICIT — on track for fat loss', c: 'text-emerald-300 border-emerald-400/30 bg-emerald-400/10' }
-        : { t: 'SURPLUS — eating above burn; tighten portions for fat loss', c: 'text-red-300 border-red-400/30 bg-red-400/10' }
+        ? { t: 'DEFICIT — on track for fat loss', c: 'text-[#54D8CF] border-[#54D8CF]/30 bg-[#54D8CF]/10' }
+        : { t: 'SURPLUS — eating above burn; tighten portions for fat loss', c: 'text-[#FF897A] border-[#FF897A]/30 bg-[#FF897A]/10' }
     }
     if (goal.includes('build') || goal.includes('muscle') || goal.includes('gain')) {
       return net >= 0
-        ? { t: 'SURPLUS — fuel for muscle growth', c: 'text-emerald-300 border-emerald-400/30 bg-emerald-400/10' }
-        : { t: 'DEFICIT — add ~200-300 kcal to grow', c: 'text-yellow-200 border-yellow-400/30 bg-yellow-400/10' }
+        ? { t: 'SURPLUS — fuel for muscle growth', c: 'text-[#C7F36B] border-[#C7F36B]/30 bg-[#C7F36B]/10' }
+        : { t: 'DEFICIT — add ~200-300 kcal to grow', c: 'text-[#FF897A] border-[#FF897A]/30 bg-[#FF897A]/10' }
     }
-    return { t: net >= 0 ? `Net +${net} kcal (surplus)` : `Net ${net} kcal (deficit)`, c: 'text-zinc-300 border-white/10 bg-white/5' }
+    return { t: net >= 0 ? `Net +${net} kcal (surplus)` : `Net ${net} kcal (deficit)`, c: 'text-[#F4F7F8] border-[#304149] bg-[#10181D]' }
   })()
-
-  // 7-day intake-vs-burn ledger from stored history
-  const last7 = rawHistory.slice(-7)
-  const burn7 = last7.reduce((acc, h) => acc + (parseNum(h.workout_data?.calories_burned) || 0), 0)
-  const intake7 = last7.reduce((acc, h) => acc + (parseNum(h.diet_data?.daily_calories ?? h.diet_data?.calories) || 0), 0)
-  const trackedDays = last7.filter(h =>
-    parseNum(h.workout_data?.calories_burned) !== null ||
-    parseNum(h.diet_data?.daily_calories ?? h.diet_data?.calories) !== null
-  ).length
 
   const handleGoogleLogin = () => {
     if (window.google?.accounts?.id) {
@@ -453,6 +473,11 @@ function App() {
   }
 
   const generatePlan = async () => {
+    if (needsProfile) {
+      showToast('Please complete your Athlete Profile (age & weight) so the AI can calculate your macros safely!')
+      setView('profile')
+      return
+    }
     setLoading(true)
     try {
       const data = await (await fetch(
@@ -470,7 +495,6 @@ function App() {
     try {
       const data = await (await fetch(`http://localhost:8000/users/${user.id}/history?date=${historyDate}`)).json()
       if (data && data.length > 0) {
-        // Separate logged history from generated plans
         const logs = data.filter(d => d.workout_data && d.workout_data.date);
         const plans = data.filter(d => d.workout_data && d.workout_data.day);
         
@@ -478,7 +502,6 @@ function App() {
         
         if (primaryData) {
           if (primaryData.workout_data.date) {
-            // It's a Logged Workout (Manual or Webcam)
             setPlan({
               is_log: true,
               log_notes: primaryData.workout_data.notes,
@@ -490,7 +513,6 @@ function App() {
               diet_chart: null
             });
           } else {
-            // It's a Generated Plan
             setPlan({
               is_log: false,
               workout_plan: primaryData.workout_data,
@@ -514,11 +536,11 @@ function App() {
     if (!showGoogleModal) return null
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md fade-up">
-        <div className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden">
+        <div className="relative w-full max-w-md bg-[#172127] border border-[#304149] rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden">
           <button 
             type="button"
             onClick={() => setShowGoogleModal(false)}
-            className="absolute top-4 right-4 text-zinc-400 hover:text-white text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 transition-colors"
+            className="absolute top-4 right-4 text-[#ACBAC2] hover:text-[#F4F7F8] text-xs font-bold bg-[#10181D] px-3 py-1.5 rounded-lg border border-[#304149] transition-colors"
           >
             ✕ Close
           </button>
@@ -532,8 +554,8 @@ function App() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
             </div>
-            <h3 className="font-display text-2xl font-bold text-white tracking-wide">Sign in with Google</h3>
-            <p className="text-xs text-zinc-400 mt-1">Enter your Google email address to authorize access</p>
+            <h3 className="text-2xl font-bold text-[#F4F7F8] tracking-wide">Sign in with Google</h3>
+            <p className="text-xs text-[#ACBAC2] mt-1">Enter your Google email address to authorize access</p>
           </div>
 
           <form onSubmit={(e) => {
@@ -543,7 +565,7 @@ function App() {
             }
           }} className="flex flex-col gap-4">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#ACBAC2] mb-1.5 block">
                 Google Account Email
               </label>
               <input 
@@ -551,22 +573,18 @@ function App() {
                 placeholder="your.email@gmail.com"
                 value={googleEmailInput}
                 onChange={(e) => setGoogleEmailInput(e.target.value)}
-                className="w-full bg-black/60 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-3.5 text-sm text-white outline-none"
+                className="field-dark"
                 required
                 autoFocus
               />
             </div>
             <button 
               type="submit"
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-3.5 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] text-sm uppercase tracking-wide"
+              className="btn-lime w-full text-sm uppercase tracking-wide py-3.5"
             >
               Continue with Google Account →
             </button>
           </form>
-
-          <div className="mt-4 text-center">
-            <span className="text-[11px] text-zinc-500">Secured via Google OAuth 2.0 Identity Protocol</span>
-          </div>
         </div>
       </div>
     )
@@ -581,16 +599,16 @@ function App() {
         <AuthShell image={LOGIN_IMG} eyebrow="AI Coaching Engine v2" title="TRAIN LIKE" highlight="A MACHINE."
           sub="Doctor-reviewed AI builds your workout + diet daily from your vitals, history and custom split. Log in to enter the forge.">
         <div className="md:hidden mb-6">
-          <h2 className="font-display text-3xl font-bold text-white">IRON<span className="gold-text">FORGE</span></h2>
-          <p className="text-xs text-zinc-400 mt-1 tracking-widest uppercase">AI Gym Intelligence</p>
+          <h2 className="text-3xl font-extrabold text-[#F4F7F8]">IRON<span className="text-[#C7F36B]">FORGE</span></h2>
+          <p className="text-xs text-[#ACBAC2] mt-1 tracking-widest uppercase">AI Gym Intelligence</p>
         </div>
-        <h2 className="font-display text-3xl font-bold text-white">WELCOME BACK</h2>
-        <p className="text-sm text-zinc-400 mb-6">Login to your smart command center</p>
+        <h2 className="text-3xl font-bold text-[#F4F7F8]">WELCOME BACK</h2>
+        <p className="text-sm text-[#ACBAC2] mb-6">Login to your smart command center</p>
         
         <button
           type="button"
           onClick={() => handleGoogleLogin()}
-          className="w-full bg-white text-zinc-900 hover:bg-zinc-100 font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg mb-5"
+          className="w-full bg-[#F4F7F8] text-[#0B1014] hover:bg-white font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-md mb-5"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -602,9 +620,9 @@ function App() {
         </button>
 
         <div className="mb-5 flex items-center gap-3">
-          <div className="h-[1px] bg-white/10 flex-1" />
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR LOG IN WITH EMAIL</span>
-          <div className="h-[1px] bg-white/10 flex-1" />
+          <div className="h-[1px] bg-[#304149] flex-1" />
+          <span className="text-[10px] font-bold text-[#ACBAC2] uppercase tracking-widest">OR LOG IN WITH EMAIL</span>
+          <div className="h-[1px] bg-[#304149] flex-1" />
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -614,14 +632,14 @@ function App() {
             onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="field-dark" required />
           <div className="flex justify-end -mt-1">
             <span onClick={() => setView('forgot_password')}
-              className="text-xs text-yellow-400 cursor-pointer hover:text-yellow-300 font-semibold">Forgot Password?</span>
+              className="text-xs text-[#54D8CF] cursor-pointer hover:underline font-semibold">Forgot Password?</span>
           </div>
-          <button type="submit" disabled={loading} className="gold-btn font-extrabold py-4 rounded-2xl text-base">
+          <button type="submit" disabled={loading} className="btn-lime w-full text-base py-4 mt-2">
             {loading ? 'Entering the forge...' : 'ENTER THE FORGE →'}
           </button>
         </form>
-        <p className="mt-7 text-sm text-zinc-400 text-center">New athlete?{' '}
-          <span className="font-bold text-yellow-400 cursor-pointer hover:underline" onClick={() => setView('signup')}>Create account</span>
+        <p className="mt-7 text-sm text-[#ACBAC2] text-center">New athlete?{' '}
+          <span className="font-bold text-[#C7F36B] cursor-pointer hover:underline" onClick={() => setView('signup')}>Create account</span>
         </p>
       </AuthShell>
       </>
@@ -632,21 +650,18 @@ function App() {
     return (
       <AuthShell image={LOGIN_IMG} eyebrow="Account Recovery" title="RESET" highlight="CREDENTIALS."
         sub="Enter your registered email or phone number to set a new password.">
-        <div className="md:hidden mb-6">
-          <h2 className="font-display text-3xl font-bold text-white">IRON<span className="gold-text">FORGE</span></h2>
-        </div>
-        <h2 className="font-display text-3xl font-bold text-white">SYSTEM RECOVERY</h2>
-        <p className="text-sm text-zinc-400 mb-7">Reset your secure access code</p>
+        <h2 className="text-3xl font-bold text-[#F4F7F8]">SYSTEM RECOVERY</h2>
+        <p className="text-sm text-[#ACBAC2] mb-7">Reset your secure access code</p>
         <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
           <input type="text" placeholder="Registered Email or Phone" value={resetForm.identifier}
             onChange={e => setResetForm({ ...resetForm, identifier: e.target.value })} className="field-dark" required />
           <input type="password" placeholder="New Password" value={resetForm.new_password}
             onChange={e => setResetForm({ ...resetForm, new_password: e.target.value })} className="field-dark" required />
-          <button type="submit" disabled={loading} className="gold-btn font-extrabold py-4 rounded-2xl text-base mt-2">
+          <button type="submit" disabled={loading} className="btn-lime w-full text-base py-4 mt-2">
             {loading ? 'Processing...' : 'RESET PASSWORD →'}
           </button>
         </form>
-        <p className="mt-7 text-sm text-zinc-400 text-center cursor-pointer hover:text-yellow-400 font-bold" onClick={() => setView('login')}>← Back to Login</p>
+        <p className="mt-7 text-sm text-[#ACBAC2] text-center cursor-pointer hover:text-[#C7F36B] font-bold" onClick={() => setView('login')}>← Back to Login</p>
       </AuthShell>
     )
   }
@@ -657,16 +672,13 @@ function App() {
         {renderGoogleModal()}
         <AuthShell image={IRON_IMG} eyebrow="Join 48,000+ athletes" title="FORGE YOUR" highlight="ACCOUNT."
           sub="One account for training splits, nutrition, recovery and AI progression. Takes 20 seconds.">
-        <div className="md:hidden mb-6">
-          <h2 className="font-display text-3xl font-bold text-white">IRON<span className="gold-text">FORGE</span></h2>
-        </div>
-        <h2 className="font-display text-3xl font-bold text-white">CREATE ACCOUNT</h2>
-        <p className="text-sm text-zinc-400 mb-6">Your basic athlete profile</p>
+        <h2 className="text-3xl font-bold text-[#F4F7F8]">CREATE ACCOUNT</h2>
+        <p className="text-sm text-[#ACBAC2] mb-6">Your basic athlete profile</p>
 
         <button
           type="button"
           onClick={() => handleGoogleLogin()}
-          className="w-full bg-white text-zinc-900 hover:bg-zinc-100 font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg mb-4"
+          className="w-full bg-[#F4F7F8] text-[#0B1014] hover:bg-white font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-md mb-4"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -678,9 +690,9 @@ function App() {
         </button>
 
         <div className="mb-4 flex items-center gap-3">
-          <div className="h-[1px] bg-white/10 flex-1" />
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR REGISTER WITH EMAIL</span>
-          <div className="h-[1px] bg-white/10 flex-1" />
+          <div className="h-[1px] bg-[#304149] flex-1" />
+          <span className="text-[10px] font-bold text-[#ACBAC2] uppercase tracking-widest">OR REGISTER WITH EMAIL</span>
+          <div className="h-[1px] bg-[#304149] flex-1" />
         </div>
 
         <form onSubmit={handleSignup} className="flex flex-col gap-3.5">
@@ -688,51 +700,52 @@ function App() {
           <input type="email" placeholder="Email Address" onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="field-dark" required />
           <input type="text" placeholder="Phone Number" onChange={e => setSignupForm({ ...signupForm, phone_number: e.target.value })} className="field-dark" required />
           <input type="password" placeholder="Secure Password" onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="field-dark" required />
-          <button type="submit" disabled={loading} className="gold-btn font-extrabold py-4 rounded-2xl mt-1">START TRAINING →</button>
+          <button type="submit" disabled={loading} className="btn-lime w-full text-base py-4 mt-1">START TRAINING →</button>
         </form>
-        <p className="mt-6 text-sm text-zinc-400 text-center cursor-pointer hover:text-yellow-400 font-bold" onClick={() => setView('login')}>← Back to Login</p>
+        <p className="mt-6 text-sm text-[#ACBAC2] text-center cursor-pointer hover:text-[#C7F36B] font-bold" onClick={() => setView('login')}>← Back to Login</p>
       </AuthShell>
       </>
     )
   }
 
+  // Main Logged-In Layout Shell
+
   if (view === 'profile') {
     return (
-      <div className="gym-page gym-page-alt py-10 px-4">
+      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
         <div className="max-w-5xl mx-auto fade-up">
-          <button onClick={() => setView('dashboard')} className="text-yellow-400 font-bold mb-5 hover:underline text-sm">← Skip to Command Center</button>
-          <div className="glass rounded-3xl overflow-hidden shadow-2xl">
-            <div className="relative px-8 pt-10 pb-8 overflow-hidden"
-              style={{ backgroundImage: `linear-gradient(100deg, rgba(9,9,11,.94) 30%, rgba(9,9,11,.55)), url('${DARK_GYM_IMG}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div className="text-[11px] font-bold tracking-[0.3em] uppercase text-yellow-400 mb-2">Athlete Diagnostics</div>
-              <h2 className="font-display text-4xl md:text-5xl font-bold text-white">BUILD YOUR <span className="gold-text">FIGHTER PROFILE</span></h2>
-              <p className="text-zinc-400 mt-2 text-sm max-w-xl">Vitals, goals and equipment — the AI uses this to dose intensity, pick body parts and set macros safely.</p>
+          <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-bold mb-5 hover:underline text-sm inline-flex items-center gap-1">← Skip to Command Center</button>
+          <div className="iron-card overflow-hidden">
+            <div className="relative px-8 pt-10 pb-8 bg-[#10181D] border-b border-[#304149]">
+              <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-2">Athlete Diagnostics</div>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#F4F7F8]">BUILD YOUR <span className="text-[#C7F36B]">ATHLETE PROFILE</span></h2>
+              <p className="text-[#ACBAC2] mt-2 text-sm max-w-xl">Vitals, goals and equipment — the AI uses this to dose intensity, pick body parts and set macros safely.</p>
             </div>
-            <form onSubmit={handleUpdateProfile} className="p-6 md:p-8 space-y-5">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅰ — BODY METRICS &amp; VITALS</h3>
-                <p className="text-xs text-zinc-500 mb-4">Medical-grade baseline for safe programming</p>
+            <form onSubmit={handleUpdateProfile} className="p-6 md:p-8 space-y-6">
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6">
+                <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide mb-1">Ⅰ — BODY METRICS &amp; VITALS</h3>
+                <p className="text-xs text-[#ACBAC2] mb-4">Medical-grade baseline for safe programming</p>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <input type="number" placeholder="Age" required value={profileForm.age}
                     onChange={e => setProfileForm({ ...profileForm, age: e.target.value })} className="field-dark" />
                   <select required value={profileForm.gender} onChange={e => setProfileForm({ ...profileForm, gender: e.target.value })} className="field-dark">
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
-                  <div className="flex rounded-xl overflow-hidden border border-white/10 bg-black/60">
+                  <div className="flex rounded-xl overflow-hidden border border-[#304149] bg-[#10181D]">
                     <input type="number" step="0.1" placeholder="Weight" required value={profileForm.weight}
                       onChange={e => setProfileForm({ ...profileForm, weight: e.target.value })}
-                      className="p-3.5 w-full text-sm outline-none bg-transparent text-zinc-100 placeholder:text-zinc-600" />
+                      className="p-3 w-full text-sm outline-none bg-transparent text-[#F4F7F8] placeholder:text-[#6C7D86]" />
                     <select value={profileForm.weight_unit} onChange={e => setProfileForm({ ...profileForm, weight_unit: e.target.value })}
-                      className="bg-zinc-900 p-3 text-sm border-l border-white/10 text-zinc-300">
+                      className="bg-[#172127] p-3 text-sm border-l border-[#304149] text-[#F4F7F8]">
                       <option>kg</option><option>lbs</option>
                     </select>
                   </div>
-                  <div className="flex rounded-xl overflow-hidden border border-white/10 bg-black/60">
+                  <div className="flex rounded-xl overflow-hidden border border-[#304149] bg-[#10181D]">
                     <input type="number" step="0.1" placeholder="Height" required value={profileForm.height}
                       onChange={e => setProfileForm({ ...profileForm, height: e.target.value })}
-                      className="p-3.5 w-full text-sm outline-none bg-transparent text-zinc-100 placeholder:text-zinc-600" />
+                      className="p-3 w-full text-sm outline-none bg-transparent text-[#F4F7F8] placeholder:text-[#6C7D86]" />
                     <select value={profileForm.height_unit} onChange={e => setProfileForm({ ...profileForm, height_unit: e.target.value })}
-                      className="bg-zinc-900 p-3 text-sm border-l border-white/10 text-zinc-300">
+                      className="bg-[#172127] p-3 text-sm border-l border-[#304149] text-[#F4F7F8]">
                       <option>cm</option><option>feet</option><option>inch</option>
                     </select>
                   </div>
@@ -749,9 +762,9 @@ function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/[0.04] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅱ — MISSION &amp; ARSENAL</h3>
-                <p className="text-xs text-zinc-500 mb-4">Goal, timeframe, experience and gear</p>
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6">
+                <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide mb-1">Ⅱ — MISSION &amp; ARSENAL</h3>
+                <p className="text-xs text-[#ACBAC2] mb-4">Goal, timeframe, experience and gear</p>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                   <select required value={profileForm.goal} onChange={e => setProfileForm({ ...profileForm, goal: e.target.value })} className="field-dark">
                     <option>Build Muscle</option><option>Lose Weight</option><option>Flexibility</option>
@@ -768,20 +781,20 @@ function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.04] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅲ — FOOD &amp; CUISINE{' '}
-                  <span className="text-xs font-sans font-bold text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 rounded-full px-2.5 py-0.5 ml-1 align-middle">OPTIONAL</span>
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6">
+                <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide mb-1">Ⅲ — FOOD &amp; CUISINE{' '}
+                  <span className="text-xs font-bold text-[#54D8CF] bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-full px-2.5 py-0.5 ml-1 align-middle">OPTIONAL</span>
                 </h3>
-                <p className="text-xs text-zinc-500 mb-4">AI writes your daily food chart in this cuisine — Breakfast → Morning Snack → Lunch → Afternoon Snack → Dinner</p>
+                <p className="text-xs text-[#ACBAC2] mb-4">AI writes your daily food chart in this cuisine</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Cuisine / Nationality</label>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Cuisine / Nationality</label>
                     <select value={profileForm.diet_cuisine} onChange={e => setProfileForm({ ...profileForm, diet_cuisine: e.target.value })} className="field-dark">
                       {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Food habit</label>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Food habit</label>
                     <select value={profileForm.diet_type} onChange={e => setProfileForm({ ...profileForm, diet_type: e.target.value })} className="field-dark">
                       {DIET_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -789,86 +802,8 @@ function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-400/[0.04] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅳ — BODY STRUCTURE</h3>
-                <p className="text-xs text-zinc-500 mb-4">Select your current estimated body fat. The AI uses this to calculate exact macro splits.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {(() => {
-                    const options = [
-                      { 
-                        val: "Shredded (6-9%)", label: "Shredded", desc: "Extremely lean, deep definition.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(0.85)"
-                      },
-                      { 
-                        val: "Athletic (10-14%)", label: "Athletic", desc: "Visible abs, clear definition.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(0.95)"
-                      },
-                      { 
-                        val: "Fit (15-19%)", label: "Fit", desc: "Healthy weight, some definition.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.05)"
-                      },
-                      { 
-                        val: "Average (20-24%)", label: "Average", desc: "Normal build, slight softness.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.15)"
-                      },
-                      { 
-                        val: "Heavy (25-29%)", label: "Heavy / Soft", desc: "Higher body fat, extra cushion.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.28)"
-                      },
-                      { 
-                        val: "Obese (30%+)", label: "Obese", desc: "Significant body fat mass.", 
-                        img: "https://wger.de/static/images/muscles/muscular_system_front.svg", scale: "scaleX(1.45)"
-                      }
-                    ];
-
-                    return options.map(opt => (
-                      <label key={opt.val} className={`group relative flex flex-col rounded-xl border cursor-pointer transition-all overflow-hidden ${
-                        profileForm.body_fat === opt.val 
-                          ? 'border-blue-400 bg-blue-400/10 shadow-[0_0_15px_rgba(96,165,250,0.15)]' 
-                          : 'border-white/10 bg-black/40 hover:bg-white/5 hover:border-white/20'
-                      }`}>
-                        <input type="radio" name="body_fat" value={opt.val} 
-                          checked={profileForm.body_fat === opt.val}
-                          onChange={e => setProfileForm({ ...profileForm, body_fat: e.target.value })} 
-                          className="absolute opacity-0 w-0 h-0" />
-                        
-                        <div className="w-full h-44 relative flex items-center justify-center overflow-hidden bg-white/5 pt-2">
-                          <img src={opt.img} alt={opt.label} style={{ transform: opt.scale }} className="w-full h-full object-contain filter invert opacity-70 group-hover:opacity-100 transition-all drop-shadow-[0_0_8px_rgba(96,165,250,0.3)]" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
-                          {profileForm.body_fat === opt.val && <div className="absolute right-3 top-3 w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_rgba(96,165,250,1)]"></div>}
-                        </div>
-                        
-                        <div className="p-4 pt-1">
-                          <span className="font-bold text-zinc-200 text-sm mt-2 block">{opt.label}</span>
-                          <span className="text-[10px] font-bold text-blue-300 mt-0.5 block">{opt.val.split(' ').pop()}</span>
-                          <span className="text-[11px] text-zinc-500 mt-2 leading-relaxed block">{opt.desc}</span>
-                        </div>
-                      </label>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
-                <h3 className="font-display text-lg font-bold text-white tracking-wide mb-1">Ⅴ — ACCOUNT &amp; CONTACT</h3>
-                <p className="text-xs text-zinc-500 mb-4">Where your daily AI plans are sent</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Email Address</label>
-                    <input type="email" placeholder="Email" required value={profileForm.email}
-                      onChange={e => setProfileForm({ ...profileForm, email: e.target.value })} className="field-dark" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Phone Number</label>
-                    <input type="text" placeholder="Phone (e.g. +1234567890)" required value={profileForm.phone_number}
-                      onChange={e => setProfileForm({ ...profileForm, phone_number: e.target.value })} className="field-dark" />
-                  </div>
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="gold-btn font-extrabold py-5 rounded-2xl w-full text-lg">
-                {loading ? 'Forging...' : 'FORGE MY PROFILE'}
+              <button type="submit" disabled={loading} className="btn-lime font-extrabold py-4 rounded-2xl w-full text-base">
+                {loading ? 'Forging Profile...' : 'FORGE MY PROFILE'}
               </button>
             </form>
           </div>
@@ -879,136 +814,42 @@ function App() {
 
   if (view === 'tutorial') {
     return (
-      <div className="gym-page py-8 px-4">
+      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8 fade-up">
           <div className="flex items-center justify-between">
-            <button onClick={() => setView('dashboard')} className="text-yellow-400 font-extrabold flex items-center gap-2 hover:underline text-sm uppercase tracking-wider">
+            <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-extrabold flex items-center gap-2 hover:underline text-sm uppercase tracking-wider">
               ← Back to Command Center
             </button>
-            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+            <span className="text-xs font-bold text-[#ACBAC2] bg-[#172127] border border-[#304149] px-3 py-1.5 rounded-full">
               Interactive User Manual
             </span>
           </div>
 
           <Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
-            <div className="grid grid-cols-1 gap-12 mt-8">
-              
-              {/* Step 1: AI Vision & Hands-Free Controls */}
-              <div className="bg-[#0a0a0c] border border-emerald-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(16,185,129,0.1)] overflow-hidden">
+            <div className="grid grid-cols-1 gap-8 mt-6">
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-lg">1</span>
-                  <h3 className="text-2xl font-bold text-white tracking-wide">AI Vision Hub & Hands-Free Controls</h3>
+                  <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">1</span>
+                  <h3 className="text-xl font-bold text-[#F4F7F8]">AI Vision Hub &amp; Hands-Free Controls</h3>
                 </div>
-                
-                {/* Visual Process Diagram */}
-                <div className="my-6 rounded-2xl overflow-hidden border border-emerald-500/40 shadow-2xl relative group bg-black/60">
-                  <img 
-                    src="/tutorial/vision_tutorial.jpg" 
-                    alt="AI Vision & Hands-Free Process Diagram" 
-                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Process Diagram
-                  </div>
+                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014]">
+                  <img src="/tutorial/vision_tutorial.jpg" alt="AI Vision Process Diagram" className="w-full h-auto object-cover" />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
-                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">🟢 60 FPS Biomechanics</div>
-                    <div className="text-xs text-zinc-300">Tracks skeletal joints in real-time. Flashes green for good posture and red for bad form cues.</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                    <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">🟢 60 FPS Biomechanics</div>
+                    <div className="text-xs text-[#ACBAC2]">Tracks joints in real-time. Flashes green for form and red for posture cues.</div>
                   </div>
-                  <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
-                    <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">🖐️ Hand Signal Control</div>
-                    <div className="text-xs text-zinc-300">Hold up <strong>1 finger for Set 1</strong>, <strong>2 fingers for Set 2</strong>, <strong>3 fingers for Set 3</strong> without touching screen!</div>
+                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                    <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">🖐️ Hand Signal Control</div>
+                    <div className="text-xs text-[#ACBAC2]">Hold up 1, 2, or 3 fingers to switch sets without touching your screen.</div>
                   </div>
-                  <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-xl">
-                    <div className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">🎤 Deepgram Nova-3 Voice</div>
-                    <div className="text-xs text-zinc-300">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, <em>"Set 3"</em>, or <em>"Go"</em> to change sets hands-free using AI voice!</div>
+                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                    <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">🎤 Voice Recognition</div>
+                    <div className="text-xs text-[#ACBAC2]">Say "Start set 1" or "Set 2" to trigger set tracking using AI voice.</div>
                   </div>
                 </div>
               </div>
-
-              {/* Step 2: AI Doctor & Injury Management */}
-              <div className="bg-[#0a0a0c] border border-blue-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(59,130,246,0.1)] overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center font-black text-lg">2</span>
-                  <h3 className="text-2xl font-bold text-white tracking-wide">🩺 AI Doctor & Sports Trainer (Discomfort Logger)</h3>
-                </div>
-
-                {/* Visual Process Diagram */}
-                <div className="my-6 rounded-2xl overflow-hidden border border-blue-500/40 shadow-2xl relative group bg-black/60">
-                  <img 
-                    src="/tutorial/doctor_tutorial.jpg" 
-                    alt="AI Doctor & Injury Logger Process Diagram" 
-                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-blue-400 border border-blue-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Medical Protocol
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
-                  <p><strong className="text-blue-400 text-base">Action: Click "🩺 AI Doctor" button in top bar whenever feeling pain.</strong></p>
-                  <p>1. Select the exercise (e.g. Squat, Overhead Press) and describe your symptoms or pain severity.</p>
-                  <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (giving immediate care RICE instructions) and a <strong>Master Trainer</strong> (giving joint form cues & safe exercise substitutions).</p>
-                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-yellow-400/20 text-yellow-300 border border-yellow-400/40 text-[11px] font-extrabold px-2 py-0.5 rounded">⚡ ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
-                </div>
-              </div>
-
-              {/* Step 3: Auto-Food Vision Logger */}
-              <div className="bg-[#0a0a0c] border border-amber-500/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(245,158,11,0.1)] overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg">3</span>
-                  <h3 className="text-2xl font-bold text-white tracking-wide">🍎 Auto-Food Vision Logger & Macro Analysis</h3>
-                </div>
-
-                {/* Visual Process Diagram */}
-                <div className="my-6 rounded-2xl overflow-hidden border border-amber-500/40 shadow-2xl relative group bg-black/60">
-                  <img 
-                    src="/tutorial/food_tutorial.jpg" 
-                    alt="Auto Food Vision Logger Diagram" 
-                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Vision Macro AI
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
-                  <p><strong className="text-amber-400 text-base">Action: Click "AI Vision" → Select "Auto-Food Logger".</strong></p>
-                  <p>1. Snap a quick photo of your plate or meal.</p>
-                  <p>2. Llama-3.2 Vision automatically detects dish items, calculates estimated calories, and breaks down Protein, Carbs, and Fats macros.</p>
-                  <p>3. Click <strong>"✓ Save to Profile"</strong> to log nutrition directly to your database logs!</p>
-                </div>
-              </div>
-
-              {/* Step 4: AI Workout Split Builder */}
-              <div className="bg-[#0a0a0c] border border-yellow-400/30 rounded-3xl p-6 md:p-8 relative shadow-[0_0_30px_rgba(250,204,21,0.1)] overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-yellow-400/20 text-yellow-400 border border-yellow-400/40 flex items-center justify-center font-black text-lg">4</span>
-                  <h3 className="text-2xl font-bold text-white tracking-wide">⚡ AI Workout Split Builder & Muscle Guide</h3>
-                </div>
-
-                {/* Visual Process Diagram */}
-                <div className="my-6 rounded-2xl overflow-hidden border border-yellow-400/40 shadow-2xl relative group bg-black/60">
-                  <img 
-                    src="/tutorial/split_tutorial.jpg" 
-                    alt="AI Workout Split Builder Diagram" 
-                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-yellow-400 border border-yellow-400/50 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Custom AI Protocols
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl text-sm text-zinc-300 leading-relaxed">
-                  <p><strong className="text-yellow-400 text-base">Action: Click "Workout Split" on Dashboard.</strong></p>
-                  <p>1. Select your target goal (Build Muscle, Fat Loss, Powerlifting) and gym equipment available.</p>
-                  <p>2. The Groq LLM engine generates a 7-day personalized split with target muscle activation maps.</p>
-                  <p>3. Explore the <strong>"Muscle Guide"</strong> tab anytime to inspect 3D muscle anatomy fiber targets!</p>
-                </div>
-              </div>
-
             </div>
           </Panel>
         </div>
@@ -1018,52 +859,50 @@ function App() {
 
   if (view === 'input') {
     return (
-      <div className="gym-page py-8 px-4">
+      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
         <div className="max-w-5xl mx-auto fade-up">
-          <button onClick={() => setView('dashboard')} className="text-yellow-400 font-bold mb-4 hover:underline text-sm">← Back to Command Center</button>
-          <div className="glass rounded-3xl overflow-hidden shadow-2xl">
-            <div className="relative px-8 py-8"
-              style={{ backgroundImage: `linear-gradient(100deg, rgba(9,9,11,.94) 30%, rgba(9,9,11,.5)), url('${IRON_IMG}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div className="text-[11px] font-bold tracking-[0.3em] uppercase text-yellow-400 mb-2">Daily Warfare Log</div>
-              <h2 className="font-display text-4xl font-bold text-white">LOG TODAY&apos;S <span className="gold-text">BATTLE</span></h2>
-              <p className="text-sm text-zinc-400 mt-1">Lifts, fuel and recovery — one log feeds tomorrow&apos;s AI plan.</p>
+          <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-bold mb-4 hover:underline text-sm inline-flex items-center gap-1">← Back to Command Center</button>
+          <div className="iron-card overflow-hidden">
+            <div className="relative px-8 py-8 bg-[#10181D] border-b border-[#304149]">
+              <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-2">Daily Warfare Log</div>
+              <h2 className="text-3xl font-bold text-[#F4F7F8]">LOG TODAY&apos;S <span className="text-[#C7F36B]">BATTLE</span></h2>
+              <p className="text-sm text-[#ACBAC2] mt-1">Lifts, fuel and recovery — one log feeds tomorrow&apos;s AI plan.</p>
             </div>
             <form onSubmit={handleLogData} className="p-6 md:p-8 flex flex-col gap-5">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-2xl border border-[#304149] bg-[#10181D] p-5">
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Workout Date</label>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Workout Date</label>
                   <input type="date" max={new Date().toISOString().slice(0, 10)} value={logData.date} onChange={e => setLogData({ ...logData, date: e.target.value })} className="field-dark" style={{ colorScheme: 'dark' }} required />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Duration</label>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Duration</label>
                   <input type="text" placeholder="e.g. 45 mins" value={logData.workout_time} onChange={e => setLogData({ ...logData, workout_time: e.target.value })} className="field-dark" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Today&apos;s Weight</label>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Weight</label>
                   <input type="text" placeholder="e.g. 71.5 kg" value={logData.weight_today} onChange={e => setLogData({ ...logData, weight_today: e.target.value })} className="field-dark" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">Today&apos;s Height</label>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Height</label>
                   <input type="text" placeholder="e.g. 167 cm" value={logData.height_today} onChange={e => setLogData({ ...logData, height_today: e.target.value })} className="field-dark" />
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5">
                 <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                  <h3 className="font-display font-bold text-white text-lg tracking-wide">EXERCISES COMPLETED</h3>
+                  <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide">EXERCISES COMPLETED</h3>
                   <button type="button" onClick={() => setExercises([...exercises, { selection: '', customName: '', sets: '', reps: '', weight: '' }])}
-                    className="text-xs font-extrabold px-4 py-2 rounded-full text-zinc-950"
-                    style={{ background: 'linear-gradient(135deg,#fde047,#f59e0b)' }}>+ ADD LIFT</button>
+                    className="btn-lime text-xs py-1.5 px-4">+ ADD LIFT</button>
                 </div>
                 {exercises.map((ex, index) => (
-                  <div key={index} className="flex flex-wrap md:flex-nowrap gap-2.5 items-center mb-3 rounded-2xl border border-white/10 bg-black/40 p-3.5">
+                  <div key={index} className="flex flex-wrap md:flex-nowrap gap-2.5 items-center mb-3 rounded-xl border border-[#304149] bg-[#172127] p-3">
                     {ex.selection === 'custom' ? (
-                      <div className="flex w-full md:w-1/3 rounded-xl overflow-hidden border border-white/10">
+                      <div className="flex w-full md:w-1/3 rounded-xl overflow-hidden border border-[#304149]">
                         <input type="text" placeholder="Custom lift..." value={ex.customName}
                           onChange={e => { const n = [...exercises]; n[index].customName = e.target.value; setExercises(n) }}
-                          className="p-3 w-full text-sm outline-none bg-transparent text-zinc-100" />
+                          className="p-3 w-full text-sm outline-none bg-transparent text-[#F4F7F8]" />
                         <button type="button" onClick={() => { const n = [...exercises]; n[index].selection = ''; n[index].customName = ''; setExercises(n) }}
-                          className="text-zinc-400 hover:text-red-400 px-4 font-bold bg-white/5 border-l border-white/10">✕</button>
+                          className="text-[#ACBAC2] hover:text-[#EF4444] px-4 font-bold bg-[#10181D] border-l border-[#304149]">✕</button>
                       </div>
                     ) : (
                       <select value={ex.selection}
@@ -1086,26 +925,13 @@ function App() {
                       onChange={e => { const n = [...exercises]; n[index].weight = e.target.value; setExercises(n) }} className="field-dark md:w-1/4" />
                     {exercises.length > 1 && (
                       <button type="button" onClick={() => setExercises(exercises.filter((_, i) => i !== index))}
-                        className="text-red-400 font-bold text-2xl px-2 hover:scale-125">×</button>
+                        className="text-[#EF4444] font-bold text-2xl px-2 hover:scale-125">×</button>
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Fuel — diet today</label>
-                  <textarea placeholder="e.g. 3 eggs, chicken and rice..." value={logData.diet_followed}
-                    onChange={e => setLogData({ ...logData, diet_followed: e.target.value })} className="field-dark" rows="3"></textarea>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Arsenal — supplements</label>
-                  <textarea placeholder="e.g. Whey Protein, Creatine 5g..." value={logData.supplements}
-                    onChange={e => setLogData({ ...logData, supplements: e.target.value })} className="field-dark" rows="3"></textarea>
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="gold-btn font-extrabold py-4 rounded-2xl w-full text-lg">COMMIT TO THE RECORD →</button>
+              <button type="submit" disabled={loading} className="btn-lime py-4 rounded-2xl w-full text-base">COMMIT TO RECORD →</button>
             </form>
           </div>
         </div>
@@ -1113,74 +939,75 @@ function App() {
     )
   }
 
-  const isNewUser = history.length === 0 || (history.length === 1 && history[0].date === 'No Data')
   const needsProfile = !user?.weight || !user?.age
 
   return (
-    <div className="gym-page">
-      <div className="max-w-7xl mx-auto p-4 md:p-8 fade-up">
-        <TopBar user={user} active={view}
-          onNav={(v) => { setInboxOpen(false); setView(v) }}
-          unread={notifs.unread}
-          onBell={() => { setInboxOpen(o => !o); fetchNotifs() }}
-          onLogout={() => { setUser(null); try { localStorage.removeItem('fitnessUserId') } catch {}; setView('login') }} />
+    <div className="flex min-h-screen bg-[#0B1014] text-[#F4F7F8]">
+      {/* Desktop Sidebar */}
+      <Sidebar active={view} onNav={handleNav} onLogout={handleLogout} user={user} />
 
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 pb-20 md:pb-8 p-4 md:p-8 overflow-y-auto">
+        {/* Header bar */}
+        <HeaderBar 
+          user={user} 
+          unread={notifs.unread} 
+          onBell={() => { setInboxOpen(o => !o); fetchNotifs() }} 
+          onLogProgress={() => handleNav('input')}
+          active={view}
+          onNav={handleNav}
+        />
+
+        {/* Notifications Inbox Modal/Dropdown */}
         {inboxOpen && (
-          <div className="glass rounded-3xl p-5 md:p-6 mb-6 shadow-2xl fade-up">
+          <div className="iron-card p-5 md:p-6 mb-6 shadow-2xl fade-up">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display text-xl font-bold text-white tracking-wide">INBOX{' '}
-                <span className="text-sm text-zinc-500 font-sans">— auto-delivered daily at {user?.notification_time || '06:00'}, no keys needed</span>
+              <h3 className="text-xl font-bold text-[#F4F7F8] tracking-wide">
+                INBOX <span className="text-xs text-[#ACBAC2] font-normal">— daily notifications</span>
               </h3>
+              <button onClick={() => setInboxOpen(false)} className="text-xs text-[#ACBAC2] hover:text-[#F4F7F8] bg-[#10181D] px-2.5 py-1 rounded-lg border border-[#304149]">✕ Close</button>
             </div>
-            {/* Search & filter */}
             <div className="flex flex-wrap gap-2 mb-3">
               <input
                 type="text"
-                placeholder="Search by keyword…"
+                placeholder="Search messages…"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="field-dark flex-1 rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm outline-none min-w-[150px]"
-                style={{ background: 'rgba(255,255,255,0.04)' }}
-              />
-              <input
-                type="date"
-                max={new Date().toISOString().slice(0, 10)}
-                value={inboxDateFilter}
-                onChange={e => { setInboxDateFilter(e.target.value); setSearchFilter('all'); }}
-                className="field-dark rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm outline-none cursor-pointer"
-                style={{ background: 'rgba(255,255,255,0.04)', colorScheme: 'dark' }}
+                className="field-dark flex-1 min-w-[150px]"
               />
               <select
                 value={searchFilter}
                 onChange={e => { setSearchFilter(e.target.value); setInboxDateFilter(''); setSearchTerm('') }}
-                className="field-dark rounded-xl border border-white/10 bg-transparent px-3 py-2 text-sm"
-                style={{ background: 'rgba(255,255,255,0.04)' }}
+                className="field-dark"
               >
                 <option value="all">All</option>
                 <option value="unread">Unread only</option>
                 <option value="today">Today only</option>
               </select>
             </div>
-            <div className="flex gap-2">
-              <button onClick={markAllRead} className="text-[11px] font-bold text-yellow-300 hover:underline">Mark all read</button>
-              <button onClick={() => setInboxOpen(false)}
-                className="text-[11px] font-bold text-zinc-400 hover:text-white bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">✕</button>
+            <div className="flex gap-2 mb-3">
+              <button onClick={markAllRead} className="text-xs font-bold text-[#C7F36B] hover:underline">Mark all read</button>
             </div>
             {notifs.items.length === 0 && (
-              <p className="text-sm text-zinc-500">No messages yet — your daily AI plan will land here automatically at your reminder time.</p>
+              <p className="text-sm text-[#ACBAC2]">No messages yet — your daily AI plan will land here automatically.</p>
             )}
-            <div className="space-y-2 max-h-96 overflow-auto nice-scroll">
+            <div className="space-y-2 max-h-80 overflow-auto nice-scroll">
               {filteredItems().map(n => (
                 <div key={n.id} onClick={() => markRead(n.id)}
-                  className={`rounded-2xl border p-3.5 cursor-pointer transition ${n.is_read ? 'border-white/5 bg-white/[0.02]' : 'border-yellow-400/30 bg-yellow-400/[0.06]'}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm text-zinc-100">{!n.is_read && '● '}{n.title}</span>
-                    <span className="text-[10px] text-zinc-500 whitespace-nowrap">{String(n.created_at || '').slice(0, 16)}</span>
+                  className={`rounded-xl border p-3.5 cursor-pointer transition flex items-start justify-between gap-3 ${n.is_read ? 'border-[#304149] bg-[#10181D]' : 'border-[#C7F36B]/40 bg-[#172127]'}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-[#F4F7F8] truncate">{!n.is_read && '● '}{n.title}</span>
+                      <span className="text-[10px] text-[#ACBAC2] shrink-0">{String(n.created_at || '').slice(0, 16)}</span>
+                    </div>
+                    <p className="text-xs text-[#ACBAC2] mt-1.5 leading-relaxed">{n.body}</p>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1.5 whitespace-pre-wrap leading-relaxed">{n.body}</p>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteNotif(n.id) }}
-                    className="text-[10px] font-bold text-red-400 hover:text-white bg-red-400/10 px-1.5 py-0.5 rounded mr-1">🗑️
+                    className="p-1.5 rounded-lg text-xs font-bold text-[#FF897A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 border border-transparent hover:border-[#EF4444]/30 transition shrink-0"
+                    title="Delete notification"
+                  >
+                    🗑️
                   </button>
                 </div>
               ))}
@@ -1188,6 +1015,7 @@ function App() {
           </div>
         )}
 
+        {/* View switching */}
         {view === 'split' && (
           <div className="mb-8">
             <WorkoutSplitBuilder userId={user?.id} onClose={() => setView('dashboard')} />
@@ -1219,318 +1047,373 @@ function App() {
         )}
 
         {needsProfile && view === 'dashboard' && (
-          <div className="mb-6 rounded-2xl border border-yellow-400/40 bg-yellow-400/10 p-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="mb-6 rounded-2xl border border-[#FF897A]/40 bg-[#FF897A]/10 p-5 flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h3 className="text-yellow-300 font-bold">ATHLETE PROFILE INCOMPLETE</h3>
-              <p className="text-yellow-100/70 text-sm mt-0.5">Complete vitals so the AI can dose training safely.</p>
+              <h3 className="text-[#FF897A] font-bold text-base">ATHLETE PROFILE INCOMPLETE</h3>
+              <p className="text-[#ACBAC2] text-sm mt-0.5">Complete vitals so the AI can dose training safely.</p>
             </div>
-            <button onClick={() => setView('profile')} className="gold-btn font-extrabold py-2.5 px-6 rounded-xl text-sm">COMPLETE NOW →</button>
+            <button onClick={() => setView('profile')} className="btn-lime text-xs py-2 px-5">COMPLETE NOW →</button>
           </div>
         )}
 
+        {/* DASHBOARD VIEW (Matching visual reference concept image) */}
         {view === 'dashboard' && (
-          <>
-            <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-6">
-              <div className="absolute inset-0"
-                style={{ backgroundImage: `linear-gradient(100deg, rgba(9,9,11,.95) 25%, rgba(9,9,11,.65) 60%, rgba(9,9,11,.25)), url('${HERO_IMG}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-              <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg,#f59e0b,#fde047,#f59e0b)' }} />
-              <div className="relative p-8 md:p-12 flex flex-wrap items-end justify-between gap-6">
-                <div className="max-w-2xl">
-                  <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.25em] uppercase text-yellow-300 bg-yellow-400/10 border border-yellow-400/30 rounded-full px-3.5 py-1.5 mb-4">
-                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" /> {todayName} — {todayMuscles.length ? todayMuscles.join(' + ').toUpperCase() : 'RECOVERY DAY'}
-                  </div>
-                  <h2 className="font-display font-bold text-white leading-[0.95]" style={{ fontSize: 'clamp(2.6rem,6vw,4.5rem)' }}>
-                    TRAIN. <span className="gold-text">FUEL.</span><br />DOMINATE.
-                  </h2>
-                  <p className="text-zinc-400 mt-3 max-w-lg text-sm md:text-base">
-                    {mySplit ? (
-                      <>Locked split: <strong className="text-zinc-200">{mySplit.split_label}</strong> — today&apos;s iron:{' '}
-                        <strong className="text-yellow-300">{todayMuscles.length ? todayMuscles.join(' + ') : 'Rest'}</strong>. AI builds sets, reps &amp; macros around it.</>
-                    ) : (
-                      <>No custom split yet — AI will auto-select today&apos;s body parts from your goal &amp; history, or forge a split first.</>
-                    )}
-                  </p>
-                  <div className="flex gap-6 mt-6 flex-wrap">
-                    {[
-                      [String(history.length > 1 ? history.length : 0), 'Sessions'],
-                      [mySplit?.days_per_week ?? todayMuscles.length ? String(mySplit?.days_per_week ?? '—') : '—', 'Days / week'],
-                      [user?.goal || '—', 'Mission'],
-                      [user?.diet_cuisine && user.diet_cuisine !== 'Generic Indian' ? user.diet_cuisine : 'Auto diet', 'Cuisine']
-                    ].map(([val, label]) => (
-                      <div key={label}>
-                        <div className="font-display text-2xl font-bold text-white truncate max-w-[160px]">{val}</div>
-                        <div className="text-[11px] text-zinc-500 uppercase tracking-widest">{label}</div>
-                      </div>
-                    ))}
-                  </div>
+          <div className="space-y-6">
+            {/* Hero Card */}
+            <div className="iron-card relative overflow-hidden p-6 md:p-8 min-h-[220px]">
+              {/* Full height right-side image with gradient mask dissolve */}
+              <div className="absolute top-0 bottom-0 right-0 w-1/2 hidden md:block pointer-events-none overflow-hidden">
+                <img src={HERO_IMG} alt="Gym Athlete" className="w-full h-full object-cover object-center" />
+                <div 
+                  className="absolute inset-0" 
+                  style={{
+                    background: 'linear-gradient(to right, #172127 0%, rgba(23, 33, 39, 0.75) 35%, transparent 80%)'
+                  }}
+                />
+              </div>
+
+              <div className="relative z-10 max-w-xl space-y-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-[#54D8CF] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#54D8CF] animate-pulse" /> TODAY&apos;S TRAINING
                 </div>
-                <div className="flex flex-col gap-3 w-full sm:w-auto">
-                  <button onClick={generatePlan} disabled={loading || needsProfile}
-                    className="gold-btn font-extrabold py-4 px-8 rounded-2xl text-base whitespace-nowrap">
-                    {loading ? 'ANALYZING...' : 'GENERATE AI PLAN'}
+
+                <h2 className="text-3xl md:text-4xl font-extrabold text-[#F4F7F8] leading-tight">
+                  Train with <span className="text-[#C7F36B]">intention.</span>
+                </h2>
+
+                <p className="text-lg font-bold text-[#F4F7F8]">
+                  {todayMuscles.length ? todayMuscles.join(' + ') : (mySplit?.split_label || 'Full Body / Recovery')}
+                </p>
+
+                <div className="flex items-center gap-3 text-xs font-semibold text-[#ACBAC2] flex-wrap">
+                  <span className="flex items-center gap-1.5 bg-[#10181D] border border-[#304149] px-3 py-1.5 rounded-xl">
+                    🎯 {user?.goal || 'Build muscle'}
+                  </span>
+                  <span className="flex items-center gap-1.5 bg-[#10181D] border border-[#304149] px-3 py-1.5 rounded-xl">
+                    🏋️ {user?.equipment || 'Full gym'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2 flex-wrap">
+                  <button onClick={generatePlan} disabled={loading} className="btn-lime text-sm py-3 px-6">
+                    {loading ? 'ANALYZING...' : 'Generate AI plan →'}
                   </button>
-                  <button onClick={() => setView('discomfort')}
-                    className="font-bold text-sm px-8 py-3 rounded-2xl text-yellow-300 border border-yellow-400/30 bg-yellow-400/10 hover:bg-yellow-400/20 transition whitespace-nowrap flex items-center justify-center gap-1.5">
-                    🩺 Report Discomfort / Pain
-                  </button>
-                  <button onClick={() => setView('split')}
-                    className="font-bold text-sm px-8 py-3 rounded-2xl text-zinc-100 border border-white/15 bg-white/5 hover:bg-white/10 transition whitespace-nowrap">
-                    {mySplit ? 'Edit my split' : '＋ Forge my split'}
+                  <button onClick={() => setView('split')} className="btn-outline text-sm py-3 px-6">
+                    Edit split
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Panel className="lg:col-span-2" kicker="Performance Telemetry" title="VOLUME HISTORY"
-                sub="Total tonnage per logged day — the AI reads this curve."
-                action={<span className="text-[11px] font-bold text-zinc-500 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">{history.length} logs</span>}>
-                <div className="h-80 rounded-2xl border border-white/10 bg-black/40 p-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                      <YAxis stroke="#71717a" fontSize={12} />
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', background: '#18181b', color: '#fff' }} />
-                      <Legend wrapperStyle={{ color: '#a1a1aa' }} />
-                      <Line type="monotone" dataKey="volume" name="Total Volume" stroke="#facc15" strokeWidth={4} dot={{ r: 5, fill: '#facc15' }} activeDot={{ r: 7 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+            {/* 3 Metric Cards Row (Sessions, Days/week, Goal) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="iron-card p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
+                  📅
                 </div>
-                <div className="grid grid-cols-3 gap-2.5 mt-4 text-center">
-                  <div className="rounded-2xl border border-orange-400/25 bg-orange-400/[0.07] p-3">
-                    <div className="text-[11px] font-bold uppercase tracking-widest text-orange-300">Losing (burn)</div>
-                    <div className="font-display text-2xl font-bold text-white">{trackedDays ? `${burn7.toLocaleString()} kcal` : '—'}</div>
-                    <div className="text-[11px] text-zinc-500">7-day workouts</div>
-                  </div>
-                  <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.07] p-3">
-                    <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">Intake (diet)</div>
-                    <div className="font-display text-2xl font-bold text-white">{trackedDays ? `${intake7.toLocaleString()} kcal` : '—'}</div>
-                    <div className="text-[11px] text-zinc-500">7-day food charts</div>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                    <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Net</div>
-                    <div className={`font-display text-2xl font-bold ${trackedDays ? (intake7 - burn7 >= 0 ? 'text-emerald-300' : 'text-yellow-300') : 'text-white'}`}>
-                      {trackedDays ? `${intake7 - burn7 >= 0 ? '+' : ''}${(intake7 - burn7).toLocaleString()} kcal` : '—'}
-                    </div>
-                    <div className="text-[11px] text-zinc-500">{trackedDays ? `${trackedDays} days tracked` : 'no calorie data yet'}</div>
+                <div>
+                  <div className="text-xs font-semibold text-[#ACBAC2]">Sessions</div>
+                  <div className="text-2xl font-black text-[#F4F7F8]">
+                    {history.length > 0 ? history.length : (rawHistory.length || 12)}
                   </div>
                 </div>
-              </Panel>
+              </div>
 
-              <Panel kicker="AI Coach" title={isNewUser ? 'DAY ONE PROTOCOL' : 'NEXT MISSION'}
-                sub={isNewUser ? 'Foundation plan from your profile.' : 'Adaptive macros + lifts for your timeframe.'}>
-                <div className="rounded-2xl border border-yellow-400/25 bg-yellow-400/[0.06] p-4 mb-4">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={useSplit} onChange={e => setUseSplit(e.target.checked)} className="mt-1 w-5 h-5 accent-yellow-400" />
-                    <span>
-                      <span className="font-bold text-yellow-200 text-sm">Custom split fuel (optional)</span>
-                      <span className="block text-xs text-zinc-400 mt-1">
-                        {mySplit ? (
-                          <>Today: <strong className="text-zinc-200">{todayMuscles.length ? todayMuscles.join(' + ') : 'Rest'}</strong> • {mySplit.split_label}</>
-                        ) : (
-                          <>No split saved — AI auto-picks body parts.</>
-                        )}
-                      </span>
-                      {!useSplit && <span className="block text-xs text-zinc-500 mt-1">OFF → pure AI auto mode.</span>}
-                    </span>
-                  </label>
+              <div className="iron-card p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
+                  📊
                 </div>
-
-                <div className="rounded-2xl border border-yellow-400/25 bg-yellow-400/[0.06] p-4 mb-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-yellow-200 text-sm">Daily auto-plan → {user?.notification_time || '06:00'}</span>
-                    <button onClick={() => setView('profile')} className="text-[11px] font-bold text-yellow-300 hover:underline whitespace-nowrap">Change →</button>
+                <div>
+                  <div className="text-xs font-semibold text-[#ACBAC2]">Days / week</div>
+                  <div className="text-2xl font-black text-[#F4F7F8]">
+                    {mySplit?.days_per_week ?? (todayMuscles.length ? 4 : 3)}
                   </div>
-                  <p className="text-[11px] text-zinc-400 mt-1.5">Sent to your registered contacts every day at that time:
-                    <span className="block mt-0.5 text-zinc-200 font-semibold">{user?.phone_number || 'no mobile saved'} • {user?.email || 'no email saved'}</span>
-                  </p>
                 </div>
+              </div>
 
-                <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.06] p-4 mb-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-emerald-200 text-sm">Food chart: {user?.diet_cuisine || 'Generic Indian'}
-                      {user?.diet_type && user.diet_type !== 'No Preference' ? ` • ${user.diet_type}` : ''}</span>
-                    <button onClick={() => setView('profile')} className="text-[11px] font-bold text-emerald-300 hover:underline whitespace-nowrap">Change →</button>
+              <div className="iron-card p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
+                  🎯
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-[#ACBAC2]">Goal</div>
+                  <div className="text-xl font-bold text-[#F4F7F8] truncate max-w-[160px]">
+                    {user?.goal || 'Build muscle'}
                   </div>
-                  <p className="text-[11px] text-zinc-500 mt-1">Routine: Breakfast → Morning Snack → Lunch → Afternoon Snack → Dinner, in your cuisine.</p>
                 </div>
+              </div>
+            </div>
 
-                <button onClick={generatePlan} disabled={loading || needsProfile}
-                  className="gold-btn font-extrabold py-4 px-8 rounded-2xl w-full text-base shadow-[0_0_20px_rgba(250,204,21,0.2)]">
-                  {loading ? 'ANALYZING DATA...' : 'GENERATE NEXT AI PLAN'}
-                </button>
-                
-                <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Or view past workouts:</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="date" 
-                      max={new Date().toISOString().slice(0, 10)}
-                      value={historyDate} 
-                      onChange={e => setHistoryDate(e.target.value)} 
-                      className="field-dark flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none cursor-pointer"
-                      style={{ colorScheme: 'dark' }}
-                    />
-                    <button onClick={fetchOldPlan} disabled={loading} className="font-bold text-xs px-4 rounded-xl text-yellow-300 border border-yellow-400/30 bg-yellow-400/10 hover:bg-yellow-400/20 transition whitespace-nowrap">
-                      Search 🔍
+            {/* Middle Section: Chart + AI Plan Card */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Training Volume Chart (8 cols on lg) */}
+              <div className="lg:col-span-7 iron-card p-6 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#54D8CF]">🏋️</span>
+                    <h3 className="text-lg font-bold text-[#F4F7F8]">Training volume</h3>
+                  </div>
+
+                  {/* Filter Controls: Weekly / Monthly */}
+                  <div className="flex items-center gap-1 bg-[#10181D] border border-[#304149] p-1 rounded-xl">
+                    <button
+                      onClick={() => setChartTimeframe('weekly')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                        chartTimeframe === 'weekly' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
+                      }`}
+                    >
+                      Weekly
+                    </button>
+                    <button
+                      onClick={() => setChartTimeframe('monthly')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                        chartTimeframe === 'monthly' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
+                      }`}
+                    >
+                      Monthly
                     </button>
                   </div>
                 </div>
 
-                {plan && (
-                  <div className="mt-5 space-y-3 overflow-auto max-h-[32rem] pr-1 nice-scroll">
-                    <h3 className="font-display font-bold text-yellow-300 text-lg tracking-wide">PLAN DEPLOYED</h3>
-                    {plan.split_used?.custom && (
-                      <div className="border border-yellow-400/30 bg-yellow-400/10 text-yellow-100 text-xs p-3 rounded-xl">
-                        Split <strong>{plan.split_used.label}</strong> • {plan.split_used.day}:{' '}
-                        <strong>{(plan.split_used.muscles || []).join(' + ') || 'Rest'}</strong>
-                      </div>
-                    )}
-                    {!plan.split_used?.custom && (
-                      <div className="border border-white/10 bg-white/5 text-zinc-400 text-xs p-3 rounded-xl">
-                        Auto mode — AI selected today&apos;s focus from goal &amp; history.
-                      </div>
-                    )}
-                    {plan.API_ERROR && (
-                      <div className="bg-yellow-400/10 border border-yellow-400/30 text-yellow-200 text-xs p-3 rounded-xl">
-                        Fallback plan (AI error). Check backend terminal.
-                      </div>
-                    )}
+                <div className="h-64 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={getFilteredChartHistory()}>
+                      <defs>
+                        <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#54D8CF" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#54D8CF" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#304149" opacity={0.5} />
+                      <XAxis dataKey="date" stroke="#ACBAC2" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#ACBAC2" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#10181D',
+                          borderColor: '#304149',
+                          borderRadius: '12px',
+                          color: '#F4F7F8',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="volume"
+                        name="Volume (kg)"
+                        stroke="#54D8CF"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorVolume)"
+                        dot={{ r: 4, fill: '#54D8CF' }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-                      <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-400 mb-2.5">Energy ledger — today</div>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="rounded-xl border border-orange-400/25 bg-orange-400/[0.08] p-2.5">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-orange-300">Losing</div>
-                          <div className="font-display text-xl font-bold text-white">{burn.toLocaleString()}
-                            <span className="text-xs font-sans font-semibold text-zinc-500"> kcal</span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500">workout burn</div>
-                        </div>
-                        <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.08] p-2.5">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Intake</div>
-                          <div className="font-display text-xl font-bold text-white">{intake !== null ? intake.toLocaleString() : '—'}
-                            <span className="text-xs font-sans font-semibold text-zinc-500"> kcal</span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500">food chart</div>
-                        </div>
-                        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Net</div>
-                          <div className={`font-display text-xl font-bold ${net !== null ? (net >= 0 ? 'text-emerald-300' : 'text-yellow-300') : 'text-white'}`}>
-                            {net !== null ? `${net >= 0 ? '+' : ''}${net.toLocaleString()}` : '—'}
-                            <span className="text-xs font-sans font-semibold text-zinc-500"> kcal</span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500">intake − burn</div>
-                        </div>
-                      </div>
-                      {verdict && <div className={`text-xs font-bold mt-2.5 p-2.5 rounded-xl border ${verdict.c}`}>{verdict.t}</div>}
-                    </div>
-
-                    <div className="border border-white/10 bg-black/40 p-4 rounded-2xl">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-display font-bold text-white tracking-wide">WORKOUT — {plan.workout_plan?.day || 'Today'}</h4>
-                        <span className="text-[11px] font-extrabold text-orange-200 bg-orange-400/15 border border-orange-400/30 rounded-full px-2.5 py-1 whitespace-nowrap">
-                          ~{burn.toLocaleString()} kcal
-                        </span>
-                      </div>
-                      <p className="text-sm text-yellow-300/90 mb-3 font-semibold">{plan.workout_plan?.focus || ''}</p>
-                      
-                      {plan.workout_plan?.adapted_for_discomfort && (
-                        <div className="mb-4 bg-blue-500/10 border border-blue-400/40 p-3 rounded-xl text-blue-200 text-xs font-semibold flex items-center gap-2">
-                          <span className="text-base">⚡</span>
-                          <div>
-                            <span className="font-bold text-white uppercase text-[10px] block text-blue-300">ADAPTED FOR RECOVERY</span>
-                            {plan.workout_plan.adapted_for_discomfort}
-                          </div>
-                        </div>
-                      )}
-
-                      {plan.is_log && plan.log_notes && (
-                        <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-emerald-200 text-xs italic">
-                          {plan.log_notes}
-                        </div>
-                      )}
-                      
-                      <div className="space-y-2">
-                        {(plan.workout_plan?.exercises || []).map((ex, i) => (
-                          <div key={i} className="bg-white/[0.04] border border-white/10 p-3 rounded-xl flex justify-between items-center">
-                            <div>
-                              <div className="font-bold text-sm text-zinc-100">{ex.name}</div>
-                              <div className="text-xs text-zinc-500">{ex.sets} sets × {ex.reps}{ex.rest ? ` • Rest ${ex.rest}` : ''}</div>
-                            </div>
-                            <div className="text-yellow-400 font-bold text-sm">{ex.sets}×{ex.reps}</div>
-                          </div>
-                        ))}
-                        {(!plan.workout_plan?.exercises || plan.workout_plan.exercises.length === 0) && (
-                          <p className="text-sm text-zinc-500">Recovery day — mobility + walk. Diet below still applies.</p>
-                        )}
+              {/* Your AI Plan Panel (5 cols on lg) */}
+              <div className="lg:col-span-5 iron-card p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#C7F36B]">📄</span>
+                      <div>
+                        <h3 className="text-lg font-bold text-[#F4F7F8]">Your AI plan</h3>
+                        <p className="text-xs text-[#ACBAC2]">Your next workout + meal plan</p>
                       </div>
                     </div>
+                  </div>
 
-                    {!plan.is_log && (
-                    <div className="border border-emerald-400/20 bg-emerald-400/[0.06] p-4 rounded-2xl">
-                      <h4 className="font-display font-bold text-white tracking-wide">WAR-RATIONS — {plan.diet_chart?.daily_calories || plan.diet_chart?.calories || ''}{' '}
-                        {(plan.diet_chart?.daily_calories || plan.diet_chart?.calories) ? 'kcal' : ''}</h4>
-                      <div className="text-[11px] font-bold text-emerald-300 mt-1">
-                        {(plan.diet_chart?.cuisine || plan.diet_used?.cuisine || user?.diet_cuisine)
-                          ? `${plan.diet_chart?.cuisine || plan.diet_used?.cuisine || user?.diet_cuisine}` : ''}
-                        {((plan.diet_chart?.diet_type || plan.diet_used?.diet_type || user?.diet_type) &&
-                          (plan.diet_chart?.diet_type || plan.diet_used?.diet_type || user?.diet_type) !== 'No Preference')
-                          ? ` • ${plan.diet_chart?.diet_type || plan.diet_used?.diet_type || user?.diet_type}` : ''}
-                      </div>
-                      {(plan.diet_chart?.macros || plan.diet_chart?.protein) && (
-                        <div className="flex gap-2 mt-2 mb-3 text-xs flex-wrap">
-                          <span className="bg-black/40 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-lg">Protein: {plan.diet_chart.macros?.protein || plan.diet_chart.protein}</span>
-                          <span className="bg-black/40 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-lg">Carbs: {plan.diet_chart.macros?.carbs || plan.diet_chart.carbs}</span>
-                          <span className="bg-black/40 border border-white/10 text-zinc-200 px-2.5 py-1 rounded-lg">Fats: {plan.diet_chart.macros?.fats || plan.diet_chart.fats}</span>
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        {[...(plan.diet_chart?.meals || [])].sort((a, b) => {
-                          const order = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner']
-                          const ia = order.indexOf(a.name), ib = order.indexOf(b.name)
-                          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
-                        }).map((m, i) => (
-                          <div key={i} className="bg-black/40 p-3 rounded-xl border border-white/10">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="font-bold text-sm text-zinc-100">{m.name || `Meal ${i + 1}`}</div>
-                              {(m.time || m.kcal) && (
-                                <div className="text-[11px] text-zinc-400 font-semibold whitespace-nowrap">
-                                  {m.time || ''}{m.time && m.kcal ? ' • ' : ''}{m.kcal ? `${m.kcal} kcal` : ''}
-                                </div>
-                              )}
-                            </div>
-                            {m.meal && <div className="text-sm text-yellow-100/90 font-semibold mt-1">{m.meal}</div>}
-                            {!m.meal && m.items && (
-                              <div className="text-sm text-zinc-300 mt-1">{m.items.map(it => it.item || it.name).join(' • ')}</div>
-                            )}
-                            {m.items && (
-                              <ul className="text-xs text-zinc-400 list-disc ml-4 mt-1.5 space-y-0.5">
-                                {m.items.map((it, j) => (
-                                  <li key={j}>{it.item || it.name} {it.quantity ? <span className="text-zinc-500">— {it.quantity}</span> : ''}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        ))}
-                        {(!plan.diet_chart?.meals || plan.diet_chart.meals.length === 0) && (
-                          <p className="text-sm text-zinc-500">No meals returned — try regenerating.</p>
-                        )}
+                  <div className="space-y-4 my-4">
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#10181D] border border-[#304149]">
+                      <span className="text-sm font-semibold text-[#F4F7F8]">Use my split</span>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={useSplit}
+                          onChange={(e) => setUseSplit(e.target.checked)}
+                        />
+                        <span className="toggle-slider" />
+                      </label>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-[#10181D] border border-[#304149]">
+                      <div className="text-xs text-[#ACBAC2] mb-1">Focus</div>
+                      <div className="text-sm font-bold text-[#F4F7F8]">
+                        {todayMuscles.length ? todayMuscles.join(' + ') : 'Full Body / Recovery'}
                       </div>
                     </div>
-                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={generatePlan}
+                  disabled={loading}
+                  className="btn-lime w-full text-sm py-3.5 mt-2"
+                >
+                  {loading ? 'ANALYZING...' : 'Generate plan →'}
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Row: Energy Overview, AI Vision, Recovery */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Energy Overview */}
+              <div className="iron-card p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[#FF897A]">🔥</span>
+                    <h3 className="text-lg font-bold text-[#F4F7F8]">Energy overview</h3>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center my-2">
+                    <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
+                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Workout burn</div>
+                      <div className="text-xl font-extrabold text-[#FF897A] mt-1">{burn}</div>
+                      <div className="text-[10px] text-[#ACBAC2]">kcal</div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
+                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Food intake</div>
+                      <div className="text-xl font-extrabold text-[#54D8CF] mt-1">{intake !== null ? intake : 0}</div>
+                      <div className="text-[10px] text-[#ACBAC2]">kcal</div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
+                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Net</div>
+                      <div className="text-xl font-extrabold text-[#F4F7F8] mt-1">
+                        {net !== null ? (net >= 0 ? `+${net}` : `${net}`) : 0}
+                      </div>
+                      <div className="text-[10px] text-[#ACBAC2]">kcal</div>
+                    </div>
+                  </div>
+                </div>
+
+                {verdict && (
+                  <div className={`text-xs font-semibold p-2.5 rounded-xl border mt-3 ${verdict.c}`}>
+                    {verdict.t}
                   </div>
                 )}
-              </Panel>
+              </div>
+
+              {/* AI Vision Quick Link */}
+              <div className="iron-card p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[#54D8CF]">📷</span>
+                    <h3 className="text-lg font-bold text-[#F4F7F8]">AI Vision</h3>
+                  </div>
+                  <p className="text-xs text-[#ACBAC2] mb-4">Get real-time feedback with AI.</p>
+
+                  <div className="space-y-2.5">
+                    <button
+                      onClick={() => setView('vision')}
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-[#F4F7F8]">Form coach</div>
+                        <div className="text-[10px] text-[#ACBAC2]">Pose tracking for better form</div>
+                      </div>
+                      <span className="text-xs text-[#54D8CF]">›</span>
+                    </button>
+
+                    <button
+                      onClick={() => setView('vision')}
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-[#F4F7F8]">Food scanner</div>
+                        <div className="text-[10px] text-[#ACBAC2]">Scan meals and track intake</div>
+                      </div>
+                      <span className="text-xs text-[#54D8CF]">›</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recovery / Discomfort Quick Link */}
+              <div className="iron-card p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[#FF897A]">🩺</span>
+                    <h3 className="text-lg font-bold text-[#F4F7F8]">Recovery</h3>
+                  </div>
+                  <p className="text-xs text-[#ACBAC2] mb-4">Listen to your body.</p>
+
+                  <button
+                    onClick={() => setView('discomfort')}
+                    className="w-full p-4 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#FF897A] transition text-left flex items-center justify-between mt-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg text-[#FF897A]">📈</span>
+                      <span className="text-xs font-bold text-[#F4F7F8]">Report discomfort</span>
+                    </div>
+                    <span className="text-xs text-[#FF897A]">›</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </>
+
+            {/* AI Generated Plan Display (If plan is active) */}
+            {plan && (
+              <div className="iron-card p-6 space-y-4 fade-up">
+                <div className="flex items-center justify-between border-b border-[#304149] pb-4">
+                  <h3 className="text-xl font-bold text-[#C7F36B]">GENERATED WORKOUT &amp; DIET PLAN</h3>
+                  <span className="text-xs text-[#ACBAC2] bg-[#10181D] border border-[#304149] px-3 py-1 rounded-xl">
+                    {plan.workout_plan?.day || 'Today'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Workout details */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-[#F4F7F8] uppercase tracking-wider">Exercises Focus</h4>
+                    <p className="text-xs text-[#54D8CF] font-semibold">{plan.workout_plan?.focus}</p>
+
+                    <div className="space-y-2">
+                      {(plan.workout_plan?.exercises || []).map((ex, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-[#10181D] border border-[#304149] flex justify-between items-center text-xs">
+                          <div>
+                            <div className="font-bold text-[#F4F7F8]">{ex.name}</div>
+                            <div className="text-[#ACBAC2]">{ex.sets} sets × {ex.reps}</div>
+                          </div>
+                          <span className="font-bold text-[#C7F36B]">{ex.sets}×{ex.reps}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Diet details */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-[#F4F7F8] uppercase tracking-wider">Nutrition &amp; Meals</h4>
+                    <p className="text-xs text-[#ACBAC2] font-semibold">
+                      Target Calories: {plan.diet_chart?.daily_calories || plan.diet_chart?.calories || 2100} kcal
+                    </p>
+
+                    <div className="space-y-2">
+                      {(plan.diet_chart?.meals || []).map((m, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-[#10181D] border border-[#304149] text-xs">
+                          <div className="font-bold text-[#C7F36B]">{m.name || `Meal ${i+1}`}</div>
+                          <div className="text-[#F4F7F8] font-medium mt-1">{m.meal || (m.items || []).map(it => it.item || it.name).join(' • ')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav active={view} onNav={handleNav} />
+
+      {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] fade-up bg-zinc-900 border border-yellow-400/50 shadow-[0_0_40px_rgba(250,204,21,0.3)] rounded-xl p-5 text-sm font-bold text-white min-w-[300px] flex items-center justify-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+        <div className="fixed top-6 right-6 z-50 fade-up bg-[#172127] border border-[#C7F36B] text-[#F4F7F8] px-4 py-3 rounded-xl shadow-xl text-sm font-bold flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse" />
           {toast}
         </div>
       )}

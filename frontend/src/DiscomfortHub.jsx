@@ -95,12 +95,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
   const getSeverityBadge = (sev) => {
     const s = (sev || '').toLowerCase()
     if (s.includes('severe') || s.includes('high')) {
-      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30">🔴 Severe Pain</span>
+      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30">🔴 Severe Pain</span>
     }
     if (s.includes('moderate') || s.includes('med')) {
-      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">🟡 Moderate Discomfort</span>
+      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/30">🟠 Moderate Discomfort</span>
     }
-    return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 Mild Strain</span>
+    return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/30">🟢 Mild Strain</span>
   }
 
   const parseRec = (recObj, exercise = '', feeling = '') => {
@@ -131,12 +131,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
       <Panel
         kicker="DUAL AI DIAGNOSTICS & RECOVERY"
         title="WORKOUT DISCOMFORT & INJURY LOGGER 🩺🏋️‍♂️"
-        sub="Felt pain, joint clicking or muscle discomfort during your workout? Describe what happened to get instant Doctor & Trainer recommendations. Your data is stored to automatically adjust your next-day training plan!"
+        sub="Felt pain, joint clicking or muscle discomfort during your workout? Describe what happened to get instant Doctor & Trainer recommendations."
         action={
           onClose && (
             <button
               onClick={onClose}
-              className="text-sm font-bold text-zinc-300 hover:text-white bg-white/5 border border-white/10 px-4 py-2 rounded-xl transition"
+              className="btn-outline text-xs py-2 px-4"
             >
               ✕ Close
             </button>
@@ -146,30 +146,30 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
           {/* Form Column */}
           <div className="lg:col-span-6 space-y-5">
-            <form onSubmit={handleSubmit} className="bg-black/40 border border-white/10 rounded-2xl p-5 md:p-6 space-y-4">
-              <h3 className="font-display font-bold text-white text-lg tracking-wide border-b border-white/10 pb-3">
+            <form onSubmit={handleSubmit} className="bg-[#10181D] border border-[#304149] rounded-2xl p-5 md:p-6 space-y-4">
+              <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide border-b border-[#304149] pb-3">
                 1. REPORT WORKOUT ISSUE / PAIN
               </h3>
 
               {/* Exercise Select */}
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
                   Exercise Performed
                 </label>
                 {exerciseName === 'custom' ? (
-                  <div className="flex rounded-xl overflow-hidden border border-white/10 bg-black/60">
+                  <div className="flex rounded-xl overflow-hidden border border-[#304149] bg-[#10181D]">
                     <input
                       type="text"
                       placeholder="Type custom exercise..."
                       value={customExercise}
                       onChange={(e) => setCustomExercise(e.target.value)}
-                      className="p-3.5 w-full text-sm outline-none bg-transparent text-zinc-100 placeholder:text-zinc-600"
+                      className="p-3.5 w-full text-sm outline-none bg-transparent text-[#F4F7F8] placeholder:text-[#6C7D86]"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => { setExerciseName(''); setCustomExercise(''); }}
-                      className="text-zinc-400 hover:text-red-400 px-4 font-bold bg-white/5 border-l border-white/10"
+                      className="text-[#ACBAC2] hover:text-[#EF4444] px-4 font-bold bg-[#172127] border-l border-[#304149]"
                     >
                       ✕
                     </button>
@@ -190,14 +190,14 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                 )}
               </div>
 
-              {/* What was feeling description */}
+              {/* Description */}
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
                   What were you feeling? (Describe the problem/pain)
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Sharp pinch in front right shoulder when benching, or sharp right knee pain when squatting below parallel..."
+                  placeholder="e.g. Sharp pinch in front right shoulder when benching..."
                   value={feelingDescription}
                   onChange={(e) => setFeelingDescription(e.target.value)}
                   className="field-dark nice-scroll"
@@ -207,19 +207,19 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
 
               {/* Severity Level */}
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
                   Pain / Discomfort Intensity Level
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: "Mild (1-3)", desc: "Tightness / dull discomfort", border: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" },
-                    { label: "Moderate (4-6)", desc: "Form restriction / noticeable pain", border: "border-yellow-500/40 bg-yellow-500/10 text-yellow-200" },
-                    { label: "Severe (7-10)", desc: "Sharp pain / stopped exercise", border: "border-red-500/40 bg-red-500/10 text-red-200" }
+                    { label: "Mild (1-3)", desc: "Tightness / dull discomfort", border: "border-[#54D8CF]/40 bg-[#54D8CF]/10 text-[#54D8CF]" },
+                    { label: "Moderate (4-6)", desc: "Form restriction / noticeable pain", border: "border-[#FF897A]/40 bg-[#FF897A]/10 text-[#FF897A]" },
+                    { label: "Severe (7-10)", desc: "Sharp pain / stopped exercise", border: "border-[#EF4444]/40 bg-[#EF4444]/10 text-[#EF4444]" }
                   ].map(opt => (
                     <label
                       key={opt.label}
                       className={`flex flex-col p-3 rounded-xl border cursor-pointer transition text-xs font-semibold ${
-                        severity === opt.label ? `${opt.border} ring-2 ring-yellow-400` : 'border-white/10 bg-black/40 text-zinc-400 hover:bg-white/5'
+                        severity === opt.label ? `${opt.border} ring-2 ring-[#C7F36B]` : 'border-[#304149] bg-[#10181D] text-[#ACBAC2] hover:bg-[#172127]'
                       }`}
                     >
                       <input
@@ -230,7 +230,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                         onChange={() => setSeverity(opt.label)}
                         className="sr-only"
                       />
-                      <span className="font-bold text-sm text-zinc-100">{opt.label}</span>
+                      <span className="font-bold text-sm text-[#F4F7F8]">{opt.label}</span>
                       <span className="text-[10px] opacity-75 mt-0.5">{opt.desc}</span>
                     </label>
                   ))}
@@ -239,7 +239,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
 
               {/* Timing */}
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5">
+                <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
                   When did it occur?
                 </label>
                 <select
@@ -257,16 +257,9 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="gold-btn font-extrabold py-4 px-6 rounded-2xl w-full text-base shadow-[0_0_20px_rgba(250,204,21,0.25)] flex items-center justify-center gap-2"
+                className="btn-lime py-4 px-6 rounded-2xl w-full text-base flex items-center justify-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <span className="w-4 h-4 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin"></span>
-                    ANALYZING DISCOMFORT &amp; GENERATING CARE PLAN...
-                  </>
-                ) : (
-                  'GENERATE AI DOCTOR & TRAINER ADVICE →'
-                )}
+                {loading ? 'ANALYZING DISCOMFORT...' : 'GENERATE AI DOCTOR & TRAINER ADVICE →'}
               </button>
             </form>
           </div>
@@ -279,57 +272,56 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
               const timingText = activeAnalysis.timing || timing || 'During exercise';
 
               return (
-                <div className="bg-black/60 border border-yellow-400/40 rounded-2xl p-5 md:p-6 space-y-5 shadow-[0_0_30px_rgba(250,204,21,0.1)] fade-up">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+                <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-5 md:p-6 space-y-4 fade-up">
+                  <div className="flex items-center justify-between border-b border-[#304149] pb-3 flex-wrap gap-2">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-400 block">AI DIAGNOSTIC REPORT DEPLOYED</span>
-                      <h3 className="font-display font-bold text-xl text-white">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#54D8CF] block">AI DIAGNOSTIC REPORT</span>
+                      <h3 className="font-bold text-xl text-[#F4F7F8]">
                         {activeAnalysis.exercise_name || exerciseName || 'Exercise Issue'}
                       </h3>
                     </div>
                     {getSeverityBadge(activeAnalysis.severity || severity)}
                   </div>
 
-                  {/* Patient / Athlete sensation recall */}
-                  <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl text-xs text-zinc-300">
-                    <span className="text-zinc-500 font-bold uppercase text-[10px] block mb-1">Logged Sensation</span>
+                  <div className="bg-[#172127] border border-[#304149] p-3 rounded-xl text-xs text-[#ACBAC2]">
+                    <span className="text-[#ACBAC2] font-bold uppercase text-[10px] block mb-1">Logged Sensation</span>
                     "{feelingText}" ({timingText})
                   </div>
 
                   {/* Doctor Section */}
-                  <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 space-y-2">
-                    <div className="flex items-center gap-2 font-display font-bold text-red-200 text-sm">
-                      <span className="text-lg">🩺</span> DOCTOR ANALYSIS &amp; MEDICAL CARE
+                  <div className="rounded-xl border border-[#FF897A]/40 bg-[#FF897A]/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-[#FF897A] text-sm">
+                      <span className="text-base">🩺</span> DOCTOR ANALYSIS &amp; MEDICAL CARE
                     </div>
-                    <div className="text-xs text-zinc-300 leading-relaxed">
-                      <strong className="text-white block mb-1">Probable Cause:</strong>
+                    <div className="text-xs text-[#F4F7F8] leading-relaxed">
+                      <strong className="text-[#F4F7F8] block mb-1">Probable Cause:</strong>
                       {rec.probable_cause}
                     </div>
-                    <div className="text-xs text-red-200/90 leading-relaxed pt-2 border-t border-red-500/20">
-                      <strong className="text-red-300 block mb-1">Immediate First Aid &amp; Safety:</strong>
+                    <div className="text-xs text-[#FF897A] leading-relaxed pt-2 border-t border-[#FF897A]/20">
+                      <strong className="block mb-1">Immediate First Aid &amp; Safety:</strong>
                       {rec.doctor_advice}
                     </div>
                   </div>
 
                   {/* Trainer Section */}
-                  <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 space-y-2">
-                    <div className="flex items-center gap-2 font-display font-bold text-yellow-200 text-sm">
-                      <span className="text-lg">🏋️‍♂️</span> TRAINER BIOMECHANICS &amp; FORM CORRECTION
+                  <div className="rounded-xl border border-[#C7F36B]/40 bg-[#C7F36B]/10 p-4 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-[#C7F36B] text-sm">
+                      <span className="text-base">🏋️‍♂️</span> TRAINER BIOMECHANICS &amp; FORM CORRECTION
                     </div>
-                    <div className="text-xs text-zinc-200 leading-relaxed">
+                    <div className="text-xs text-[#F4F7F8] leading-relaxed">
                       {rec.trainer_advice}
                     </div>
                   </div>
 
                   {/* Substitutions */}
                   {rec.safe_substitutions?.length > 0 && (
-                    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4">
-                      <div className="flex items-center gap-2 font-display font-bold text-emerald-200 text-sm mb-2">
-                        <span className="text-lg">🛡️</span> RECOMMENDED SAFE EXERCISE SUBSTITUTIONS
+                    <div className="rounded-xl border border-[#54D8CF]/40 bg-[#54D8CF]/10 p-4">
+                      <div className="flex items-center gap-2 font-bold text-[#54D8CF] text-sm mb-2">
+                        <span className="text-base">🛡️</span> RECOMMENDED SAFE SUBSTITUTIONS
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {rec.safe_substitutions.map((sub, i) => (
-                          <span key={i} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-black/50 border border-emerald-400/40 text-emerald-200">
+                          <span key={i} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#10181D] border border-[#54D8CF]/30 text-[#54D8CF]">
                             ✓ {sub}
                           </span>
                         ))}
@@ -337,36 +329,24 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                     </div>
                   )}
 
-                  {/* Next-Day Plan Adaptation Banner */}
-                  <div className="rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-display font-bold text-blue-200 text-sm flex items-center gap-2">
-                        <span>⚡</span> ADAPTIVE NEXT-DAY WORKOUT GUARANTEE
-                      </span>
-                      <span className="text-[10px] font-bold text-blue-300 bg-blue-400/20 px-2 py-0.5 rounded-full">AUTOMATIC</span>
-                    </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      {rec.next_day_plan_adjustment}
-                    </p>
-                    {onPlanGenerated && (
-                      <button
-                        onClick={onPlanGenerated}
-                        className="mt-2 font-bold text-xs px-4 py-2 rounded-xl bg-blue-400 text-zinc-950 hover:bg-blue-300 transition w-full text-center block"
-                      >
-                        GENERATE ADAPTED WORKOUT PLAN NOW →
-                      </button>
-                    )}
-                  </div>
+                  {onPlanGenerated && (
+                    <button
+                      onClick={onPlanGenerated}
+                      className="btn-lime w-full text-xs py-3 mt-2"
+                    >
+                      GENERATE ADAPTED WORKOUT PLAN NOW →
+                    </button>
+                  )}
                 </div>
               )
             })() : (
-              <div className="bg-black/30 border border-white/10 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[360px]">
-                <div className="w-16 h-16 rounded-full bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-3xl mb-4">
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[320px]">
+                <div className="w-14 h-14 rounded-full bg-[#54D8CF]/10 border border-[#54D8CF]/30 flex items-center justify-center text-2xl mb-3 text-[#54D8CF]">
                   🩺
                 </div>
-                <h4 className="font-display text-lg font-bold text-white mb-2">Awaiting Discomfort Log</h4>
-                <p className="text-xs text-zinc-400 max-w-sm">
-                  Select an exercise on the left, describe what you felt, and choose the pain severity. The AI Doctor &amp; Trainer engine will generate instant medical care cues and safe exercise substitutions.
+                <h4 className="font-bold text-[#F4F7F8] text-base mb-1">Awaiting Discomfort Log</h4>
+                <p className="text-xs text-[#ACBAC2] max-w-sm">
+                  Select an exercise on the left, describe what you felt, and choose the pain severity. The AI Doctor &amp; Trainer engine will generate instant care cues and safe exercise substitutions.
                 </p>
               </div>
             )}
@@ -378,10 +358,10 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
       <Panel
         kicker="PERSISTENT HEALTH HISTORY"
         title="LOGGED DISCOMFORT & INJURY TIMELINE"
-        sub="All logged issues are stored permanently. The AI engine reads this timeline to continuously keep your workout plans safe."
+        sub="All logged issues are stored permanently. The AI engine reads this timeline to keep workout plans safe."
       >
         {historyLogs.length === 0 ? (
-          <div className="p-6 text-center text-zinc-500 text-sm">
+          <div className="p-6 text-center text-[#ACBAC2] text-sm">
             No discomfort logs recorded yet. Log any pain or form issue above.
           </div>
         ) : (
@@ -389,51 +369,29 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
             {historyLogs.map((log) => (
               <div
                 key={log.id}
-                className="bg-black/40 border border-white/10 hover:border-white/20 rounded-2xl p-4 transition flex flex-col md:flex-row items-start justify-between gap-4"
+                className="bg-[#10181D] border border-[#304149] rounded-2xl p-4 flex flex-col md:flex-row items-start justify-between gap-4"
               >
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-bold text-white text-sm">{log.exercise_name}</span>
+                    <span className="font-bold text-[#F4F7F8] text-sm">{log.exercise_name}</span>
                     {getSeverityBadge(log.severity)}
-                    <span className="text-[11px] text-zinc-500">
-                      {new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    <span className="text-[11px] text-[#ACBAC2]">
+                      {new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-300 italic">"{log.feeling_description}"</p>
-                  
-                  {(() => {
-                    const rLog = parseRec(log.ai_recommendation, log.exercise_name, log.feeling_description);
-                    return (
-                      <div className="mt-2 text-xs text-zinc-400 space-y-1 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div>
-                          <strong className="text-red-300 font-semibold">Doctor Advice: </strong> 
-                          {rLog.doctor_advice}
-                        </div>
-                        <div>
-                          <strong className="text-yellow-300 font-semibold">Trainer Advice: </strong> 
-                          {rLog.trainer_advice}
-                        </div>
-                        {rLog.safe_substitutions?.length > 0 && (
-                          <div>
-                            <strong className="text-emerald-300 font-semibold">Substitutions: </strong>
-                            {rLog.safe_substitutions.join(', ')}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <p className="text-xs text-[#ACBAC2] italic">"{log.feeling_description}"</p>
                 </div>
 
                 <div className="flex items-center gap-2 self-end md:self-start">
                   <button
                     onClick={() => setActiveAnalysis(log)}
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-yellow-400/10 text-yellow-300 border border-yellow-400/30 hover:bg-yellow-400/20"
+                    className="btn-outline text-xs py-1.5 px-3"
                   >
                     View Report 🔍
                   </button>
                   <button
                     onClick={() => handleDeleteLog(log.id)}
-                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-red-400/10 text-red-400 hover:bg-red-400/20 border border-red-400/20"
+                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30"
                     title="Delete log"
                   >
                     🗑️
@@ -446,8 +404,8 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
       </Panel>
 
       {toast && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] fade-up bg-zinc-900 border border-yellow-400/50 shadow-[0_0_40px_rgba(250,204,21,0.3)] rounded-xl p-5 text-sm font-bold text-white min-w-[300px] flex items-center justify-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+        <div className="fixed top-6 right-6 z-50 fade-up bg-[#172127] border border-[#C7F36B] text-[#F4F7F8] px-4 py-3 rounded-xl shadow-xl text-sm font-bold flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse" />
           {toast}
         </div>
       )}
