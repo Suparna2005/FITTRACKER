@@ -10,6 +10,7 @@ const MUSCLE_DB = [
     exercises: "Incline Bench Press, Flat Dumbbell Press, Cable Crossovers, Dips",
     baseImg: "https://wger.de/static/images/muscles/muscular_system_front.svg",
     muscleImg: "https://wger.de/static/images/muscles/main/muscle-4.svg",
+    hotZone: { top: "17%", height: "13%" },
     heads: [
       { name: "Upper Chest (Clavicular Head)", desc: "Builds the 'shelf' near the collarbone.", target: "Incline Bench Press, Low-to-High Crossovers", clip: "polygon(0% 17%, 100% 17%, 100% 21.5%, 0% 21.5%)" },
       { name: "Middle Chest (Sternal Head)", desc: "Provides the main bulk of the pecs.", target: "Flat Bench Press, Pec Deck Flyes", clip: "polygon(0% 21.5%, 100% 21.5%, 100% 25%, 0% 25%)" },
@@ -28,10 +29,11 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-12.svg",
       "https://wger.de/static/images/muscles/main/muscle-9.svg"
     ],
+    hotZone: { top: "14%", height: "30%" },
     heads: [
-      { name: "Lats (Latissimus Dorsi)", desc: "Creates the 'V-Taper' width of the back.", target: "Pull-ups, Lat Pulldowns", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-12.svg"] },
       { name: "Traps & Rhomboids", desc: "Builds the thick, 3D look in the upper/middle back.", target: "Barbell Rows, Shrugs", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-9.svg"] },
-      { name: "Erector Spinae", desc: "Lower back columns protecting the spine.", target: "Deadlifts", clip: "polygon(35% 40%, 65% 40%, 65% 65%, 35% 65%)" }
+      { name: "Lats (Latissimus Dorsi)", desc: "Creates the 'V-Taper' width of the back.", target: "Pull-ups, Lat Pulldowns", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-12.svg"] },
+      { name: "Erector Spinae", desc: "Lower back columns protecting the spine.", target: "Deadlifts", clip: "polygon(30% 32%, 70% 32%, 70% 46%, 30% 46%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-12.svg"] }
     ]
   },
   {
@@ -43,10 +45,11 @@ const MUSCLE_DB = [
     exercises: "Overhead Press, Lateral Raises, Face Pulls, Reverse Pec Deck",
     baseImg: "https://wger.de/static/images/muscles/muscular_system_front.svg",
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-2.svg"],
+    hotZone: { top: "16%", height: "10%" },
     heads: [
-      { name: "Front Deltoid (Anterior)", desc: "Pushes weight overhead and forward.", target: "Overhead Barbell Press, Front Raises", clip: "polygon(28% 0, 72% 0, 72% 100%, 28% 100%)" },
-      { name: "Side Deltoid (Lateral)", desc: "Creates shoulder width and capped look.", target: "Dumbbell Lateral Raises, Cable Laterals", clip: "polygon(22% 0, 28% 0, 28% 100%, 22% 100%)" },
-      { name: "Rear Deltoid (Posterior)", desc: "Pulls shoulder blades back; crucial for posture.", target: "Face Pulls, Reverse Pec Deck", clip: "polygon(0 0, 22% 0, 22% 100%, 0 100%)" }
+      { name: "Front Deltoid (Anterior)", desc: "Pushes weight overhead and forward.", target: "Overhead Barbell Press, Front Raises", clip: "polygon(0% 16%, 100% 16%, 100% 25%, 0% 25%)" },
+      { name: "Side Deltoid (Lateral)", desc: "Creates shoulder width and capped look.", target: "Dumbbell Lateral Raises, Cable Laterals", clip: "polygon(0% 16%, 100% 16%, 100% 25%, 0% 25%)" },
+      { name: "Rear Deltoid (Posterior)", desc: "Pulls shoulder blades back; crucial for posture.", target: "Face Pulls, Reverse Pec Deck", clip: "polygon(0% 16%, 100% 16%, 100% 25%, 0% 25%)" }
     ]
   },
   {
@@ -61,9 +64,10 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-1.svg",
       "https://wger.de/static/images/muscles/main/muscle-13.svg"
     ],
+    hotZone: { top: "20%", height: "11%" },
     heads: [
-      { name: "Short Head (Inner)", desc: "Provides width to the arm from the front.", target: "Wide-Grip Barbell Curls", clip: "polygon(25% 0, 75% 0, 75% 100%, 25% 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
-      { name: "Long Head (Outer)", desc: "Builds the bicep peak when flexed.", target: "Incline Dumbbell Curls", clip: "polygon(0 0, 25% 0, 25% 100%, 0 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
+      { name: "Short Head (Inner)", desc: "Provides width to the arm from the front.", target: "Wide-Grip Barbell Curls", clip: "polygon(0% 20%, 100% 20%, 100% 31%, 0% 31%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
+      { name: "Long Head (Outer)", desc: "Builds the bicep peak when flexed.", target: "Incline Dumbbell Curls", clip: "polygon(0% 20%, 100% 20%, 100% 31%, 0% 31%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-1.svg"] },
       { name: "Brachialis", desc: "Sits under bicep; pushes the whole muscle up.", target: "Hammer Curls", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-13.svg"] }
     ]
   },
@@ -76,10 +80,11 @@ const MUSCLE_DB = [
     exercises: "Tricep Pushdowns, Overhead Cable Extensions, Skull Crushers",
     baseImg: "https://wger.de/static/images/muscles/muscular_system_back.svg",
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-5.svg"],
+    hotZone: { top: "20%", height: "11%" },
     heads: [
-      { name: "Long Head (Inner)", desc: "Largest head; requires arms overhead.", target: "Overhead Dumbbell Extensions", clip: "polygon(25% 0, 75% 0, 75% 100%, 25% 100%)" },
-      { name: "Lateral Head (Outer)", desc: "The horseshoe shape on outside of arm.", target: "Rope Pushdowns", clip: "polygon(0 0, 25% 0, 25% 100%, 0 100%)" },
-      { name: "Medial Head", desc: "Stabilizes elbow at full extension.", target: "Reverse-Grip Pushdowns", clip: "polygon(0 35%, 100% 35%, 100% 100%, 0 100%)" }
+      { name: "Long Head (Inner)", desc: "Largest head; requires arms overhead.", target: "Overhead Dumbbell Extensions", clip: "polygon(0% 20%, 100% 20%, 100% 31%, 0% 31%)" },
+      { name: "Lateral Head (Outer)", desc: "The horseshoe shape on outside of arm.", target: "Rope Pushdowns", clip: "polygon(0% 20%, 100% 20%, 100% 31%, 0% 31%)" },
+      { name: "Medial Head", desc: "Stabilizes elbow at full extension.", target: "Reverse-Grip Pushdowns", clip: "polygon(0% 24%, 100% 24%, 100% 31%, 0% 31%)" }
     ]
   },
   {
@@ -95,6 +100,7 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-11.svg",
       "https://wger.de/static/images/muscles/main/muscle-7.svg"
     ],
+    hotZone: { top: "44%", height: "45%" },
     heads: [
       { name: "Quadriceps (Front)", desc: "Four muscles driving knee extension.", target: "Barbell Squats, Leg Extensions", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-10.svg"] },
       { name: "Hamstrings (Back)", desc: "Knee flexion and hip extension.", target: "Romanian Deadlifts (RDLs)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-11.svg"] },
@@ -110,9 +116,10 @@ const MUSCLE_DB = [
     exercises: "Barbell Hip Thrusts, Bulgarian Split Squats, Glute Bridges",
     baseImg: "https://wger.de/static/images/muscles/muscular_system_back.svg",
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-8.svg"],
+    hotZone: { top: "38%", height: "16%" },
     heads: [
-      { name: "Gluteus Maximus", desc: "Main mass of the glutes.", target: "Barbell Hip Thrusts", clip: "polygon(0 42%, 100% 42%, 100% 58%, 0 58%)" },
-      { name: "Gluteus Medius", desc: "Upper/side glute; stabilizes pelvis.", target: "Bulgarian Split Squats", clip: "polygon(0 35%, 100% 35%, 100% 46%, 0 46%)" }
+      { name: "Gluteus Maximus", desc: "Main mass of the glutes.", target: "Barbell Hip Thrusts", clip: "polygon(0% 41%, 100% 41%, 100% 54%, 0% 54%)" },
+      { name: "Gluteus Medius", desc: "Upper/side glute; stabilizes pelvis.", target: "Bulgarian Split Squats", clip: "polygon(0% 37%, 100% 37%, 100% 45%, 0% 45%)" }
     ]
   },
   {
@@ -127,9 +134,10 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-6.svg",
       "https://wger.de/static/images/muscles/main/muscle-14.svg"
     ],
+    hotZone: { top: "27%", height: "15%" },
     heads: [
-      { name: "Upper Abs", desc: "Flexes spine forward.", target: "Cable Crunches", clip: "polygon(0 30%, 100% 30%, 100% 40%, 0 40%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
-      { name: "Lower Abs", desc: "Lower rectus abdominis.", target: "Hanging Leg Raises", clip: "polygon(0 39%, 100% 39%, 100% 50%, 0 50%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
+      { name: "Upper Abs", desc: "Flexes spine forward.", target: "Cable Crunches", clip: "polygon(0% 27%, 100% 27%, 100% 34%, 0% 34%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
+      { name: "Lower Abs", desc: "Lower rectus abdominis.", target: "Hanging Leg Raises", clip: "polygon(0% 34%, 100% 34%, 100% 42%, 0% 42%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
       { name: "Obliques", desc: "Side core muscles; responsible for rotation.", target: "Russian Twists", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-14.svg"] }
     ]
   }
@@ -180,7 +188,13 @@ export default function MuscleGuide({ onClose }) {
 
             {/* Interactive diagram touch/click hot-zones */}
             {active.heads && active.heads.length > 0 && (
-              <div className="absolute inset-0 max-h-80 my-auto w-full flex flex-col z-10">
+              <div 
+                style={{ 
+                  top: active.hotZone?.top || '15%', 
+                  height: active.hotZone?.height || '30%' 
+                }}
+                className="absolute left-0 right-0 w-full flex flex-col z-10 mx-auto px-4"
+              >
                 {active.heads.map((head, idx) => {
                   const isPinned = selectedHead === idx;
                   const isCurrent = activeHead === idx;
@@ -191,16 +205,16 @@ export default function MuscleGuide({ onClose }) {
                       onMouseEnter={() => setHoveredHead(idx)}
                       onMouseLeave={() => setHoveredHead(null)}
                       title={`Target ${head.name}`}
-                      className={`flex-1 w-full cursor-pointer transition-all duration-150 flex items-center justify-center relative ${
+                      className={`flex-1 w-full cursor-pointer transition-all duration-150 flex items-center justify-center relative rounded-md ${
                         isPinned 
-                          ? 'bg-[#C7F36B]/20 border-y border-[#C7F36B]/60 shadow-inner' 
+                          ? 'bg-[#C7F36B]/30 border border-[#C7F36B] shadow-lg' 
                           : isCurrent 
-                          ? 'bg-[#54D8CF]/20 border-y border-[#54D8CF]/50' 
-                          : 'hover:bg-[#54D8CF]/10'
+                          ? 'bg-[#54D8CF]/25 border border-[#54D8CF]' 
+                          : 'hover:bg-[#54D8CF]/15 border border-transparent'
                       }`}
                     >
                       {(isPinned || isCurrent) && (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg ${
+                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg ${
                           isPinned ? 'bg-[#C7F36B] text-[#10181D]' : 'bg-[#54D8CF] text-[#10181D]'
                         }`}>
                           {head.name}
