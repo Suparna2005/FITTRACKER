@@ -78,7 +78,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [view, setView] = useState('login')
   const [history, setHistory] = useState([])
-  const [rawHistory, setRawHistory] = useState([])
+  const [rawHistory, setRawHistory] = useState(null)
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState(null)
   const [showGoogleModal, setShowGoogleModal] = useState(false)
@@ -236,44 +236,55 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const data = await (await fetch(`http://localhost:8000/users/${user.id}/history`)).json()
+      const res = await fetch(`http://localhost:8000/users/${user.id}/history`)
+      if (!res.ok) throw new Error("Failed to fetch")
+      const data = await res.json()
       setRawHistory(Array.isArray(data) ? data : [])
-      const formatted = data.map((d, i) => ({
+      const formatted = Array.isArray(data) ? data.map((d, i) => ({
         date: d.workout_data?.date ? new Date(d.workout_data.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : `Day ${i + 1}`,
         fullDate: d.workout_data?.date || `Day ${i + 1}`,
         volume: d.workout_data?.volume || 0
-      }))
+      })) : []
       setHistory(formatted)
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e)
+      setRawHistory(null) // Reset to null on error to show error/loading state
+    }
   }
 
   // Filter chart history based on chronological calendar dates within past 7 days (weekly) or 30 days (monthly)
   const getFilteredChartHistory = () => {
-    if (!rawHistory || rawHistory.length === 0) return []
+    if (!rawHistory) return []
     
     const now = new Date()
+    now.setHours(23, 59, 59, 999) // include all of today local time
     const daysLimit = chartTimeframe === 'weekly' ? 7 : 30
     const cutoffTime = new Date(now.getTime() - daysLimit * 24 * 60 * 60 * 1000)
+    cutoffTime.setHours(0, 0, 0, 0) // start of the cutoff day
 
     const filtered = rawHistory
       .filter(item => {
+        if (item.status !== "completed") return false
+        const exercises = item.workout_data?.exercises || []
+        if (exercises.length === 0) return false
+
         const rawDate = item.workout_data?.date || item.created_at
         if (!rawDate) return false
         const d = new Date(rawDate)
-        return !isNaN(d.getTime()) && d >= cutoffTime
+        // Check if valid, within past limit, and not in the future (local dates)
+        return !isNaN(d.getTime()) && d >= cutoffTime && d <= now
       })
       .map((d, i) => {
         const rawDateStr = d.workout_data?.date || d.created_at
-        const itemDate = rawDateStr ? new Date(rawDateStr) : null
-        const displayDate = itemDate && !isNaN(itemDate.getTime())
-          ? itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : `Log #${i + 1}`
+        const itemDate = new Date(rawDateStr)
+        const displayDate = itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         return {
           date: displayDate,
-          fullDate: rawDateStr || `Log #${i + 1}`,
+          timestamp: itemDate.getTime(),
           volume: d.workout_data?.volume || 0
         }
       })
+      .sort((a, b) => a.timestamp - b.timestamp)
 
     return filtered
   }
@@ -448,7 +459,7 @@ function App() {
     }, 0)
 
     try {
-      await fetch('http://localhost:8000/log_history/', {
+      const res = await fetch('http://localhost:8000/log_history/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -463,26 +474,29 @@ function App() {
           }))
         })
       })
+      if (!res.ok) throw new Error('Failed to log data on the server.')
 
       const userUpdatePayload = {}
       if (logData.weight_today) userUpdatePayload.weight = logData.weight_today
       if (logData.height_today) userUpdatePayload.height = logData.height_today
 
       if (Object.keys(userUpdatePayload).length > 0) {
-        const updatedUser = await (await fetch(`http://localhost:8000/users/${user.id}`, {
+        const upRes = await fetch(`http://localhost:8000/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userUpdatePayload)
-        })).json()
-        setUser(updatedUser)
+        })
+        if (upRes.ok) {
+          setUser(await upRes.json())
+        }
       }
 
       showToast('Daily Progress Logged successfully! AI is tracking your data.')
       setView('dashboard')
       setExercises([{ selection: '', customName: '', sets: '', reps: '', weight: '' }])
-      setLogData({ date: '', notes: '', workout_time: '', supplements: '', diet_followed: '', weight_today: '', height_today: '' })
+      setLogData({ date: '', notes: '', workout_time: '', supplements: '', diet_followed: '', weight_today: '', height_today: '', calories: '', protein: '', carbs: '', fats: '' })
       fetchHistory()
-    } catch { showToast('Failed to log data') }
+    } catch (err) { showToast(err.message || 'Failed to log data') }
     setLoading(false)
   }
 
@@ -494,18 +508,22 @@ function App() {
     }
     setLoading(true)
     try {
-      const data = await (await fetch(
-        `http://localhost:8000/generate_plan/?user_id=${user.id}&plan_type=1-day&use_split=${useSplit ? 'true' : 'false'}`,
-        { method: 'POST' }
-      )).json()
+      const res = await fetch(`http://localhost:8000/generate_plan/?user_id=${user.id}&plan_type=1-day&use_split=${useSplit ? 'true' : 'false'}`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to generate AI plan.')
+      const data = await res.json()
       setPlan(data)
-      showToast('⚡ AI Workout & Nutrition Plan generated successfully!')
+      if (data.API_ERROR) {
+        showToast('⚠️ Could not connect to AI. Showing fallback plan.')
+      } else {
+        showToast('⚡ AI Workout & Nutrition Plan generated successfully!')
+      }
       setTimeout(() => {
         if (planRef.current) {
-          planRef.current.scrollIntoView({ behavior: 'smooth' })
+          const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          planRef.current.scrollIntoView({ behavior: isReducedMotion ? 'auto' : 'smooth' })
         }
       }, 200)
-    } catch { showToast('Error generating plan.') }
+    } catch (err) { showToast(err.message || 'Error generating plan.') }
     setLoading(false)
   }
 
@@ -560,7 +578,7 @@ function App() {
           <button 
             type="button"
             onClick={() => setShowGoogleModal(false)}
-            className="absolute top-4 right-4 text-[#ACBAC2] hover:text-[#F4F7F8] text-xs font-bold bg-[#10181D] px-3 py-1.5 rounded-lg border border-[#304149] transition-colors"
+            className="absolute top-2 right-2 text-[#ACBAC2] hover:text-[#F4F7F8] text-xs font-bold bg-[#10181D] rounded-lg border border-[#304149] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             ✕ Close
           </button>
@@ -730,12 +748,129 @@ function App() {
 
   // Main Logged-In Layout Shell
 
-  if (view === 'profile') {
-    return (
-      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
-        <div className="max-w-5xl mx-auto fade-up">
-          <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-bold mb-5 hover:underline text-sm inline-flex items-center gap-1">← Skip to Command Center</button>
-          <div className="iron-card overflow-hidden">
+
+
+  const needsProfile = !user?.weight || !user?.age
+
+  return (
+    <div className="flex min-h-screen bg-[#0B1014] text-[#F4F7F8]">
+      {/* Desktop Sidebar */}
+      <Sidebar active={view} onNav={handleNav} onLogout={handleLogout} user={user} />
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8 p-4 md:p-8 overflow-y-auto break-words">
+        {/* Header bar */}
+        <HeaderBar 
+          user={user} 
+          unread={notifs.unread} 
+          onBell={() => { setInboxOpen(o => !o); fetchNotifs() }} 
+          onLogProgress={() => handleNav('input')}
+          active={view}
+          onNav={handleNav}
+        />
+
+        {/* Notifications Inbox Modal/Dropdown */}
+        {inboxOpen && (
+          <div className="iron-card p-5 md:p-6 mb-6 shadow-2xl fade-up">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xl font-bold text-[#F4F7F8] tracking-wide">
+                INBOX <span className="text-xs text-[#ACBAC2] font-normal">— daily notifications</span>
+              </h3>
+              <button onClick={() => setInboxOpen(false)} className="text-xs text-[#ACBAC2] hover:text-[#F4F7F8] bg-[#10181D] px-2.5 py-1 rounded-lg border border-[#304149] min-w-[44px] min-h-[44px] flex items-center justify-center">✕ Close</button>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Search messages…"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="field-dark flex-1 min-w-[150px]"
+              />
+              <select
+                value={searchFilter}
+                onChange={e => { setSearchFilter(e.target.value); setInboxDateFilter(''); setSearchTerm('') }}
+                className="field-dark"
+              >
+                <option value="all">All</option>
+                <option value="unread">Unread only</option>
+                <option value="today">Today only</option>
+              </select>
+            </div>
+            <div className="flex gap-2 mb-3">
+              <button onClick={markAllRead} className="text-xs font-bold text-[#C7F36B] hover:underline">Mark all read</button>
+            </div>
+            {notifs.items.length === 0 && (
+              <p className="text-sm text-[#ACBAC2]">No messages yet — your daily AI plan will land here automatically.</p>
+            )}
+            <div className="space-y-2 max-h-80 overflow-auto nice-scroll">
+              {filteredItems().map(n => (
+                <div key={n.id} onClick={() => markRead(n.id)}
+                  className={`rounded-xl border p-3.5 cursor-pointer transition flex items-start justify-between gap-3 ${n.is_read ? 'border-[#304149] bg-[#10181D]' : 'border-[#C7F36B]/40 bg-[#172127]'}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-[#F4F7F8] truncate">{!n.is_read && '● '}{n.title}</span>
+                      <span className="text-[10px] text-[#ACBAC2] shrink-0">{String(n.created_at || '').slice(0, 16)}</span>
+                    </div>
+                    <p className="text-xs text-[#ACBAC2] mt-1.5 leading-relaxed">{n.body}</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteNotif(n.id) }}
+                    className="p-1.5 rounded-lg text-xs font-bold text-[#FF897A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 border border-transparent hover:border-[#EF4444]/30 transition shrink-0"
+                    title="Delete notification"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* View switching */}
+        {view === 'split' && (
+          <div className="mb-8">
+            <WorkoutSplitBuilder userId={user?.id} onClose={() => setView('dashboard')} />
+          </div>
+        )}
+
+        {view === 'guide' && (
+          <MuscleGuide onClose={() => setView('dashboard')} />
+        )}
+
+        {view === 'vision' && (
+          <VisionHub 
+            user={user} 
+            plan={plan}
+            onClose={() => setView('dashboard')} 
+            onNavigate={(v) => setView(v)} 
+            updateUser={(updated) => { setUser(updated); showToast("Profile Updated from Vision Scanner!"); setView("profile"); }}
+          />
+        )}
+
+        {view === 'discomfort' && (
+          <div className="mb-8">
+            <DiscomfortHub 
+              user={user} 
+              onClose={() => setView('dashboard')} 
+              onPlanGenerated={() => { setView('dashboard'); generatePlan(); }}
+            />
+          </div>
+        )}
+
+        {needsProfile && view === 'dashboard' && (
+          <div className="mb-6 rounded-2xl border border-[#FF897A]/40 bg-[#FF897A]/10 p-5 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="text-[#FF897A] font-bold text-base">ATHLETE PROFILE INCOMPLETE</h3>
+              <p className="text-[#ACBAC2] text-sm mt-0.5">Complete vitals so the AI can dose training safely.</p>
+            </div>
+            <button onClick={() => setView('profile')} className="btn-lime text-xs py-2 px-5">COMPLETE NOW →</button>
+          </div>
+        )}
+
+        {/* DASHBOARD VIEW (Matching visual reference concept image) */}
+                {view === 'profile' && (
+          <div className="max-w-5xl mx-auto fade-up">
+            <div className="iron-card overflow-hidden">
             <div className="relative px-8 pt-10 pb-8 bg-[#10181D] border-b border-[#304149]">
               <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-2">Athlete Diagnostics</div>
               <h2 className="text-3xl md:text-4xl font-extrabold text-[#F4F7F8]">BUILD YOUR <span className="text-[#C7F36B]">ATHLETE PROFILE</span></h2>
@@ -827,25 +962,175 @@ function App() {
               </button>
             </form>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (view === 'tutorial') {
-    return (
-      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
-        <div className="max-w-5xl mx-auto space-y-8 fade-up">
-          <div className="flex items-center justify-between">
-            <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-extrabold flex items-center gap-2 hover:underline text-sm uppercase tracking-wider">
-              ← Back to Command Center
-            </button>
-            <span className="text-xs font-bold text-[#ACBAC2] bg-[#172127] border border-[#304149] px-3 py-1.5 rounded-full">
-              Interactive User Manual
-            </span>
+        
           </div>
+        )}
 
-          <Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
+        {view === 'input' && (
+          <div className="max-w-5xl mx-auto fade-up">
+            <div className="iron-card overflow-hidden">
+            <div className="relative px-8 py-8 bg-[#10181D] border-b border-[#304149]">
+              <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-2">Daily Warfare Log</div>
+              <h2 className="text-3xl font-bold text-[#F4F7F8]">LOG TODAY&apos;S <span className="text-[#C7F36B]">BATTLE</span></h2>
+              <p className="text-sm text-[#ACBAC2] mt-1">Lifts, fuel and recovery — one log feeds tomorrow&apos;s AI plan.</p>
+            </div>
+            <form onSubmit={handleLogData} className="p-6 md:p-8 flex flex-col gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-2xl border border-[#304149] bg-[#10181D] p-5">
+                <div>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Workout Date</label>
+                  <input type="date" max={new Date().toISOString().slice(0, 10)} value={logData.date} onChange={e => setLogData({ ...logData, date: e.target.value })} className="field-dark" style={{ colorScheme: 'dark' }} required />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Duration</label>
+                  <input type="text" placeholder="e.g. 45 mins" value={logData.workout_time} onChange={e => setLogData({ ...logData, workout_time: e.target.value })} className="field-dark" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Weight</label>
+                  <input type="text" placeholder="e.g. 71.5 kg" value={logData.weight_today} onChange={e => setLogData({ ...logData, weight_today: e.target.value })} className="field-dark" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Height</label>
+                  <input type="text" placeholder="e.g. 167 cm" value={logData.height_today} onChange={e => setLogData({ ...logData, height_today: e.target.value })} className="field-dark" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                  <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide">EXERCISES COMPLETED</h3>
+                  <button type="button" onClick={() => setExercises([...exercises, { selection: '', customName: '', sets: '', reps: '', weight: '' }])}
+                    className="btn-lime text-xs py-1.5 px-4">+ ADD LIFT</button>
+                </div>
+                {exercises.map((ex, index) => (
+                  <div key={index} className="flex flex-wrap md:flex-nowrap gap-2.5 items-center mb-3 rounded-xl border border-[#304149] bg-[#172127] p-3">
+                    {ex.selection === 'custom' ? (
+                      <div className="flex w-full md:w-1/3 rounded-xl overflow-hidden border border-[#304149]">
+                        <input type="text" placeholder="Custom lift..." value={ex.customName}
+                          onChange={e => { const n = [...exercises]; n[index].customName = e.target.value; setExercises(n) }}
+                          className="p-3 w-full text-sm outline-none bg-transparent text-[#F4F7F8]" />
+                        <button type="button" onClick={() => { const n = [...exercises]; n[index].selection = ''; n[index].customName = ''; setExercises(n) }}
+                          className="text-[#ACBAC2] hover:text-[#EF4444] px-4 font-bold bg-[#10181D] border-l border-[#304149] min-h-[44px] min-w-[44px] flex items-center justify-center">✕</button>
+                      </div>
+                    ) : (
+                      <select value={ex.selection}
+                        onChange={e => { const n = [...exercises]; n[index].selection = e.target.value; setExercises(n) }}
+                        className="field-dark md:w-1/3 font-semibold cursor-pointer">
+                        <option value="" disabled>Select lift...</option>
+                        {Object.keys(EXERCISE_DB).map(cat => (
+                          <optgroup key={cat} label={`--- ${cat.toUpperCase()} ---`}>
+                            {EXERCISE_DB[cat].map(name => <option key={name} value={name}>{name}</option>)}
+                          </optgroup>
+                        ))}
+                        <optgroup label="--- OTHER ---"><option value="custom">+ Custom...</option></optgroup>
+                      </select>
+                    )}
+                    <input type="number" placeholder="Sets" value={ex.sets}
+                      onChange={e => { const n = [...exercises]; n[index].sets = e.target.value; setExercises(n) }} className="field-dark md:w-1/6" />
+                    <input type="number" placeholder="Reps" value={ex.reps}
+                      onChange={e => { const n = [...exercises]; n[index].reps = e.target.value; setExercises(n) }} className="field-dark md:w-1/6" />
+                    <input type="number" placeholder="Weight" value={ex.weight}
+                      onChange={e => { const n = [...exercises]; n[index].weight = e.target.value; setExercises(n) }} className="field-dark md:w-1/4" />
+                    {exercises.length > 1 && (
+                      <button type="button" onClick={() => setExercises(exercises.filter((_, i) => i !== index))}
+                        className="text-[#EF4444] font-bold text-2xl px-2 hover:scale-125 min-w-[44px] min-h-[44px] flex items-center justify-center">×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Diet & Supplement Logging */}
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 space-y-4">
+                <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide flex items-center gap-2">
+                  <span className="text-[#FF897A]">🍎</span> NUTRITION &amp; SUPPLEMENT FUEL LOG
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
+                      Diet Followed &amp; Meals Eaten
+                    </label>
+                    <textarea
+                      placeholder="e.g. Breakfast: Oats &amp; Eggs (500 kcal), Lunch: Chicken &amp; Rice (700 kcal)..."
+                      value={logData.diet_followed}
+                      onChange={e => setLogData({ ...logData, diet_followed: e.target.value })}
+                      className="field-dark w-full h-24 text-xs resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
+                      Supplements Taken
+                    </label>
+                    <textarea
+                      placeholder="e.g. Creatine 5g, Whey Protein 1 scoop, Multivitamin, Omega-3..."
+                      value={logData.supplements}
+                      onChange={e => setLogData({ ...logData, supplements: e.target.value })}
+                      className="field-dark w-full h-24 text-xs resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Est. Calories (kcal)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 2200" 
+                      value={logData.calories || ''} 
+                      onChange={e => setLogData({ ...logData, calories: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Protein (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 150" 
+                      value={logData.protein || ''} 
+                      onChange={e => setLogData({ ...logData, protein: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Carbs (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 200" 
+                      value={logData.carbs || ''} 
+                      onChange={e => setLogData({ ...logData, carbs: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Fats (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 65" 
+                      value={logData.fats || ''} 
+                      onChange={e => setLogData({ ...logData, fats: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="btn-lime py-4 rounded-2xl w-full text-base">COMMIT TO RECORD →</button>
+            </form>
+          </div>
+        
+          </div>
+        )}
+
+        {view === 'tutorial' && (
+          <div className="max-w-5xl mx-auto fade-up">
+<Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
             <div className="grid grid-cols-1 gap-8 mt-6">
               
               {/* Step 1: AI Vision & Hands-Free Controls */}
@@ -962,296 +1247,10 @@ function App() {
 
             </div>
           </Panel>
-        </div>
-      </div>
-    )
-  }
-
-  if (view === 'input') {
-    return (
-      <div className="min-h-screen bg-[#0B1014] text-[#F4F7F8] p-4 md:p-8">
-        <div className="max-w-5xl mx-auto fade-up">
-          <button onClick={() => setView('dashboard')} className="text-[#C7F36B] font-bold mb-4 hover:underline text-sm inline-flex items-center gap-1">← Back to Command Center</button>
-          <div className="iron-card overflow-hidden">
-            <div className="relative px-8 py-8 bg-[#10181D] border-b border-[#304149]">
-              <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-2">Daily Warfare Log</div>
-              <h2 className="text-3xl font-bold text-[#F4F7F8]">LOG TODAY&apos;S <span className="text-[#C7F36B]">BATTLE</span></h2>
-              <p className="text-sm text-[#ACBAC2] mt-1">Lifts, fuel and recovery — one log feeds tomorrow&apos;s AI plan.</p>
-            </div>
-            <form onSubmit={handleLogData} className="p-6 md:p-8 flex flex-col gap-5">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 rounded-2xl border border-[#304149] bg-[#10181D] p-5">
-                <div>
-                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Workout Date</label>
-                  <input type="date" max={new Date().toISOString().slice(0, 10)} value={logData.date} onChange={e => setLogData({ ...logData, date: e.target.value })} className="field-dark" style={{ colorScheme: 'dark' }} required />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Duration</label>
-                  <input type="text" placeholder="e.g. 45 mins" value={logData.workout_time} onChange={e => setLogData({ ...logData, workout_time: e.target.value })} className="field-dark" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Weight</label>
-                  <input type="text" placeholder="e.g. 71.5 kg" value={logData.weight_today} onChange={e => setLogData({ ...logData, weight_today: e.target.value })} className="field-dark" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Today&apos;s Height</label>
-                  <input type="text" placeholder="e.g. 167 cm" value={logData.height_today} onChange={e => setLogData({ ...logData, height_today: e.target.value })} className="field-dark" />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                  <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide">EXERCISES COMPLETED</h3>
-                  <button type="button" onClick={() => setExercises([...exercises, { selection: '', customName: '', sets: '', reps: '', weight: '' }])}
-                    className="btn-lime text-xs py-1.5 px-4">+ ADD LIFT</button>
-                </div>
-                {exercises.map((ex, index) => (
-                  <div key={index} className="flex flex-wrap md:flex-nowrap gap-2.5 items-center mb-3 rounded-xl border border-[#304149] bg-[#172127] p-3">
-                    {ex.selection === 'custom' ? (
-                      <div className="flex w-full md:w-1/3 rounded-xl overflow-hidden border border-[#304149]">
-                        <input type="text" placeholder="Custom lift..." value={ex.customName}
-                          onChange={e => { const n = [...exercises]; n[index].customName = e.target.value; setExercises(n) }}
-                          className="p-3 w-full text-sm outline-none bg-transparent text-[#F4F7F8]" />
-                        <button type="button" onClick={() => { const n = [...exercises]; n[index].selection = ''; n[index].customName = ''; setExercises(n) }}
-                          className="text-[#ACBAC2] hover:text-[#EF4444] px-4 font-bold bg-[#10181D] border-l border-[#304149]">✕</button>
-                      </div>
-                    ) : (
-                      <select value={ex.selection}
-                        onChange={e => { const n = [...exercises]; n[index].selection = e.target.value; setExercises(n) }}
-                        className="field-dark md:w-1/3 font-semibold cursor-pointer">
-                        <option value="" disabled>Select lift...</option>
-                        {Object.keys(EXERCISE_DB).map(cat => (
-                          <optgroup key={cat} label={`--- ${cat.toUpperCase()} ---`}>
-                            {EXERCISE_DB[cat].map(name => <option key={name} value={name}>{name}</option>)}
-                          </optgroup>
-                        ))}
-                        <optgroup label="--- OTHER ---"><option value="custom">+ Custom...</option></optgroup>
-                      </select>
-                    )}
-                    <input type="number" placeholder="Sets" value={ex.sets}
-                      onChange={e => { const n = [...exercises]; n[index].sets = e.target.value; setExercises(n) }} className="field-dark md:w-1/6" />
-                    <input type="number" placeholder="Reps" value={ex.reps}
-                      onChange={e => { const n = [...exercises]; n[index].reps = e.target.value; setExercises(n) }} className="field-dark md:w-1/6" />
-                    <input type="number" placeholder="Weight" value={ex.weight}
-                      onChange={e => { const n = [...exercises]; n[index].weight = e.target.value; setExercises(n) }} className="field-dark md:w-1/4" />
-                    {exercises.length > 1 && (
-                      <button type="button" onClick={() => setExercises(exercises.filter((_, i) => i !== index))}
-                        className="text-[#EF4444] font-bold text-2xl px-2 hover:scale-125">×</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Diet & Supplement Logging */}
-              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 space-y-4">
-                <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide flex items-center gap-2">
-                  <span className="text-[#FF897A]">🍎</span> NUTRITION &amp; SUPPLEMENT FUEL LOG
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
-                      Diet Followed &amp; Meals Eaten
-                    </label>
-                    <textarea
-                      placeholder="e.g. Breakfast: Oats &amp; Eggs (500 kcal), Lunch: Chicken &amp; Rice (700 kcal)..."
-                      value={logData.diet_followed}
-                      onChange={e => setLogData({ ...logData, diet_followed: e.target.value })}
-                      className="field-dark w-full h-24 text-xs resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
-                      Supplements Taken
-                    </label>
-                    <textarea
-                      placeholder="e.g. Creatine 5g, Whey Protein 1 scoop, Multivitamin, Omega-3..."
-                      value={logData.supplements}
-                      onChange={e => setLogData({ ...logData, supplements: e.target.value })}
-                      className="field-dark w-full h-24 text-xs resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
-                      Est. Calories (kcal)
-                    </label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 2200" 
-                      value={logData.calories || ''} 
-                      onChange={e => setLogData({ ...logData, calories: e.target.value })} 
-                      className="field-dark text-xs" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
-                      Protein (g)
-                    </label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 150" 
-                      value={logData.protein || ''} 
-                      onChange={e => setLogData({ ...logData, protein: e.target.value })} 
-                      className="field-dark text-xs" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
-                      Carbs (g)
-                    </label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 200" 
-                      value={logData.carbs || ''} 
-                      onChange={e => setLogData({ ...logData, carbs: e.target.value })} 
-                      className="field-dark text-xs" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
-                      Fats (g)
-                    </label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 65" 
-                      value={logData.fats || ''} 
-                      onChange={e => setLogData({ ...logData, fats: e.target.value })} 
-                      className="field-dark text-xs" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="btn-lime py-4 rounded-2xl w-full text-base">COMMIT TO RECORD →</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const needsProfile = !user?.weight || !user?.age
-
-  return (
-    <div className="flex min-h-screen bg-[#0B1014] text-[#F4F7F8]">
-      {/* Desktop Sidebar */}
-      <Sidebar active={view} onNav={handleNav} onLogout={handleLogout} user={user} />
-
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0 pb-20 md:pb-8 p-4 md:p-8 overflow-y-auto">
-        {/* Header bar */}
-        <HeaderBar 
-          user={user} 
-          unread={notifs.unread} 
-          onBell={() => { setInboxOpen(o => !o); fetchNotifs() }} 
-          onLogProgress={() => handleNav('input')}
-          active={view}
-          onNav={handleNav}
-        />
-
-        {/* Notifications Inbox Modal/Dropdown */}
-        {inboxOpen && (
-          <div className="iron-card p-5 md:p-6 mb-6 shadow-2xl fade-up">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xl font-bold text-[#F4F7F8] tracking-wide">
-                INBOX <span className="text-xs text-[#ACBAC2] font-normal">— daily notifications</span>
-              </h3>
-              <button onClick={() => setInboxOpen(false)} className="text-xs text-[#ACBAC2] hover:text-[#F4F7F8] bg-[#10181D] px-2.5 py-1 rounded-lg border border-[#304149]">✕ Close</button>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-3">
-              <input
-                type="text"
-                placeholder="Search messages…"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="field-dark flex-1 min-w-[150px]"
-              />
-              <select
-                value={searchFilter}
-                onChange={e => { setSearchFilter(e.target.value); setInboxDateFilter(''); setSearchTerm('') }}
-                className="field-dark"
-              >
-                <option value="all">All</option>
-                <option value="unread">Unread only</option>
-                <option value="today">Today only</option>
-              </select>
-            </div>
-            <div className="flex gap-2 mb-3">
-              <button onClick={markAllRead} className="text-xs font-bold text-[#C7F36B] hover:underline">Mark all read</button>
-            </div>
-            {notifs.items.length === 0 && (
-              <p className="text-sm text-[#ACBAC2]">No messages yet — your daily AI plan will land here automatically.</p>
-            )}
-            <div className="space-y-2 max-h-80 overflow-auto nice-scroll">
-              {filteredItems().map(n => (
-                <div key={n.id} onClick={() => markRead(n.id)}
-                  className={`rounded-xl border p-3.5 cursor-pointer transition flex items-start justify-between gap-3 ${n.is_read ? 'border-[#304149] bg-[#10181D]' : 'border-[#C7F36B]/40 bg-[#172127]'}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-sm text-[#F4F7F8] truncate">{!n.is_read && '● '}{n.title}</span>
-                      <span className="text-[10px] text-[#ACBAC2] shrink-0">{String(n.created_at || '').slice(0, 16)}</span>
-                    </div>
-                    <p className="text-xs text-[#ACBAC2] mt-1.5 leading-relaxed">{n.body}</p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteNotif(n.id) }}
-                    className="p-1.5 rounded-lg text-xs font-bold text-[#FF897A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 border border-transparent hover:border-[#EF4444]/30 transition shrink-0"
-                    title="Delete notification"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
-        {/* View switching */}
-        {view === 'split' && (
-          <div className="mb-8">
-            <WorkoutSplitBuilder userId={user?.id} onClose={() => setView('dashboard')} />
-          </div>
-        )}
-
-        {view === 'guide' && (
-          <MuscleGuide onClose={() => setView('dashboard')} />
-        )}
-
-        {view === 'vision' && (
-          <VisionHub 
-            user={user} 
-            plan={plan}
-            onClose={() => setView('dashboard')} 
-            onNavigate={(v) => setView(v)} 
-            updateUser={(updated) => { setUser(updated); showToast("Profile Updated from Vision Scanner!"); setView("profile"); }}
-          />
-        )}
-
-        {view === 'discomfort' && (
-          <div className="mb-8">
-            <DiscomfortHub 
-              user={user} 
-              onClose={() => setView('dashboard')} 
-              onPlanGenerated={() => { setView('dashboard'); generatePlan(); }}
-            />
-          </div>
-        )}
-
-        {needsProfile && view === 'dashboard' && (
-          <div className="mb-6 rounded-2xl border border-[#FF897A]/40 bg-[#FF897A]/10 p-5 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h3 className="text-[#FF897A] font-bold text-base">ATHLETE PROFILE INCOMPLETE</h3>
-              <p className="text-[#ACBAC2] text-sm mt-0.5">Complete vitals so the AI can dose training safely.</p>
-            </div>
-            <button onClick={() => setView('profile')} className="btn-lime text-xs py-2 px-5">COMPLETE NOW →</button>
-          </div>
-        )}
-
-        {/* DASHBOARD VIEW (Matching visual reference concept image) */}
-        {view === 'dashboard' && (
+{view === 'dashboard' && (
           <div className="space-y-6">
             {/* Hero Card */}
             <div className="iron-card relative overflow-hidden p-6 md:p-8 min-h-[220px]">
@@ -1309,12 +1308,13 @@ function App() {
                   <div className="text-xs font-semibold text-[#ACBAC2]">Completed Sessions</div>
                   <div className="text-2xl font-black text-[#F4F7F8]">
                     {(() => {
-                      const completedLogs = rawHistory.filter(d => d.workout_data && d.workout_data.exercises && d.workout_data.exercises.length > 0);
-                      return completedLogs.length > 0 ? completedLogs.length : '--';
+                      if (!rawHistory) return '--';
+                      const completedLogs = rawHistory.filter(d => d.status === "completed" && d.workout_data?.exercises?.length > 0);
+                      return completedLogs.length;
                     })()}
                   </div>
                   <div className="text-[11px] text-[#ACBAC2] mt-0.5">
-                    {rawHistory.length > 0 ? `${rawHistory.length} total activity records` : 'No logs recorded'}
+                    {!rawHistory ? 'Loading history...' : (rawHistory.length > 0 ? `${rawHistory.length} total activity records` : 'No logs recorded')}
                   </div>
                 </div>
               </div>
@@ -1326,7 +1326,7 @@ function App() {
                 <div>
                   <div className="text-xs font-semibold text-[#ACBAC2]">Days / week</div>
                   <div className="text-2xl font-black text-[#F4F7F8]">
-                    {mySplit?.days_per_week ? `${mySplit.days_per_week} days` : (todayMuscles.length ? `${todayMuscles.length} days` : '--')}
+                    {mySplit?.days_per_week ? `${mySplit.days_per_week} days` : (mySplit?.schedule ? `${Object.values(mySplit.schedule).filter(m => m && m.length > 0).length} days` : 'Unavailable')}
                   </div>
                   <div className="text-[11px] text-[#ACBAC2] mt-0.5">
                     {mySplit?.split_label || 'Active training frequency'}
@@ -1563,7 +1563,7 @@ function App() {
                   <div className="space-y-2.5">
                     <button
                       onClick={() => setView('vision')}
-                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px]"
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
                     >
                       <div>
                         <div className="text-xs font-bold text-[#F4F7F8]">Form coach</div>
@@ -1574,7 +1574,7 @@ function App() {
 
                     <button
                       onClick={() => setView('vision')}
-                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px]"
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
                     >
                       <div>
                         <div className="text-xs font-bold text-[#F4F7F8]">Food scanner</div>
@@ -1597,10 +1597,10 @@ function App() {
 
                   <button
                     onClick={() => setView('discomfort')}
-                    className="w-full p-4 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#FF897A] transition text-left flex items-center justify-between min-h-[44px] mt-2"
+                    className="w-full p-4 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#FF897A] transition text-left flex items-center justify-between min-h-[44px] mt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-lg text-[#FF897A]">📈</span>
+                      <BarChart3 className="text-[#FF897A]" size={20} />
                       <span className="text-xs font-bold text-[#F4F7F8]">Report discomfort</span>
                     </div>
                     <span className="text-xs text-[#FF897A]">›</span>
@@ -1647,15 +1647,27 @@ function App() {
                 </div>
 
                 {/* AI Engine Notice */}
-                <div className="p-3 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-between text-xs text-[#ACBAC2]">
-                  <span className="flex items-center gap-2 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-[#54D8CF]"></span>
-                    AI Engine: {plan.ai_fallback ? 'Local Rule-Based Emergency Engine' : 'Doctor & Master Trainer AI'}
-                  </span>
-                  {plan.recovery_adapted && (
-                    <span className="bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
-                      ⚡ ADAPTED FOR RECOVERY
+                <div className="p-3 rounded-xl bg-[#10181D] border border-[#304149] flex flex-col gap-2 text-xs text-[#ACBAC2]">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-[#54D8CF]"></span>
+                      AI Engine: {plan.API_ERROR ? 'Fallback / Emergency Engine' : 'Doctor & Master Trainer AI'}
                     </span>
+                    {plan.workout_plan?.adapted_for_discomfort && (
+                      <span className="bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+                        ⚡ ADAPTED FOR RECOVERY
+                      </span>
+                    )}
+                  </div>
+                  {plan.API_ERROR && (
+                    <div className="text-[11px] text-[#FF897A]">
+                      Notice: Showing standard fallback template. ({plan.API_ERROR})
+                    </div>
+                  )}
+                  {plan.workout_plan?.adapted_for_discomfort && (
+                    <div className="text-[11px] text-[#FF897A]">
+                      Recovery Note: {plan.workout_plan.adapted_for_discomfort}
+                    </div>
                   )}
                 </div>
 
@@ -1701,13 +1713,21 @@ function App() {
                           {plan.diet_chart?.daily_calories || plan.diet_chart?.calories ? `${plan.diet_chart?.daily_calories || plan.diet_chart?.calories} kcal` : 'Custom Calorie Target'}
                         </span>
                       </div>
-                      {plan.diet_chart?.macros && (
-                        <div className="flex gap-2 text-xs font-bold">
-                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">P: {plan.diet_chart.macros.protein || '--'}g</span>
-                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">C: {plan.diet_chart.macros.carbs || '--'}g</span>
-                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">F: {plan.diet_chart.macros.fats || '--'}g</span>
-                        </div>
-                      )}
+                      {plan.diet_chart?.macros && (() => {
+                        const fmt = (v) => {
+                          if (v == null || v === '') return '--'
+                          const str = String(v).toLowerCase().replace(/g$/, '').trim()
+                          if (isNaN(str) && str !== '0') return v
+                          return `${str}g`
+                        }
+                        return (
+                          <div className="flex gap-2 text-xs font-bold">
+                            <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">P: {fmt(plan.diet_chart.macros.protein)}</span>
+                            <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">C: {fmt(plan.diet_chart.macros.carbs)}</span>
+                            <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">F: {fmt(plan.diet_chart.macros.fats)}</span>
+                          </div>
+                        )
+                      })()}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1720,7 +1740,7 @@ function App() {
                           <div className="text-xs font-bold text-[#F4F7F8]">
                             {m.meal || (m.items || []).map(it => it.item || it.name).join(' • ')}
                           </div>
-                          {m.calories && <div className="text-[11px] text-[#54D8CF] font-semibold">🔥 {m.calories} kcal</div>}
+                          {(m.calories != null || m.kcal != null) && <div className="text-[11px] text-[#54D8CF] font-semibold">🔥 {m.calories != null ? m.calories : m.kcal} kcal</div>}
                         </div>
                       ))}
                     </div>

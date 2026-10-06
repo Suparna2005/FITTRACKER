@@ -164,6 +164,24 @@ export function Sidebar({ active, onNav, onLogout, user }) {
 // Mobile Bottom Navigation Bar with More Menu and Safe-Area padding
 export function MobileBottomNav({ active, onNav, onLogout }) {
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+  const moreBtnRef = React.useRef(null);
+  const closeBtnRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (showMoreMenu) {
+      const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+          setShowMoreMenu(false);
+          moreBtnRef.current?.focus();
+        }
+      };
+      document.addEventListener('keydown', handleEsc);
+      setTimeout(() => closeBtnRef.current?.focus(), 50);
+      return () => document.removeEventListener('keydown', handleEsc);
+    } else {
+      moreBtnRef.current?.focus();
+    }
+  }, [showMoreMenu]);
 
   const items = [
     { id: 'dashboard', label: 'Home', icon: 'dashboard' },
@@ -179,9 +197,12 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
       {showMoreMenu && (
         <div 
           className="md:hidden fixed inset-0 z-50 bg-[#0B1014]/80 backdrop-blur-sm flex flex-col justify-end fade-up"
-          onClick={() => setShowMoreMenu(false)}
+          onClick={() => { setShowMoreMenu(false); moreBtnRef.current?.focus(); }}
         >
           <div 
+            role="dialog"
+            aria-modal="true"
+            aria-label="More Menu"
             className="bg-[#10181D] border-t border-[#304149] rounded-t-3xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -191,8 +212,9 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
                 IRONFORGE MENU
               </div>
               <button 
-                onClick={() => setShowMoreMenu(false)}
-                className="text-xs font-bold text-[#ACBAC2] bg-[#172127] border border-[#304149] px-3 py-1 rounded-lg"
+                ref={closeBtnRef}
+                onClick={() => { setShowMoreMenu(false); moreBtnRef.current?.focus(); }}
+                className="text-xs font-bold text-[#ACBAC2] bg-[#172127] border border-[#304149] rounded-lg min-w-[44px] min-h-[44px] px-3 flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
                 ✕ Close
               </button>
@@ -201,7 +223,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => { setShowMoreMenu(false); onNav('guide'); }}
-                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#54D8CF]"
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#54D8CF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
                 <NavIcon name="guide" className="w-6 h-6 text-[#54D8CF]" />
                 <span>Muscle Guide</span>
@@ -209,7 +231,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
 
               <button
                 onClick={() => { setShowMoreMenu(false); onNav('discomfort'); }}
-                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#FF897A]"
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#FF897A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
                 <NavIcon name="recovery" className="w-6 h-6 text-[#FF897A]" />
                 <span>Recovery Hub</span>
@@ -217,7 +239,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
 
               <button
                 onClick={() => { setShowMoreMenu(false); onNav('tutorial'); }}
-                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#C7F36B]"
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#C7F36B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
                 <NavIcon name="tutorial" className="w-6 h-6 text-[#C7F36B]" />
                 <span>User Tutorial</span>
@@ -225,7 +247,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
 
               <button
                 onClick={() => { setShowMoreMenu(false); onLogout && onLogout(); }}
-                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#FF897A] hover:border-[#EF4444]"
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#FF897A] hover:border-[#EF4444] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
                 <NavIcon name="logout" className="w-6 h-6 text-[#FF897A]" />
                 <span>Logout</span>
@@ -245,6 +267,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
           return (
             <button
               key={item.id}
+              ref={item.id === 'more' ? moreBtnRef : null}
               onClick={() => {
                 if (item.id === 'more') {
                   setShowMoreMenu(prev => !prev);

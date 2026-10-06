@@ -97,6 +97,10 @@ class ManualLog(BaseModel):
     diet_followed: Optional[str] = None
     weight_today: Optional[str] = None
     height_today: Optional[str] = None
+    calories: Optional[int] = None
+    protein: Optional[int] = None
+    carbs: Optional[int] = None
+    fats: Optional[int] = None
     exercises: List[ExerciseLog] = []
 
 @app.post("/users/")
@@ -187,6 +191,19 @@ def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
 
 @app.post("/log_history/")
 def log_history(log: ManualLog, db: Session = Depends(get_db)):
+    diet_data = None
+    if log.calories or log.protein or log.carbs or log.fats or log.diet_followed:
+        diet_data = {
+            "daily_calories": log.calories,
+            "calories": log.calories,
+            "macros": {
+                "protein": f"{log.protein}g" if log.protein is not None else None,
+                "carbs": f"{log.carbs}g" if log.carbs is not None else None,
+                "fats": f"{log.fats}g" if log.fats is not None else None
+            },
+            "diet_followed": log.diet_followed
+        }
+
     db_workout = models.DailyWorkout(
         user_id=log.user_id,
         workout_data={
@@ -197,9 +214,14 @@ def log_history(log: ManualLog, db: Session = Depends(get_db)):
             "diet_followed": log.diet_followed,
             "weight_today": log.weight_today,
             "height_today": log.height_today,
+            "calories": log.calories,
+            "protein": log.protein,
+            "carbs": log.carbs,
+            "fats": log.fats,
             "notes": log.notes, 
             "exercises": [ex.dict() for ex in log.exercises]
         },
+        diet_data=diet_data,
         status="completed"
     )
     db.add(db_workout)

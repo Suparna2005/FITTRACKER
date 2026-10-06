@@ -204,6 +204,10 @@ input:checked + .toggle-slider:before {
   transform: translateX(20px);
   background-color: #0B1014;
 }
+input:focus-visible + .toggle-slider {
+  outline: 2px solid #C7F36B;
+  outline-offset: 2px;
+}
 
 /* Animations */
 @keyframes fadeUp {

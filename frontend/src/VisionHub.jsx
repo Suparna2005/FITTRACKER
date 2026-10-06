@@ -747,7 +747,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
     <div className="fade-up relative w-full mb-8">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-display text-2xl font-bold text-white tracking-wide">
-          IRON<span className="gold-text">FORGE</span> VISION
+          IRON<span className="text-[#C7F36B]">FORGE</span> VISION
         </h2>
         <button onClick={() => { stopCamera(); onClose(); }} className="text-[11px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-lg transition-colors">
           Close Hub ✕
@@ -757,13 +757,13 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
       {!showCamera && !imgPreview && (
         <div className="relative p-6 md:p-8 rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-8"
           style={{ backgroundImage: 'linear-gradient(135deg, rgba(9,9,11,1) 0%, rgba(9,9,11,0.8) 100%), url("https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?q=80&w=1000")', backgroundSize: 'cover' }}>
-          <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-[#54D8CF]/10 mix-blend-overlay"></div>
           <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.25em] uppercase text-blue-300 bg-blue-400/10 border border-blue-400/30 rounded-full px-3.5 py-1.5 mb-4">
-              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" /> Live Camera Modules
+            <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-full px-3.5 py-1.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-[#54D8CF] animate-pulse" /> Live Camera Modules
             </div>
             <h3 className="font-display text-4xl font-bold text-white leading-tight mb-2">
-              COMPUTER VISION <span className="text-blue-400">MODELS</span>
+              COMPUTER VISION <span className="text-[#54D8CF]">MODELS</span>
             </h3>
             <p className="text-zinc-400 text-sm leading-relaxed mb-0">
               Select a module below to activate your webcam.
@@ -774,7 +774,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
 
       {/* LIVE CAMERA INTERFACE */}
       {showCamera && (
-        <div className="mb-8 rounded-3xl overflow-hidden border border-emerald-500/50 relative fade-up bg-black shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+        <div className="mb-8 rounded-3xl overflow-hidden border border-[#C7F36B]/50 relative fade-up bg-black ">
           <style>{`
             @keyframes scanline {
               0% { top: 0%; opacity: 0; }
@@ -795,7 +795,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                 id="exerciseSelector"
                 value={selectedExercise}
                 onChange={(e) => setSelectedExercise(e.target.value)}
-                className="bg-black/80 backdrop-blur-md text-emerald-400 font-bold border border-emerald-500/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
+                className="bg-black/80 backdrop-blur-md text-[#C7F36B] font-bold border border-[#C7F36B]/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
               >
                 <option value="Auto-Detect">✨ Auto-Detect Exercise</option>
                 <option value="Bicep Curl">Bicep Curl</option>
@@ -817,17 +817,17 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             
             {activeMode === 'form' && (
               <div className="flex flex-wrap gap-2 items-center">
-                <div className="bg-blue-500/20 border border-blue-500/50 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-max shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-                  <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-[#54D8CF]/20 border border-[#54D8CF]/50 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-max ">
+                  <svg className="w-3.5 h-3.5 text-[#54D8CF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-[10px] font-bold text-blue-300 uppercase tracking-widest">Biomechanical Skeleton Active</span>
+                  <span className="text-[10px] font-bold text-[#54D8CF] uppercase tracking-widest">Biomechanical Skeleton Active</span>
                 </div>
 
-                <div className="bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-md px-3.5 py-2 rounded-xl flex items-center gap-2.5 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isVoiceActive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`}></span>
+                <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/50 backdrop-blur-md px-3.5 py-2 rounded-xl flex items-center gap-2.5 ">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isVoiceActive ? 'bg-[#C7F36B] animate-ping' : 'bg-amber-400'}`}></span>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-widest flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-[#C7F36B] uppercase tracking-widest flex items-center gap-1">
                       ⚡ Deepgram Nova-3 / AI Voice Active
                     </span>
                     <span className="text-[11px] font-extrabold text-white max-w-[280px] truncate">
@@ -836,7 +836,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                   </div>
                   <button 
                     onClick={startVoiceRecognition}
-                    className="ml-1 text-[10px] font-bold bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-200 border border-emerald-400/40 px-2 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                    className="ml-1 text-[10px] font-bold bg-[#C7F36B]/30 hover:bg-[#C7F36B]/50 text-[#C7F36B] border border-[#C7F36B]/40 px-2 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1"
                     title="Restart Deepgram Nova-3 AI Voice Engine"
                   >
                     ↻ Mic
@@ -851,10 +851,10 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               <button onClick={() => { setShowCamera(false); stopCamera(); }} className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-white transition-colors hover:bg-white/10">
                 Cancel ✕
               </button>
-              <div id="repCounter" className="bg-black/80 backdrop-blur-xl border-2 border-emerald-500 text-emerald-400 font-display font-black text-3xl px-6 py-2 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div id="repCounter" className="bg-black/80 backdrop-blur-xl border-2 border-[#C7F36B] text-[#C7F36B] font-display font-black text-3xl px-6 py-2 rounded-xl ">
                 [WAITING FOR 1 FINGER OR SAY 'START' FOR SET 1]
               </div>
-              <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border-2 border-blue-500 text-blue-400 font-display font-black text-xl px-6 py-2 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse">
+              <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border-2 border-[#54D8CF] text-[#54D8CF] font-display font-black text-xl px-6 py-2 rounded-xl  animate-pulse">
                 REST GAP: 0s
               </div>
             </div>
@@ -896,8 +896,8 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             {/* DYNAMIC HUD OVERLAYS */}
             {activeMode === 'form' && (
               <div className={`absolute top-[10%] px-4 py-2 rounded-full border backdrop-blur-sm shadow-xl transition-colors duration-300 z-30 
-                ${realtimeWarning.includes('PERFECT') ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                : realtimeWarning.includes('STANDING') ? 'bg-blue-500/20 border-blue-500 text-blue-400' 
+                ${realtimeWarning.includes('PERFECT') ? 'bg-[#C7F36B]/20 border-[#C7F36B] text-[#C7F36B]' 
+                : realtimeWarning.includes('STANDING') ? 'bg-[#54D8CF]/20 border-[#54D8CF] text-[#54D8CF]' 
                 : 'bg-red-500/20 border-red-500 text-red-400'}`}>
                 <span className="text-[10px] font-black tracking-widest uppercase">{realtimeWarning}</span>
               </div>
@@ -906,29 +906,29 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             {activeMode === 'physique' && (
               <div className="relative w-full h-full flex items-center justify-center z-20">
                 {/* SVG Human Silhouette Outline */}
-                <svg viewBox="0 0 200 300" className="w-64 h-96 opacity-60 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">
+                <svg viewBox="0 0 200 300" className="w-64 h-96 opacity-60 drop-">
                   <circle cx="100" cy="80" r="45" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
                   <path d="M 68 115 Q 20 130 10 220 L 10 300 L 190 300 L 190 220 Q 180 130 132 115" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
                 </svg>
                 {/* Animated Scan Line */}
-                <div className="absolute left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_20px_4px_rgba(52,211,153,0.8)]" 
+                <div className="absolute left-0 right-0 h-1 bg-[#C7F36B] " 
                      style={{ animation: 'scanline 3s cubic-bezier(0.4, 0, 0.2, 1) infinite', width: '100%', maxWidth: '300px', margin: '0 auto' }}></div>
                 
-                <div className="absolute top-[10%] text-[10px] font-black tracking-widest text-emerald-400 uppercase bg-black/50 px-4 py-2 rounded-full border border-emerald-500/30 backdrop-blur-sm">
+                <div className="absolute top-[10%] text-[10px] font-black tracking-widest text-[#C7F36B] uppercase bg-black/50 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm">
                   Align Head & Shoulders
                 </div>
               </div>
             )}
 
             {activeMode === 'food' && (
-              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-emerald-500/40 border-dashed animate-[spin_10s_linear_infinite] z-20">
-                <div className="absolute inset-0 rounded-full bg-emerald-500/5 mix-blend-overlay"></div>
+              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-[#C7F36B]/40 border-dashed animate-[spin_10s_linear_infinite] z-20">
+                <div className="absolute inset-0 rounded-full bg-[#C7F36B]/5 mix-blend-overlay"></div>
               </div>
             )}
             
             {activeMode === 'equipment' && (
               <div className="relative w-full h-full flex items-center justify-center z-20">
-                <div className="z-20 text-[10px] font-black tracking-[0.3em] text-emerald-400 uppercase bg-black/50 px-4 py-2 rounded-full border border-emerald-500/30 backdrop-blur-sm animate-pulse">
+                <div className="z-20 text-[10px] font-black tracking-[0.3em] text-[#C7F36B] uppercase bg-black/50 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm animate-pulse">
                   SPATIAL MESH SCANNER ACTIVE
                 </div>
               </div>
@@ -936,8 +936,8 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
           </div>
           
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent flex justify-center z-20">
-            <button onClick={captureFrame} className="w-20 h-20 rounded-full border-4 border-emerald-500 flex items-center justify-center hover:scale-105 transition-transform bg-black/50 backdrop-blur-sm shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-              <div className="w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 transition-colors"></div>
+            <button onClick={captureFrame} className="w-20 h-20 rounded-full border-4 border-[#C7F36B] flex items-center justify-center hover:scale-105 transition-transform bg-black/50 backdrop-blur-sm ">
+              <div className="w-14 h-14 rounded-full bg-[#C7F36B] hover:bg-[#C7F36B] transition-colors"></div>
             </button>
           </div>
         </div>
@@ -952,15 +952,15 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               {loading && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
                   <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-widest animate-pulse">Analyzing Frame...</span>
+                    <div className="w-8 h-8 border-4 border-[#54D8CF] border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <span className="text-xs font-bold text-[#54D8CF] uppercase tracking-widest animate-pulse">Analyzing Frame...</span>
                   </div>
                 </div>
               )}
             </div>
             
             <div className="w-full md:w-2/3 flex flex-col justify-center">
-              <div className="text-[10px] font-bold tracking-[0.25em] uppercase text-emerald-400 mb-2">
+              <div className="text-[10px] font-bold tracking-[0.25em] uppercase text-[#C7F36B] mb-2">
                 {activeMode?.toUpperCase()} ANALYSIS RESULTS
               </div>
               {result ? (
@@ -977,12 +977,12 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                           </h3>
                           <div className="flex flex-wrap items-center gap-2">
                             {result.serving_weight_g && (
-                              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                              <span className="bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ">
                                 ⚖️ Portion: {result.serving_weight_g} grams (g)
                               </span>
                             )}
                             {result.confidence && (
-                              <span className="bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                              <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                 🔬 {result.confidence}
                               </span>
                             )}
@@ -991,11 +991,11 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
 
                         {/* Macro & Portion Stats Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                          <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <div className="bg-[#C7F36B]/30 border border-[#C7F36B]/30 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-[#C7F36B] font-extrabold uppercase tracking-widest mb-1 flex items-center gap-1">
                               <span>⚖️ TOTAL WEIGHT</span>
                             </div>
-                            <div className="text-2xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-emerald-400 font-bold ml-0.5">g</span></div>
+                            <div className="text-2xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex flex-col justify-between">
@@ -1003,9 +1003,9 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                             <div className="text-2xl font-black text-white">{result.estimated_calories || 0}<span className="text-xs text-zinc-400 font-bold ml-0.5">kcal</span></div>
                           </div>
 
-                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-blue-400 font-extrabold uppercase tracking-widest mb-1">💪 PROTEIN</div>
-                            <div className="text-2xl font-black text-blue-300">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          <div className="bg-[#54D8CF]/10 border border-[#54D8CF]/20 rounded-2xl p-3.5 flex flex-col justify-between">
+                            <div className="text-[10px] text-[#54D8CF] font-extrabold uppercase tracking-widest mb-1">💪 PROTEIN</div>
+                            <div className="text-2xl font-black text-[#54D8CF]">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
@@ -1023,7 +1023,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                         {result.ingredients && result.ingredients.length > 0 && (
                           <div className="bg-black/60 border border-white/10 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                              <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <span className="text-xs font-extrabold text-[#C7F36B] uppercase tracking-widest flex items-center gap-1.5">
                                 🧪 SCIENTIFIC INGREDIENT &amp; GRAM BREAKDOWN
                               </span>
                               <span className="text-[10px] font-bold text-zinc-400 uppercase">
@@ -1041,11 +1041,11 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                                   <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl p-3 transition-colors">
                                     <div className="flex items-center justify-between text-xs mb-1.5">
                                       <div className="flex items-center gap-2 font-bold text-white">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#C7F36B]"></span>
                                         <span>{ing.name}</span>
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <span className="font-mono font-extrabold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[11px]">
+                                        <span className="font-mono font-extrabold text-[#C7F36B] bg-[#C7F36B]/10 border border-[#C7F36B]/20 px-2 py-0.5 rounded text-[11px]">
                                           {ingWeight}g
                                         </span>
                                         <span className="font-semibold text-zinc-300 text-[11px]">
@@ -1062,7 +1062,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                                     <div className="flex items-center justify-between text-[10px] text-zinc-400">
                                       <span>Mass Share: {weightPct}% of plate</span>
                                       <span className="font-mono">
-                                        P: <strong className="text-blue-300">{ing.protein_g ?? 0}g</strong> | 
+                                        P: <strong className="text-[#54D8CF]">{ing.protein_g ?? 0}g</strong> | 
                                         C: <strong className="text-amber-300">{ing.carbs_g ?? 0}g</strong> | 
                                         F: <strong className="text-rose-300">{ing.fats_g ?? 0}g</strong>
                                       </span>
@@ -1076,10 +1076,10 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
 
                         {/* Scientific Diagnostic Notes */}
                         {result.scientific_notes && (
-                          <div className="bg-blue-950/20 border border-blue-500/30 rounded-2xl p-3.5 flex items-start gap-3">
+                          <div className="bg-[#54D8CF]/20 border border-[#54D8CF]/30 rounded-2xl p-3.5 flex items-start gap-3">
                             <span className="text-lg">🧬</span>
                             <div>
-                              <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-0.5">NUTRITIONAL DENSITY DIAGNOSIS</div>
+                              <div className="text-[10px] font-black text-[#54D8CF] uppercase tracking-widest mb-0.5">NUTRITIONAL DENSITY DIAGNOSIS</div>
                               <p className="text-xs text-zinc-300 leading-relaxed m-0">{result.scientific_notes}</p>
                             </div>
                           </div>
@@ -1093,7 +1093,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                         <div className="flex flex-wrap gap-3">
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[150px]">
                             <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Est. Body Fat</div>
-                            <div className="text-2xl font-bold text-emerald-400">{result.estimated_body_fat_percentage}</div>
+                            <div className="text-2xl font-bold text-[#C7F36B]">{result.estimated_body_fat_percentage}</div>
                           </div>
                         </div>
                         <p className="text-sm text-zinc-400">{result.notable_features}</p>
@@ -1105,7 +1105,7 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                         <h3 className="font-display text-3xl font-bold text-white">{result.environment_type || 'Workout Area'}</h3>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {(result.detected_equipment || []).map((eq, i) => (
-                            <span key={i} className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-lg text-sm font-bold">{eq}</span>
+                            <span key={i} className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/30 px-3 py-1 rounded-lg text-sm font-bold">{eq}</span>
                           ))}
                         </div>
                         <p className="text-sm text-zinc-400 mt-2"><strong className="text-white">AI Suggestion:</strong> {result.suggested_workout_focus}</p>
@@ -1118,11 +1118,11 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                         <div className="flex flex-wrap gap-3">
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[120px]">
                             <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Form Score</div>
-                            <div className="text-2xl font-bold text-blue-400">{result.form_score}<span className="text-sm text-zinc-500">/100</span></div>
+                            <div className="text-2xl font-bold text-[#54D8CF]">{result.form_score}<span className="text-sm text-zinc-500">/100</span></div>
                           </div>
                         </div>
                         <p className="text-sm text-zinc-300 mt-2"><strong className="text-red-400">Critique:</strong> {result.critique}</p>
-                        <p className="text-sm text-zinc-300"><strong className="text-emerald-400">Correction:</strong> {result.correction_advice}</p>
+                        <p className="text-sm text-zinc-300"><strong className="text-[#C7F36B]">Correction:</strong> {result.correction_advice}</p>
                       </>
                     )}
 
