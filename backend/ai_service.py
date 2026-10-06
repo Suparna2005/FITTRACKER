@@ -343,7 +343,7 @@ def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, 
     - next_day_plan_adjustment (string)
     """
     api_key = os.getenv("GROQ_API_KEY")
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     
     # Check for Emergency Red Flags (e.g. Chest Pain, Dizziness, Shortness of Breath)
     lower_desc = (feeling_description or "").lower()
