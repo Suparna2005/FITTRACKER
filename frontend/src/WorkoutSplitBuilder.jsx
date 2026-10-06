@@ -165,8 +165,13 @@ export default function WorkoutSplitBuilder({ userId, onClose }) {
         <p className="font-bold text-[#F4F7F8] tracking-wide mb-2">③ CHOOSE A PRESET TO START WITH</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {visible.map(s => (
-            <div key={s.id} onClick={() => pick(s)}
-              className="p-5 rounded-2xl border border-[#304149] bg-[#10181D] hover:border-[#54D8CF] cursor-pointer transition flex flex-col justify-between">
+            <button 
+              key={s.id} 
+              type="button"
+              onClick={() => pick(s)}
+              aria-label={`Select ${s.label} preset`}
+              className="p-5 rounded-2xl border border-[#304149] bg-[#10181D] hover:border-[#54D8CF] focus-visible:ring-2 focus-visible:ring-[#C7F36B] outline-none cursor-pointer transition flex flex-col justify-between text-left min-h-[140px]"
+            >
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${s.badgeCls}`}>{s.badge}</span>
@@ -175,8 +180,8 @@ export default function WorkoutSplitBuilder({ userId, onClose }) {
                 <h4 className="text-lg font-bold text-[#F4F7F8]">{s.label}</h4>
                 <p className="text-xs text-[#ACBAC2] mt-1">{s.desc}</p>
               </div>
-              <button className="btn-lime text-xs py-2 px-4 mt-4 w-full">SELECT &amp; EDIT THIS SPLIT →</button>
-            </div>
+              <span className="btn-lime text-xs py-2 px-4 mt-4 w-full text-center inline-block">SELECT &amp; EDIT THIS SPLIT →</span>
+            </button>
           ))}
         </div>
       </>)}

@@ -86,6 +86,12 @@ export function NavIcon({ name, className = "w-5 h-5" }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       );
+    case 'more':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -155,33 +161,109 @@ export function Sidebar({ active, onNav, onLogout, user }) {
   );
 }
 
-// Mobile Bottom Navigation Bar
-export function MobileBottomNav({ active, onNav }) {
+// Mobile Bottom Navigation Bar with More Menu and Safe-Area padding
+export function MobileBottomNav({ active, onNav, onLogout }) {
+  const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+
   const items = [
     { id: 'dashboard', label: 'Home', icon: 'dashboard' },
     { id: 'split', label: 'Split', icon: 'split' },
     { id: 'vision', label: 'Vision', icon: 'vision' },
     { id: 'profile', label: 'Profile', icon: 'profile' },
+    { id: 'more', label: 'More', icon: 'more' },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#10181D] border-t border-[#304149] px-2 py-2 flex justify-around items-center">
-      {items.map((item) => {
-        const isActive = active === item.id;
-        return (
-          <button
-            key={item.id}
-            onClick={() => onNav(item.id)}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[64px] min-h-[44px] transition-all ${
-              isActive ? 'text-[#C7F36B]' : 'text-[#ACBAC2]'
-            }`}
+    <>
+      {/* Mobile More Sheet */}
+      {showMoreMenu && (
+        <div 
+          className="md:hidden fixed inset-0 z-50 bg-[#0B1014]/80 backdrop-blur-sm flex flex-col justify-end fade-up"
+          onClick={() => setShowMoreMenu(false)}
+        >
+          <div 
+            className="bg-[#10181D] border-t border-[#304149] rounded-t-3xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <NavIcon name={item.icon} className={`w-5 h-5 ${isActive ? 'text-[#C7F36B]' : 'text-[#ACBAC2]'}`} />
-            <span className="text-[11px] font-bold mt-1">{item.label}</span>
-          </button>
-        );
-      })}
-    </div>
+            <div className="flex items-center justify-between border-b border-[#304149] pb-3">
+              <div className="font-extrabold text-base text-[#F4F7F8] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#C7F36B]"></span>
+                IRONFORGE MENU
+              </div>
+              <button 
+                onClick={() => setShowMoreMenu(false)}
+                className="text-xs font-bold text-[#ACBAC2] bg-[#172127] border border-[#304149] px-3 py-1 rounded-lg"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => { setShowMoreMenu(false); onNav('guide'); }}
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#54D8CF]"
+              >
+                <NavIcon name="guide" className="w-6 h-6 text-[#54D8CF]" />
+                <span>Muscle Guide</span>
+              </button>
+
+              <button
+                onClick={() => { setShowMoreMenu(false); onNav('discomfort'); }}
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#FF897A]"
+              >
+                <NavIcon name="recovery" className="w-6 h-6 text-[#FF897A]" />
+                <span>Recovery Hub</span>
+              </button>
+
+              <button
+                onClick={() => { setShowMoreMenu(false); onNav('tutorial'); }}
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#C7F36B]"
+              >
+                <NavIcon name="tutorial" className="w-6 h-6 text-[#C7F36B]" />
+                <span>User Tutorial</span>
+              </button>
+
+              <button
+                onClick={() => { setShowMoreMenu(false); onLogout && onLogout(); }}
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#FF897A] hover:border-[#EF4444]"
+              >
+                <NavIcon name="logout" className="w-6 h-6 text-[#FF897A]" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Bar */}
+      <div 
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#10181D]/95 backdrop-blur-md border-t border-[#304149] px-2 pt-2 flex justify-around items-center"
+      >
+        {items.map((item) => {
+          const isActive = item.id === 'more' ? showMoreMenu : active === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.id === 'more') {
+                  setShowMoreMenu(prev => !prev);
+                } else {
+                  setShowMoreMenu(false);
+                  onNav(item.id);
+                }
+              }}
+              className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl min-w-[64px] min-h-[44px] transition-all ${
+                isActive ? 'text-[#C7F36B]' : 'text-[#ACBAC2]'
+              }`}
+            >
+              <NavIcon name={item.icon} className={`w-5 h-5 ${isActive ? 'text-[#C7F36B]' : 'text-[#ACBAC2]'}`} />
+              <span className="text-[11px] font-bold mt-1">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

@@ -117,15 +117,20 @@ select.field-dark option:checked {
   transition: all 0.2s ease;
   border: 1px solid transparent;
   display: inline-flex;
-  items-center: center;
+  align-items: center;
   justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
+  min-height: 44px;
 }
 .btn-lime:hover:not(:disabled) {
   background-color: #d6f68b;
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(199, 243, 107, 0.25);
+}
+.btn-lime:focus-visible {
+  outline: 2px solid #C7F36B;
+  outline-offset: 2px;
 }
 .btn-lime:active:not(:disabled) {
   transform: translateY(0);
@@ -146,10 +151,15 @@ select.field-dark option:checked {
   padding: 0.75rem 1.25rem;
   transition: all 0.2s ease;
   display: inline-flex;
-  items-center: center;
+  align-items: center;
   justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
+  min-height: 44px;
+}
+.btn-outline:focus-visible {
+  outline: 2px solid #C7F36B;
+  outline-offset: 2px;
 }
 .btn-outline:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.05);

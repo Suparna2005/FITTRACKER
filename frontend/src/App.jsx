@@ -93,6 +93,8 @@ function App() {
   const [inboxDateFilter, setInboxDateFilter] = useState('')
   const [historyDate, setHistoryDate] = useState('')
   const [chartTimeframe, setChartTimeframe] = useState('weekly') // 'weekly' or 'monthly'
+  const [planTab, setPlanTab] = useState('workout') // 'workout' or 'nutrition'
+  const planRef = useRef(null)
 
   const fetchNotifs = async () => {
     if (!user) return
@@ -193,7 +195,8 @@ function App() {
   const [logData, setLogData] = useState({
     date: '', notes: '', workout_time: '',
     supplements: '', diet_followed: '',
-    weight_today: '', height_today: ''
+    weight_today: '', height_today: '',
+    calories: '', protein: '', carbs: '', fats: ''
   })
 
   const [exercises, setExercises] = useState([{ selection: '', customName: '', sets: '', reps: '', weight: '' }])
@@ -236,7 +239,7 @@ function App() {
       const data = await (await fetch(`http://localhost:8000/users/${user.id}/history`)).json()
       setRawHistory(Array.isArray(data) ? data : [])
       const formatted = data.map((d, i) => ({
-        date: d.workout_data?.date ? new Date(d.workout_data.date).toLocaleDateString('en-US', { weekday: 'short' }) : `Day ${i + 1}`,
+        date: d.workout_data?.date ? new Date(d.workout_data.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : `Day ${i + 1}`,
         fullDate: d.workout_data?.date || `Day ${i + 1}`,
         volume: d.workout_data?.volume || 0
       }))
@@ -244,23 +247,35 @@ function App() {
     } catch (e) { console.error(e) }
   }
 
-  // Filter chart history based on Weekly (last 7) or Monthly (last 30)
+  // Filter chart history based on chronological calendar dates within past 7 days (weekly) or 30 days (monthly)
   const getFilteredChartHistory = () => {
-    if (!history || history.length === 0) {
-      return [
-        { date: 'Mon', volume: 0 },
-        { date: 'Tue', volume: 0 },
-        { date: 'Wed', volume: 0 },
-        { date: 'Thu', volume: 0 },
-        { date: 'Fri', volume: 0 },
-        { date: 'Sat', volume: 0 },
-        { date: 'Sun', volume: 0 },
-      ]
-    }
-    if (chartTimeframe === 'weekly') {
-      return history.slice(-7)
-    }
-    return history.slice(-30)
+    if (!rawHistory || rawHistory.length === 0) return []
+    
+    const now = new Date()
+    const daysLimit = chartTimeframe === 'weekly' ? 7 : 30
+    const cutoffTime = new Date(now.getTime() - daysLimit * 24 * 60 * 60 * 1000)
+
+    const filtered = rawHistory
+      .filter(item => {
+        const rawDate = item.workout_data?.date || item.created_at
+        if (!rawDate) return false
+        const d = new Date(rawDate)
+        return !isNaN(d.getTime()) && d >= cutoffTime
+      })
+      .map((d, i) => {
+        const rawDateStr = d.workout_data?.date || d.created_at
+        const itemDate = rawDateStr ? new Date(rawDateStr) : null
+        const displayDate = itemDate && !isNaN(itemDate.getTime())
+          ? itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : `Log #${i + 1}`
+        return {
+          date: displayDate,
+          fullDate: rawDateStr || `Log #${i + 1}`,
+          volume: d.workout_data?.volume || 0
+        }
+      })
+
+    return filtered
   }
 
   const parseNum = (v) => {
@@ -270,9 +285,8 @@ function App() {
   }
 
   const burn = parseNum(plan?.workout_plan?.calories_burned ?? plan?.calorie_summary?.burned)
-    ?? (((plan?.workout_plan?.exercises || []).length ? 120 + 70 * plan.workout_plan.exercises.length : 0))
   const intake = parseNum(plan?.diet_chart?.daily_calories ?? plan?.diet_chart?.calories ?? plan?.calorie_summary?.intake)
-  const net = intake !== null ? intake - burn : null
+  const net = (intake !== null && burn !== null) ? intake - burn : null
 
   const verdict = (() => {
     if (net === null) return null
@@ -485,6 +499,12 @@ function App() {
         { method: 'POST' }
       )).json()
       setPlan(data)
+      showToast('⚡ AI Workout & Nutrition Plan generated successfully!')
+      setTimeout(() => {
+        if (planRef.current) {
+          planRef.current.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 200)
     } catch { showToast('Error generating plan.') }
     setLoading(false)
   }
@@ -1021,6 +1041,90 @@ function App() {
                 ))}
               </div>
 
+              {/* Diet & Supplement Logging */}
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 space-y-4">
+                <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide flex items-center gap-2">
+                  <span className="text-[#FF897A]">🍎</span> NUTRITION &amp; SUPPLEMENT FUEL LOG
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
+                      Diet Followed &amp; Meals Eaten
+                    </label>
+                    <textarea
+                      placeholder="e.g. Breakfast: Oats &amp; Eggs (500 kcal), Lunch: Chicken &amp; Rice (700 kcal)..."
+                      value={logData.diet_followed}
+                      onChange={e => setLogData({ ...logData, diet_followed: e.target.value })}
+                      className="field-dark w-full h-24 text-xs resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">
+                      Supplements Taken
+                    </label>
+                    <textarea
+                      placeholder="e.g. Creatine 5g, Whey Protein 1 scoop, Multivitamin, Omega-3..."
+                      value={logData.supplements}
+                      onChange={e => setLogData({ ...logData, supplements: e.target.value })}
+                      className="field-dark w-full h-24 text-xs resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Est. Calories (kcal)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 2200" 
+                      value={logData.calories || ''} 
+                      onChange={e => setLogData({ ...logData, calories: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Protein (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 150" 
+                      value={logData.protein || ''} 
+                      onChange={e => setLogData({ ...logData, protein: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Carbs (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 200" 
+                      value={logData.carbs || ''} 
+                      onChange={e => setLogData({ ...logData, carbs: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Fats (g)
+                    </label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 65" 
+                      value={logData.fats || ''} 
+                      onChange={e => setLogData({ ...logData, fats: e.target.value })} 
+                      className="field-dark text-xs" 
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button type="submit" disabled={loading} className="btn-lime py-4 rounded-2xl w-full text-base">COMMIT TO RECORD →</button>
             </form>
           </div>
@@ -1195,16 +1299,22 @@ function App() {
               </div>
             </div>
 
-            {/* 3 Metric Cards Row (Sessions, Days/week, Goal) */}
+            {/* 3 Metric Cards Row (Completed Sessions, Days/week, Planned Calorie Target) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="iron-card p-5 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
                   📅
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-[#ACBAC2]">Sessions</div>
+                  <div className="text-xs font-semibold text-[#ACBAC2]">Completed Sessions</div>
                   <div className="text-2xl font-black text-[#F4F7F8]">
-                    {history.length > 0 ? history.length : (rawHistory.length || 12)}
+                    {(() => {
+                      const completedLogs = rawHistory.filter(d => d.workout_data && d.workout_data.exercises && d.workout_data.exercises.length > 0);
+                      return completedLogs.length > 0 ? completedLogs.length : '--';
+                    })()}
+                  </div>
+                  <div className="text-[11px] text-[#ACBAC2] mt-0.5">
+                    {rawHistory.length > 0 ? `${rawHistory.length} total activity records` : 'No logs recorded'}
                   </div>
                 </div>
               </div>
@@ -1216,27 +1326,68 @@ function App() {
                 <div>
                   <div className="text-xs font-semibold text-[#ACBAC2]">Days / week</div>
                   <div className="text-2xl font-black text-[#F4F7F8]">
-                    {mySplit?.days_per_week ?? (todayMuscles.length ? 4 : 3)}
+                    {mySplit?.days_per_week ? `${mySplit.days_per_week} days` : (todayMuscles.length ? `${todayMuscles.length} days` : '--')}
+                  </div>
+                  <div className="text-[11px] text-[#ACBAC2] mt-0.5">
+                    {mySplit?.split_label || 'Active training frequency'}
                   </div>
                 </div>
               </div>
 
               <div className="iron-card p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#C7F36B] text-xl shrink-0">
                   🎯
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-[#ACBAC2]">Goal</div>
-                  <div className="text-xl font-bold text-[#F4F7F8] truncate max-w-[160px]">
-                    {user?.goal || 'Build muscle'}
+                  <div className="text-xs font-semibold text-[#ACBAC2]">Planned Calorie Target</div>
+                  <div className="text-xl font-extrabold text-[#C7F36B]">
+                    {intake !== null ? `${intake} kcal` : '--'}
+                  </div>
+                  <div className="text-[11px] text-[#ACBAC2] mt-0.5">
+                    Goal: {user?.goal || 'Build muscle'}
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Past Workout Date & Log Search Bar */}
+            <div className="iron-card p-5 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#54D8CF] text-lg">🔍</span>
+                  <h3 className="text-base font-bold text-[#F4F7F8]">Search Past Workout Logs</h3>
+                </div>
+                <span className="text-xs text-[#ACBAC2]">Filter past activity by date</span>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="date"
+                  value={historyDate}
+                  onChange={e => setHistoryDate(e.target.value)}
+                  className="field-dark text-xs max-w-[200px]"
+                  style={{ colorScheme: 'dark' }}
+                />
+                <button
+                  onClick={fetchOldPlan}
+                  className="btn-lime text-xs py-2.5 px-4"
+                >
+                  SEARCH LOG BY DATE →
+                </button>
+                {plan?.is_log && (
+                  <button
+                    onClick={() => setPlan(null)}
+                    className="btn-outline text-xs py-2.5 px-3"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Middle Section: Chart + AI Plan Card */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Training Volume Chart (8 cols on lg) */}
+              {/* Training Volume Chart (7 cols on lg) */}
               <div className="lg:col-span-7 iron-card p-6 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
@@ -1252,7 +1403,7 @@ function App() {
                         chartTimeframe === 'weekly' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
                       }`}
                     >
-                      Weekly
+                      Weekly (7d)
                     </button>
                     <button
                       onClick={() => setChartTimeframe('monthly')}
@@ -1260,45 +1411,53 @@ function App() {
                         chartTimeframe === 'monthly' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
                       }`}
                     >
-                      Monthly
+                      Monthly (30d)
                     </button>
                   </div>
                 </div>
 
                 <div className="h-64 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={getFilteredChartHistory()}>
-                      <defs>
-                        <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#54D8CF" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#54D8CF" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#304149" opacity={0.5} />
-                      <XAxis dataKey="date" stroke="#ACBAC2" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#ACBAC2" fontSize={11} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#10181D',
-                          borderColor: '#304149',
-                          borderRadius: '12px',
-                          color: '#F4F7F8',
-                          fontSize: '12px'
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="volume"
-                        name="Volume (kg)"
-                        stroke="#54D8CF"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorVolume)"
-                        dot={{ r: 4, fill: '#54D8CF' }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {getFilteredChartHistory().length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-[#10181D] rounded-xl border border-[#304149]">
+                      <span className="text-2xl mb-2">📊</span>
+                      <p className="text-sm font-bold text-[#F4F7F8]">No workouts logged in this period</p>
+                      <p className="text-xs text-[#ACBAC2] mt-1">Log a workout session to see your training volume curve.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={getFilteredChartHistory()}>
+                        <defs>
+                          <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#54D8CF" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#54D8CF" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#304149" opacity={0.5} />
+                        <XAxis dataKey="date" stroke="#ACBAC2" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#ACBAC2" fontSize={11} tickLine={false} axisLine={false} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#10181D',
+                            borderColor: '#304149',
+                            borderRadius: '12px',
+                            color: '#F4F7F8',
+                            fontSize: '12px'
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="volume"
+                          name="Volume (kg)"
+                          stroke="#54D8CF"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorVolume)"
+                          dot={{ r: 4, fill: '#54D8CF' }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -1318,11 +1477,12 @@ function App() {
                   <div className="space-y-4 my-4">
                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#10181D] border border-[#304149]">
                       <span className="text-sm font-semibold text-[#F4F7F8]">Use my split</span>
-                      <label className="toggle-switch">
+                      <label className="toggle-switch" aria-label="Use custom workout split toggle">
                         <input
                           type="checkbox"
                           checked={useSplit}
                           onChange={(e) => setUseSplit(e.target.checked)}
+                          aria-label="Use custom workout split"
                         />
                         <span className="toggle-slider" />
                       </label>
@@ -1359,21 +1519,25 @@ function App() {
 
                   <div className="grid grid-cols-3 gap-2 text-center my-2">
                     <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
-                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Workout burn</div>
-                      <div className="text-xl font-extrabold text-[#FF897A] mt-1">{burn}</div>
+                      <div className="text-[11px] font-bold text-[#ACBAC2] uppercase">Workout Burn (Est.)</div>
+                      <div className="text-xl font-extrabold text-[#FF897A] mt-1">
+                        {burn !== null && burn > 0 ? `${burn}` : '--'}
+                      </div>
                       <div className="text-[10px] text-[#ACBAC2]">kcal</div>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
-                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Food intake</div>
-                      <div className="text-xl font-extrabold text-[#54D8CF] mt-1">{intake !== null ? intake : 0}</div>
+                      <div className="text-[11px] font-bold text-[#ACBAC2] uppercase">Target Intake</div>
+                      <div className="text-xl font-extrabold text-[#54D8CF] mt-1">
+                        {intake !== null ? `${intake}` : '--'}
+                      </div>
                       <div className="text-[10px] text-[#ACBAC2]">kcal</div>
                     </div>
 
                     <div className="p-2.5 rounded-xl bg-[#10181D] border border-[#304149]">
-                      <div className="text-[10px] font-bold text-[#ACBAC2] uppercase">Net</div>
+                      <div className="text-[11px] font-bold text-[#ACBAC2] uppercase">Net Balance</div>
                       <div className="text-xl font-extrabold text-[#F4F7F8] mt-1">
-                        {net !== null ? (net >= 0 ? `+${net}` : `${net}`) : 0}
+                        {net !== null ? (net >= 0 ? `+${net}` : `${net}`) : '--'}
                       </div>
                       <div className="text-[10px] text-[#ACBAC2]">kcal</div>
                     </div>
@@ -1399,22 +1563,22 @@ function App() {
                   <div className="space-y-2.5">
                     <button
                       onClick={() => setView('vision')}
-                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between"
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px]"
                     >
                       <div>
                         <div className="text-xs font-bold text-[#F4F7F8]">Form coach</div>
-                        <div className="text-[10px] text-[#ACBAC2]">Pose tracking for better form</div>
+                        <div className="text-[11px] text-[#ACBAC2]">Pose tracking for better form</div>
                       </div>
                       <span className="text-xs text-[#54D8CF]">›</span>
                     </button>
 
                     <button
                       onClick={() => setView('vision')}
-                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between"
+                      className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px]"
                     >
                       <div>
                         <div className="text-xs font-bold text-[#F4F7F8]">Food scanner</div>
-                        <div className="text-[10px] text-[#ACBAC2]">Scan meals and track intake</div>
+                        <div className="text-[11px] text-[#ACBAC2]">Scan meals and track intake</div>
                       </div>
                       <span className="text-xs text-[#54D8CF]">›</span>
                     </button>
@@ -1433,7 +1597,7 @@ function App() {
 
                   <button
                     onClick={() => setView('discomfort')}
-                    className="w-full p-4 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#FF897A] transition text-left flex items-center justify-between mt-2"
+                    className="w-full p-4 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#FF897A] transition text-left flex items-center justify-between min-h-[44px] mt-2"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg text-[#FF897A]">📈</span>
@@ -1447,50 +1611,121 @@ function App() {
 
             {/* AI Generated Plan Display (If plan is active) */}
             {plan && (
-              <div className="iron-card p-6 space-y-4 fade-up">
-                <div className="flex items-center justify-between border-b border-[#304149] pb-4">
-                  <h3 className="text-xl font-bold text-[#C7F36B]">GENERATED WORKOUT &amp; DIET PLAN</h3>
-                  <span className="text-xs text-[#ACBAC2] bg-[#10181D] border border-[#304149] px-3 py-1 rounded-xl">
-                    {plan.workout_plan?.day || 'Today'}
+              <div ref={planRef} className="iron-card p-6 space-y-5 fade-up">
+                {/* Plan Header */}
+                <div className="flex items-center justify-between border-b border-[#304149] pb-4 flex-wrap gap-3">
+                  <div>
+                    <div className="text-[11px] font-extrabold uppercase tracking-widest text-[#54D8CF]">
+                      {plan.is_log ? '📜 HISTORICAL LOG' : '⚡ TODAY\'S GENERATED AI PLAN'}
+                    </div>
+                    <h3 className="text-2xl font-black text-[#C7F36B]">
+                      {plan.workout_plan?.day || 'Today\'s Training & Nutrition'}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Workout / Nutrition Tabs */}
+                    <div className="flex items-center bg-[#10181D] border border-[#304149] p-1 rounded-xl">
+                      <button
+                        onClick={() => setPlanTab('workout')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition ${
+                          planTab === 'workout' ? 'bg-[#C7F36B] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
+                        }`}
+                      >
+                        🏋️ Workout Plan
+                      </button>
+                      <button
+                        onClick={() => setPlanTab('nutrition')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition ${
+                          planTab === 'nutrition' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
+                        }`}
+                      >
+                        🥗 Nutrition &amp; Diet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Engine Notice */}
+                <div className="p-3 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-between text-xs text-[#ACBAC2]">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#54D8CF]"></span>
+                    AI Engine: {plan.ai_fallback ? 'Local Rule-Based Emergency Engine' : 'Doctor & Master Trainer AI'}
                   </span>
+                  {plan.recovery_adapted && (
+                    <span className="bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+                      ⚡ ADAPTED FOR RECOVERY
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Workout details */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold text-[#F4F7F8] uppercase tracking-wider">Exercises Focus</h4>
-                    <p className="text-xs text-[#54D8CF] font-semibold">{plan.workout_plan?.focus}</p>
+                {/* Tab 1: Workout Plan */}
+                {planTab === 'workout' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-[#ACBAC2] uppercase tracking-wider">Target Focus:</span>
+                        <span className="text-sm font-extrabold text-[#F4F7F8] ml-2">{plan.workout_plan?.focus || 'Full Body'}</span>
+                      </div>
+                      {plan.workout_plan?.calories_burned && (
+                        <span className="text-xs font-extrabold text-[#FF897A] bg-[#FF897A]/10 border border-[#FF897A]/30 px-3 py-1 rounded-xl">
+                          Est. Burn: {plan.workout_plan.calories_burned} kcal
+                        </span>
+                      )}
+                    </div>
 
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {(plan.workout_plan?.exercises || []).map((ex, i) => (
-                        <div key={i} className="p-3 rounded-xl bg-[#10181D] border border-[#304149] flex justify-between items-center text-xs">
+                        <div key={i} className="p-4 rounded-2xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition flex items-center justify-between">
                           <div>
-                            <div className="font-bold text-[#F4F7F8]">{ex.name}</div>
-                            <div className="text-[#ACBAC2]">{ex.sets} sets × {ex.reps}</div>
+                            <div className="font-extrabold text-sm text-[#F4F7F8]">{ex.name}</div>
+                            <div className="text-xs text-[#ACBAC2] mt-0.5">{ex.sets} sets × {ex.reps} reps</div>
+                            {ex.notes && <div className="text-[11px] text-[#54D8CF] mt-1 font-medium">💡 {ex.notes}</div>}
                           </div>
-                          <span className="font-bold text-[#C7F36B]">{ex.sets}×{ex.reps}</span>
+                          <span className="text-sm font-black text-[#C7F36B] bg-[#C7F36B]/15 px-3 py-1.5 rounded-xl border border-[#C7F36B]/30">
+                            {ex.sets}×{ex.reps}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Diet details */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold text-[#F4F7F8] uppercase tracking-wider">Nutrition &amp; Meals</h4>
-                    <p className="text-xs text-[#ACBAC2] font-semibold">
-                      Target Calories: {plan.diet_chart?.daily_calories || plan.diet_chart?.calories || 2100} kcal
-                    </p>
+                {/* Tab 2: Nutrition & Diet */}
+                {planTab === 'nutrition' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-[#ACBAC2] uppercase tracking-wider">Target Intake:</span>
+                        <span className="text-sm font-extrabold text-[#54D8CF] ml-2">
+                          {plan.diet_chart?.daily_calories || plan.diet_chart?.calories ? `${plan.diet_chart?.daily_calories || plan.diet_chart?.calories} kcal` : 'Custom Calorie Target'}
+                        </span>
+                      </div>
+                      {plan.diet_chart?.macros && (
+                        <div className="flex gap-2 text-xs font-bold">
+                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">P: {plan.diet_chart.macros.protein || '--'}g</span>
+                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">C: {plan.diet_chart.macros.carbs || '--'}g</span>
+                          <span className="bg-[#10181D] border border-[#304149] px-2.5 py-1 rounded-lg text-[#F4F7F8]">F: {plan.diet_chart.macros.fats || '--'}g</span>
+                        </div>
+                      )}
+                    </div>
 
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {(plan.diet_chart?.meals || []).map((m, i) => (
-                        <div key={i} className="p-3 rounded-xl bg-[#10181D] border border-[#304149] text-xs">
-                          <div className="font-bold text-[#C7F36B]">{m.name || `Meal ${i+1}`}</div>
-                          <div className="text-[#F4F7F8] font-medium mt-1">{m.meal || (m.items || []).map(it => it.item || it.name).join(' • ')}</div>
+                        <div key={i} className="p-4 rounded-2xl bg-[#10181D] border border-[#304149] space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-[#C7F36B] uppercase">{m.name || `Meal ${i+1}`}</span>
+                            {m.time && <span className="text-[11px] text-[#ACBAC2] font-semibold">🕒 {m.time}</span>}
+                          </div>
+                          <div className="text-xs font-bold text-[#F4F7F8]">
+                            {m.meal || (m.items || []).map(it => it.item || it.name).join(' • ')}
+                          </div>
+                          {m.calories && <div className="text-[11px] text-[#54D8CF] font-semibold">🔥 {m.calories} kcal</div>}
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -1498,7 +1733,7 @@ function App() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav active={view} onNav={handleNav} />
+      <MobileBottomNav active={view} onNav={handleNav} onLogout={handleLogout} />
 
       {/* Toast Notification */}
       {toast && (
