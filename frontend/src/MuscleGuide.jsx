@@ -11,9 +11,9 @@ const MUSCLE_DB = [
     baseImg: "https://wger.de/static/images/muscles/muscular_system_front.svg",
     muscleImg: "https://wger.de/static/images/muscles/main/muscle-4.svg",
     heads: [
-      { name: "Upper Chest (Clavicular Head)", desc: "Builds the 'shelf' near the collarbone.", target: "Incline Bench Press, Low-to-High Crossovers", clip: "polygon(0% 0%, 100% 0%, 100% 33%, 0% 33%)" },
-      { name: "Middle Chest (Sternal Head)", desc: "Provides the main bulk of the pecs.", target: "Flat Bench Press, Pec Deck Flyes", clip: "polygon(0% 31%, 100% 31%, 100% 39%, 0% 39%)" },
-      { name: "Lower Chest (Abdominal Head)", desc: "Develops the lower sweep and defined bottom edge.", target: "Chest Dips, High-to-Low Cable Crossovers, Decline Press", clip: "polygon(0% 37%, 100% 37%, 100% 50%, 0% 50%)" }
+      { name: "Upper Chest (Clavicular Head)", desc: "Builds the 'shelf' near the collarbone.", target: "Incline Bench Press, Low-to-High Crossovers", clip: "polygon(0% 17%, 100% 17%, 100% 21.5%, 0% 21.5%)" },
+      { name: "Middle Chest (Sternal Head)", desc: "Provides the main bulk of the pecs.", target: "Flat Bench Press, Pec Deck Flyes", clip: "polygon(0% 21.5%, 100% 21.5%, 100% 25%, 0% 25%)" },
+      { name: "Lower Chest (Abdominal Head)", desc: "Develops the lower sweep and defined bottom edge.", target: "Chest Dips, High-to-Low Cable Crossovers, Decline Press", clip: "polygon(0% 25%, 100% 25%, 100% 29.5%, 0% 29.5%)" }
     ]
   },
   {
@@ -152,14 +152,18 @@ export default function MuscleGuide({ onClose }) {
           ← Back to Directory
         </button>
         <div className="relative iron-card p-6 md:p-8 shadow-2xl flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-1/3 bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] md:sticky md:top-24">
-            <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-80" />
+          <div className="w-full md:w-1/3 bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] md:sticky md:top-24 select-none overflow-hidden group">
+            <div className="absolute top-2.5 left-2.5 bg-[#10181D]/90 text-[#54D8CF] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-[#304149] z-20 pointer-events-none shadow-md">
+              👆 Touch diagram to target
+            </div>
+
+            <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-85 pointer-events-none" />
             
             {(() => {
               let imagesToRender = [];
               let clipToApply = 'none';
 
-              if (activeHead !== null && active.heads[activeHead]) {
+              if (activeHead !== null && active.heads && active.heads[activeHead]) {
                 const head = active.heads[activeHead];
                 imagesToRender = head.imgOverride ? head.imgOverride : (Array.isArray(active.muscleImg) ? active.muscleImg : [active.muscleImg]);
                 if (head.clip) clipToApply = head.clip;
@@ -169,10 +173,44 @@ export default function MuscleGuide({ onClose }) {
 
               return imagesToRender.map((imgUrl, i) => (
                 <img key={i} src={imgUrl} alt={active.name} 
-                     style={{ clipPath: clipToApply, transition: 'clip-path 0.3s ease' }}
-                     className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_12px_rgba(84,216,207,1)]" />
+                     style={{ clipPath: clipToApply, transition: 'clip-path 0.25s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                     className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_16px_rgba(84,216,207,1)] pointer-events-none" />
               ));
             })()}
+
+            {/* Interactive diagram touch/click hot-zones */}
+            {active.heads && active.heads.length > 0 && (
+              <div className="absolute inset-0 max-h-80 my-auto w-full flex flex-col z-10">
+                {active.heads.map((head, idx) => {
+                  const isPinned = selectedHead === idx;
+                  const isCurrent = activeHead === idx;
+                  return (
+                    <div 
+                      key={idx}
+                      onClick={() => setSelectedHead(isPinned ? null : idx)}
+                      onMouseEnter={() => setHoveredHead(idx)}
+                      onMouseLeave={() => setHoveredHead(null)}
+                      title={`Target ${head.name}`}
+                      className={`flex-1 w-full cursor-pointer transition-all duration-150 flex items-center justify-center relative ${
+                        isPinned 
+                          ? 'bg-[#C7F36B]/20 border-y border-[#C7F36B]/60 shadow-inner' 
+                          : isCurrent 
+                          ? 'bg-[#54D8CF]/20 border-y border-[#54D8CF]/50' 
+                          : 'hover:bg-[#54D8CF]/10'
+                      }`}
+                    >
+                      {(isPinned || isCurrent) && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg ${
+                          isPinned ? 'bg-[#C7F36B] text-[#10181D]' : 'bg-[#54D8CF] text-[#10181D]'
+                        }`}>
+                          {head.name}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 space-y-5 w-full">
