@@ -160,71 +160,77 @@ export default function MuscleGuide({ onClose }) {
           ← Back to Directory
         </button>
         <div className="relative iron-card p-6 md:p-8 shadow-2xl flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-1/3 bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] md:sticky md:top-24 select-none overflow-hidden group">
-            <div className="absolute top-2.5 left-2.5 bg-[#10181D]/90 text-[#54D8CF] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-[#304149] z-20 pointer-events-none shadow-md">
-              👆 Touch diagram to target
+          <div className="w-full md:w-1/3 flex flex-col items-center min-h-[380px] md:sticky md:top-24">
+            <div className="w-full bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] select-none overflow-hidden group shadow-lg">
+              <div className="absolute top-2.5 left-2.5 bg-[#10181D]/90 text-[#54D8CF] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-[#304149] z-20 pointer-events-none shadow-md">
+                👆 Touch diagram to target
+              </div>
+
+              <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-85 pointer-events-none" />
+              
+              {(() => {
+                let imagesToRender = [];
+                let clipToApply = 'none';
+
+                if (activeHead !== null && active.heads && active.heads[activeHead]) {
+                  const head = active.heads[activeHead];
+                  imagesToRender = head.imgOverride ? head.imgOverride : (Array.isArray(active.muscleImg) ? active.muscleImg : [active.muscleImg]);
+                  if (head.clip) clipToApply = head.clip;
+                } else {
+                  imagesToRender = Array.isArray(active.muscleImg) ? active.muscleImg : [active.muscleImg];
+                }
+
+                return imagesToRender.map((imgUrl, i) => (
+                  <img key={i} src={imgUrl} alt={active.name} 
+                       style={{ clipPath: clipToApply, transition: 'clip-path 0.25s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                       className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_16px_rgba(84,216,207,1)] pointer-events-none" />
+                ));
+              })()}
+
+              {/* Interactive diagram touch/click hot-zones without obscuring text pills */}
+              {active.heads && active.heads.length > 0 && (
+                <div 
+                  style={{ 
+                    top: active.hotZone?.top || '15%', 
+                    height: active.hotZone?.height || '30%' 
+                  }}
+                  className="absolute left-0 right-0 w-full flex flex-col z-10 mx-auto px-4"
+                >
+                  {active.heads.map((head, idx) => {
+                    const isPinned = selectedHead === idx;
+                    const isCurrent = activeHead === idx;
+                    return (
+                      <div 
+                        key={idx}
+                        onClick={() => setSelectedHead(isPinned ? null : idx)}
+                        onMouseEnter={() => setHoveredHead(idx)}
+                        onMouseLeave={() => setHoveredHead(null)}
+                        className={`flex-1 w-full cursor-pointer transition-all duration-150 relative rounded-md ${
+                          isPinned 
+                            ? 'border-2 border-[#C7F36B] bg-[#C7F36B]/10 shadow-lg' 
+                            : isCurrent 
+                            ? 'border-2 border-[#54D8CF] bg-[#54D8CF]/10' 
+                            : 'hover:bg-[#54D8CF]/5 border border-transparent'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-85 pointer-events-none" />
-            
-            {(() => {
-              let imagesToRender = [];
-              let clipToApply = 'none';
-
-              if (activeHead !== null && active.heads && active.heads[activeHead]) {
-                const head = active.heads[activeHead];
-                imagesToRender = head.imgOverride ? head.imgOverride : (Array.isArray(active.muscleImg) ? active.muscleImg : [active.muscleImg]);
-                if (head.clip) clipToApply = head.clip;
-              } else {
-                imagesToRender = Array.isArray(active.muscleImg) ? active.muscleImg : [active.muscleImg];
-              }
-
-              return imagesToRender.map((imgUrl, i) => (
-                <img key={i} src={imgUrl} alt={active.name} 
-                     style={{ clipPath: clipToApply, transition: 'clip-path 0.25s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                     className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_16px_rgba(84,216,207,1)] pointer-events-none" />
-              ));
-            })()}
-
-            {/* Interactive diagram touch/click hot-zones */}
-            {active.heads && active.heads.length > 0 && (
-              <div 
-                style={{ 
-                  top: active.hotZone?.top || '15%', 
-                  height: active.hotZone?.height || '30%' 
-                }}
-                className="absolute left-0 right-0 w-full flex flex-col z-10 mx-auto px-4"
-              >
-                {active.heads.map((head, idx) => {
-                  const isPinned = selectedHead === idx;
-                  const isCurrent = activeHead === idx;
-                  return (
-                    <div 
-                      key={idx}
-                      onClick={() => setSelectedHead(isPinned ? null : idx)}
-                      onMouseEnter={() => setHoveredHead(idx)}
-                      onMouseLeave={() => setHoveredHead(null)}
-                      title={`Target ${head.name}`}
-                      className={`flex-1 w-full cursor-pointer transition-all duration-150 flex items-center justify-center relative rounded-md ${
-                        isPinned 
-                          ? 'bg-[#C7F36B]/30 border border-[#C7F36B] shadow-lg' 
-                          : isCurrent 
-                          ? 'bg-[#54D8CF]/25 border border-[#54D8CF]' 
-                          : 'hover:bg-[#54D8CF]/15 border border-transparent'
-                      }`}
-                    >
-                      {(isPinned || isCurrent) && (
-                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg ${
-                          isPinned ? 'bg-[#C7F36B] text-[#10181D]' : 'bg-[#54D8CF] text-[#10181D]'
-                        }`}>
-                          {head.name}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* Clean target status bar below the diagram */}
+            <div className="mt-3 w-full bg-[#10181D] border border-[#304149] rounded-xl p-3 flex items-center justify-between text-xs shadow-md">
+              <span className="text-[#ACBAC2] font-semibold flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#54D8CF] animate-pulse"></span>
+                Active Highlight:
+              </span>
+              <span className="font-extrabold text-[#C7F36B] tracking-wide">
+                {activeHead !== null && active.heads && active.heads[activeHead] 
+                  ? active.heads[activeHead].name 
+                  : "All Heads (Full Muscle)"}
+              </span>
+            </div>
           </div>
 
           <div className="flex-1 space-y-5 w-full">
