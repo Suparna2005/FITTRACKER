@@ -11,9 +11,9 @@ const MUSCLE_DB = [
     baseImg: "https://wger.de/static/images/muscles/muscular_system_front.svg",
     muscleImg: "https://wger.de/static/images/muscles/main/muscle-4.svg",
     heads: [
-      { name: "Upper Chest (Clavicular Head)", desc: "Builds the 'shelf' near the collarbone.", target: "Incline Bench Press, Low-to-High Crossovers", clip: "polygon(0 0, 100% 0, 100% 21%, 0 21%)" },
-      { name: "Middle Chest (Sternal Head)", desc: "Provides the main bulk of the pecs.", target: "Flat Bench Press, Pec Deck Flyes", clip: "polygon(0 21%, 100% 21%, 100% 65%, 0 65%)" },
-      { name: "Lower Chest (Abdominal Head)", desc: "Develops the lower sweep and defined bottom edge.", target: "Chest Dips, High-to-Low Cable Crossovers, Decline Press", clip: "polygon(0 65%, 100% 65%, 100% 100%, 0 100%)" }
+      { name: "Upper Chest (Clavicular Head)", desc: "Builds the 'shelf' near the collarbone.", target: "Incline Bench Press, Low-to-High Crossovers", clip: "polygon(0% 0%, 100% 0%, 100% 33%, 0% 33%)" },
+      { name: "Middle Chest (Sternal Head)", desc: "Provides the main bulk of the pecs.", target: "Flat Bench Press, Pec Deck Flyes", clip: "polygon(0% 31%, 100% 31%, 100% 39%, 0% 39%)" },
+      { name: "Lower Chest (Abdominal Head)", desc: "Develops the lower sweep and defined bottom edge.", target: "Chest Dips, High-to-Low Cable Crossovers, Decline Press", clip: "polygon(0% 37%, 100% 37%, 100% 50%, 0% 50%)" }
     ]
   },
   {
@@ -31,7 +31,7 @@ const MUSCLE_DB = [
     heads: [
       { name: "Lats (Latissimus Dorsi)", desc: "Creates the 'V-Taper' width of the back.", target: "Pull-ups, Lat Pulldowns", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-12.svg"] },
       { name: "Traps & Rhomboids", desc: "Builds the thick, 3D look in the upper/middle back.", target: "Barbell Rows, Shrugs", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-9.svg"] },
-      { name: "Erector Spinae", desc: "Lower back columns protecting the spine.", target: "Deadlifts", clip: "polygon(40% 0, 60% 0, 60% 100%, 40% 100%)" }
+      { name: "Erector Spinae", desc: "Lower back columns protecting the spine.", target: "Deadlifts", clip: "polygon(35% 40%, 65% 40%, 65% 65%, 35% 65%)" }
     ]
   },
   {
@@ -111,8 +111,8 @@ const MUSCLE_DB = [
     baseImg: "https://wger.de/static/images/muscles/muscular_system_back.svg",
     muscleImg: ["https://wger.de/static/images/muscles/main/muscle-8.svg"],
     heads: [
-      { name: "Gluteus Maximus", desc: "Main mass of the glutes.", target: "Barbell Hip Thrusts", clip: "polygon(0 48%, 100% 48%, 100% 100%, 0 100%)" },
-      { name: "Gluteus Medius", desc: "Upper/side glute; stabilizes pelvis.", target: "Bulgarian Split Squats", clip: "polygon(0 0, 100% 0, 100% 48%, 0 48%)" }
+      { name: "Gluteus Maximus", desc: "Main mass of the glutes.", target: "Barbell Hip Thrusts", clip: "polygon(0 42%, 100% 42%, 100% 58%, 0 58%)" },
+      { name: "Gluteus Medius", desc: "Upper/side glute; stabilizes pelvis.", target: "Bulgarian Split Squats", clip: "polygon(0 35%, 100% 35%, 100% 46%, 0 46%)" }
     ]
   },
   {
@@ -128,8 +128,8 @@ const MUSCLE_DB = [
       "https://wger.de/static/images/muscles/main/muscle-14.svg"
     ],
     heads: [
-      { name: "Upper Abs", desc: "Flexes spine forward.", target: "Cable Crunches", clip: "polygon(0 0, 100% 0, 100% 36%, 0 36%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
-      { name: "Lower Abs", desc: "Lower rectus abdominis.", target: "Hanging Leg Raises", clip: "polygon(0 36%, 100% 36%, 100% 100%, 0 100%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
+      { name: "Upper Abs", desc: "Flexes spine forward.", target: "Cable Crunches", clip: "polygon(0 30%, 100% 30%, 100% 40%, 0 40%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
+      { name: "Lower Abs", desc: "Lower rectus abdominis.", target: "Hanging Leg Raises", clip: "polygon(0 39%, 100% 39%, 100% 50%, 0 50%)", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-6.svg"] },
       { name: "Obliques", desc: "Side core muscles; responsible for rotation.", target: "Russian Twists", imgOverride: ["https://wger.de/static/images/muscles/main/muscle-14.svg"] }
     ]
   }
@@ -137,16 +137,22 @@ const MUSCLE_DB = [
 
 export default function MuscleGuide({ onClose }) {
   const [active, setActive] = useState(null)
-  const [activeHead, setActiveHead] = useState(null)
+  const [selectedHead, setSelectedHead] = useState(null)
+  const [hoveredHead, setHoveredHead] = useState(null)
+
+  const activeHead = selectedHead !== null ? selectedHead : hoveredHead
 
   if (active) {
     return (
-      <div className="mb-8 fade-up">
-        <button onClick={() => { setActive(null); setActiveHead(null); }} className="text-[#C7F36B] font-bold mb-4 hover:underline text-sm inline-flex items-center gap-1">
+      <div className="mb-12 pb-16 fade-up">
+        <button 
+          onClick={() => { setActive(null); setSelectedHead(null); setHoveredHead(null); }} 
+          className="text-[#C7F36B] font-bold mb-4 hover:underline text-sm inline-flex items-center gap-1 cursor-pointer"
+        >
           ← Back to Directory
         </button>
         <div className="relative iron-card p-6 md:p-8 shadow-2xl flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-full md:w-1/3 bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[300px]">
+          <div className="w-full md:w-1/3 bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] md:sticky md:top-24">
             <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-80" />
             
             {(() => {
@@ -164,12 +170,12 @@ export default function MuscleGuide({ onClose }) {
               return imagesToRender.map((imgUrl, i) => (
                 <img key={i} src={imgUrl} alt={active.name} 
                      style={{ clipPath: clipToApply, transition: 'clip-path 0.3s ease' }}
-                     className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_8px_rgba(84,216,207,0.9)]" />
+                     className="absolute h-full max-h-80 object-contain mix-blend-multiply drop-shadow-[0_0_12px_rgba(84,216,207,1)]" />
               ));
             })()}
           </div>
 
-          <div className="flex-1 space-y-5">
+          <div className="flex-1 space-y-5 w-full">
             <div>
               <div className="text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] mb-1">Anatomy Detail</div>
               <h2 className="text-3xl font-extrabold text-[#F4F7F8] tracking-wide">{active.name.toUpperCase()}</h2>
@@ -195,18 +201,51 @@ export default function MuscleGuide({ onClose }) {
 
               {active.heads && active.heads.length > 0 && (
                 <div className="bg-[#10181D] border border-[#304149] rounded-xl p-4 mt-2">
-                  <h4 className="text-[11px] font-bold uppercase text-[#54D8CF] mb-3">🎯 Sub-Muscle Targeting</h4>
-                  <div className="space-y-3">
-                    {active.heads.map((head, idx) => (
-                      <div key={idx} 
-                           onMouseEnter={() => setActiveHead(idx)} 
-                           onMouseLeave={() => setActiveHead(null)}
-                           className="border-l-2 border-[#54D8CF] pl-3 py-1 hover:bg-[#172127] transition-colors rounded-r-lg cursor-pointer">
-                        <div className="text-sm font-bold text-[#F4F7F8] mb-0.5">{head.name}</div>
-                        <div className="text-xs text-[#ACBAC2] mb-1">{head.desc}</div>
-                        <div className="text-xs font-semibold text-[#C7F36B]">Target: {head.target}</div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[11px] font-bold uppercase text-[#54D8CF]">🎯 Sub-Muscle Targeting</h4>
+                    {selectedHead !== null && (
+                      <button 
+                        onClick={() => setSelectedHead(null)}
+                        className="text-xs text-[#ACBAC2] hover:text-[#C7F36B] underline cursor-pointer"
+                      >
+                        Reset Selection
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-3" onMouseLeave={() => setHoveredHead(null)}>
+                    {active.heads.map((head, idx) => {
+                      const isPinned = selectedHead === idx;
+                      const isCurrent = activeHead === idx;
+                      return (
+                        <div 
+                          key={idx} 
+                          onClick={() => setSelectedHead(isPinned ? null : idx)}
+                          onMouseEnter={() => setHoveredHead(idx)} 
+                          className={`border-l-4 pl-3.5 pr-3 py-2.5 transition-all rounded-r-xl cursor-pointer ${
+                            isPinned
+                              ? 'border-[#C7F36B] bg-[#C7F36B]/20 text-[#F4F7F8] ring-1 ring-[#C7F36B]/40 shadow-lg'
+                              : isCurrent
+                              ? 'border-[#54D8CF] bg-[#54D8CF]/15 text-[#F4F7F8]'
+                              : 'border-[#304149] bg-[#172127]/60 hover:bg-[#172127] hover:border-[#54D8CF]'
+                          }`}
+                        >
+                          <div className="text-sm font-bold text-[#F4F7F8] mb-0.5 flex items-center justify-between">
+                            <span>{head.name}</span>
+                            {isPinned ? (
+                              <span className="text-xs text-[#C7F36B] font-extrabold bg-[#C7F36B]/20 px-2 py-0.5 rounded-full border border-[#C7F36B]/40">
+                                Selected Target ✓
+                              </span>
+                            ) : isCurrent ? (
+                              <span className="text-xs text-[#54D8CF] font-medium">Hover Preview</span>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-[#ACBAC2] mb-1.5 leading-relaxed">{head.desc}</div>
+                          <div className="text-xs font-semibold text-[#C7F36B] bg-[#10181D]/60 p-2 rounded-lg border border-[#304149]">
+                            🎯 Target Exercises: {head.target}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -238,7 +277,7 @@ export default function MuscleGuide({ onClose }) {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {MUSCLE_DB.map(m => (
-            <button key={m.id} onClick={() => setActive(m)} 
+            <button key={m.id} onClick={() => { setActive(m); setSelectedHead(null); setHoveredHead(null); }} 
               className="group relative rounded-2xl overflow-hidden border border-[#304149] bg-white flex flex-col h-full transition-all duration-200 hover:border-[#54D8CF] text-left">
               <div className="h-44 w-full relative p-4 flex items-center justify-center">
                 <img src={m.baseImg} alt="base" className="absolute h-full object-contain opacity-80" />
