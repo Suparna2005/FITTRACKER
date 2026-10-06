@@ -827,29 +827,119 @@ function App() {
 
           <Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
             <div className="grid grid-cols-1 gap-8 mt-6">
-              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 relative overflow-hidden">
+              
+              {/* Step 1: AI Vision & Hands-Free Controls */}
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">1</span>
-                  <h3 className="text-xl font-bold text-[#F4F7F8]">AI Vision Hub &amp; Hands-Free Controls</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Vision Hub &amp; Hands-Free Controls</h3>
                 </div>
-                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014]">
-                  <img src="/tutorial/vision_tutorial.jpg" alt="AI Vision Process Diagram" className="w-full h-auto object-cover" />
+                
+                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                  <img 
+                    src="/tutorial/vision_tutorial.jpg" 
+                    alt="AI Vision & Hands-Free Process Diagram" 
+                    className="w-full h-auto object-cover"
+                  />
+                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Process Diagram
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
                     <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">🟢 60 FPS Biomechanics</div>
-                    <div className="text-xs text-[#ACBAC2]">Tracks joints in real-time. Flashes green for form and red for posture cues.</div>
+                    <div className="text-xs text-[#ACBAC2]">Tracks skeletal joints in real-time. Flashes green for posture and red for bad form cues.</div>
                   </div>
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
                     <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">🖐️ Hand Signal Control</div>
-                    <div className="text-xs text-[#ACBAC2]">Hold up 1, 2, or 3 fingers to switch sets without touching your screen.</div>
+                    <div className="text-xs text-[#ACBAC2]">Hold up <strong>1 finger for Set 1</strong>, <strong>2 fingers for Set 2</strong>, <strong>3 fingers for Set 3</strong> without touching screen!</div>
                   </div>
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
                     <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">🎤 Voice Recognition</div>
-                    <div className="text-xs text-[#ACBAC2]">Say "Start set 1" or "Set 2" to trigger set tracking using AI voice.</div>
+                    <div className="text-xs text-[#ACBAC2]">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, or <em>"Go"</em> to change sets hands-free using AI voice!</div>
                   </div>
                 </div>
               </div>
+
+              {/* Step 2: AI Doctor & Injury Management */}
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">2</span>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">🩺 AI Doctor &amp; Sports Trainer (Discomfort Logger)</h3>
+                </div>
+
+                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                  <img 
+                    src="/tutorial/doctor_tutorial.jpg" 
+                    alt="AI Doctor & Injury Logger Process Diagram" 
+                    className="w-full h-auto object-cover"
+                  />
+                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#54D8CF] border border-[#54D8CF]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Medical Protocol
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                  <p><strong className="text-[#54D8CF] text-base">Action: Click "🩺 Recovery" button in sidebar whenever feeling pain.</strong></p>
+                  <p>1. Select the exercise (e.g. Squat, Overhead Press) and describe your symptoms or pain severity.</p>
+                  <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (giving immediate care RICE instructions) and a <strong>Master Trainer</strong> (giving joint form cues & safe exercise substitutions).</p>
+                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 text-[11px] font-extrabold px-2 py-0.5 rounded">⚡ ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
+                </div>
+              </div>
+
+              {/* Step 3: Auto-Food Vision Logger */}
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-[#FF897A] text-[#0B1014] flex items-center justify-center font-black text-lg">3</span>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">🍎 Auto-Food Vision Logger &amp; Macro Analysis</h3>
+                </div>
+
+                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                  <img 
+                    src="/tutorial/food_tutorial.jpg" 
+                    alt="Auto Food Vision Logger Diagram" 
+                    className="w-full h-auto object-cover"
+                  />
+                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Vision Macro AI
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                  <p><strong className="text-[#FF897A] text-base">Action: Click "AI Vision" → Select "Auto-Food Logger".</strong></p>
+                  <p>1. Snap a quick photo of your plate or meal.</p>
+                  <p>2. Llama-3.2 Vision automatically detects dish items, calculates estimated calories, and breaks down Protein, Carbs, and Fats macros.</p>
+                  <p>3. Click <strong>"✓ Save to Profile"</strong> to log nutrition directly to your database logs!</p>
+                </div>
+              </div>
+
+              {/* Step 4: AI Workout Split Builder */}
+              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">4</span>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">⚡ AI Workout Split Builder &amp; Muscle Guide</h3>
+                </div>
+
+                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                  <img 
+                    src="/tutorial/split_tutorial.jpg" 
+                    alt="AI Workout Split Builder Diagram" 
+                    className="w-full h-auto object-cover"
+                  />
+                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                    ✨ Custom AI Protocols
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                  <p><strong className="text-[#C7F36B] text-base">Action: Click "Workout Split" on Sidebar or Dashboard.</strong></p>
+                  <p>1. Select your target goal (Build Muscle, Fat Loss, Powerlifting) and gym equipment available.</p>
+                  <p>2. The AI engine generates a 7-day personalized split with target muscle activation maps.</p>
+                  <p>3. Explore the <strong>"Muscle Guide"</strong> tab anytime to inspect 3D muscle anatomy fiber targets!</p>
+                </div>
+              </div>
+
             </div>
           </Panel>
         </div>
