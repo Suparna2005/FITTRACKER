@@ -150,6 +150,7 @@ function App() {
   const [signupForm, setSignupForm] = useState({ name: '', email: '', phone_number: '', password: '' })
   const [resetForm, setResetForm] = useState({ identifier: '', new_password: '' })
   const [toast, setToast] = useState(null)
+  const [visionMode, setVisionMode] = useState(null)
 
   const showToast = (message) => {
     setToast(message)
@@ -164,7 +165,14 @@ function App() {
 
   const handleNav = (v) => {
     setInboxOpen(false);
+    if (v !== 'vision') setVisionMode(null);
     setView(v);
+  }
+
+  const launchVisionMode = (mode = null) => {
+    setInboxOpen(false);
+    setVisionMode(mode);
+    setView('vision');
   }
 
   const handleResetPassword = async (e) => {
@@ -842,7 +850,8 @@ function App() {
           <VisionHub 
             user={user} 
             plan={plan}
-            onClose={() => setView('dashboard')} 
+            initialMode={visionMode}
+            onClose={() => { setVisionMode(null); setView('dashboard'); }} 
             onNavigate={(v) => setView(v)} 
             updateUser={(updated) => { setUser(updated); showToast("Profile Updated from Vision Scanner!"); setView("profile"); }}
           />
@@ -915,6 +924,93 @@ function App() {
                     onChange={e => setProfileForm({ ...profileForm, blood_pressure: e.target.value })} className="field-dark" />
                   <input type="text" required placeholder="Medical Conditions (Type 'None' if clear)" value={profileForm.medical_conditions}
                     onChange={e => setProfileForm({ ...profileForm, medical_conditions: e.target.value })} className="field-dark" />
+                </div>
+              </div>
+
+              {/* OBESITY COUNT CALCULATOR & HUMAN BODY COMPOSITION DIAGNOSTIC */}
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#304149] pb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide flex items-center gap-2">
+                      <span>🧍 OBESITY COUNT &amp; HUMAN BODY COMPOSITION DIAGNOSTIC</span>
+                      <span className="text-xs font-black text-[#54D8CF] bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-full px-2.5 py-0.5">
+                        HUMAN FIGURE ANATOMY
+                      </span>
+                    </h3>
+                    <p className="text-xs text-[#ACBAC2] mt-0.5">
+                      Select your current obesity stage or scan your selfie with AI Vision to calculate exact body mass distribution.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => launchVisionMode('physique')}
+                    className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-2"
+                  >
+                    <span>📸 SCAN WITH AI VISION</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                  {/* Human Figure Silhouette Visualizer */}
+                  <div className="relative rounded-2xl bg-[#0B1014] border border-[#304149] p-6 flex flex-col items-center justify-center text-center overflow-hidden min-h-[240px]">
+                    <div className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest text-[#54D8CF] bg-[#54D8CF]/10 px-2.5 py-1 rounded-md border border-[#54D8CF]/20">
+                      HUMAN ANATOMY MESH
+                    </div>
+
+                    <div className="relative w-32 h-44 my-2 flex items-center justify-center">
+                      <img
+                        src="https://wger.de/static/images/muscles/muscular_system_front.svg"
+                        alt="Human Body Figure"
+                        className="w-full h-full object-contain filter invert opacity-60 drop-shadow-[0_0_12px_rgba(84,216,207,0.4)] transition-all duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0B1014] via-transparent to-transparent opacity-80" />
+                    </div>
+
+                    <div className="mt-1 space-y-1 z-10">
+                      <div className="text-xs font-extrabold text-[#F4F7F8] uppercase tracking-wider">
+                        ACTIVE OBESITY STAGE
+                      </div>
+                      <div className="text-sm font-black text-[#C7F36B] bg-[#C7F36B]/10 border border-[#C7F36B]/30 px-3 py-1 rounded-xl">
+                        {profileForm.body_fat || user?.body_fat || 'Average (20-24%)'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Obesity Count Calculator Stages Grid */}
+                  <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'Shredded (6-9%)', title: 'Shredded', range: '6–9%', color: 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10', desc: 'Peak Definition' },
+                      { id: 'Athletic (10-14%)', title: 'Athletic', range: '10–14%', color: 'border-teal-500/40 text-teal-300 bg-teal-500/10', desc: 'Vascular Build' },
+                      { id: 'Fit (15-19%)', title: 'Fit', range: '15–19%', color: 'border-cyan-500/40 text-cyan-300 bg-cyan-500/10', desc: 'Optimal Baseline' },
+                      { id: 'Average (20-24%)', title: 'Average', range: '20–24%', color: 'border-[#C7F36B]/40 text-[#C7F36B] bg-[#C7F36B]/10', desc: 'Normal Range' },
+                      { id: 'Heavy (25-29%)', title: 'Heavy', range: '25–29%', color: 'border-amber-500/40 text-amber-300 bg-amber-500/10', desc: 'Higher Mass' },
+                      { id: 'Obese (30%+)', title: 'Obese', range: '30%+', color: 'border-rose-500/40 text-rose-300 bg-rose-500/10', desc: 'Elevated Obesity' }
+                    ].map((stage) => {
+                      const isSelected = profileForm.body_fat === stage.id || (!profileForm.body_fat && user?.body_fat === stage.id);
+                      return (
+                        <div
+                          key={stage.id}
+                          onClick={() => setProfileForm({ ...profileForm, body_fat: stage.id })}
+                          className={`cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between ${
+                            isSelected
+                              ? `${stage.color} ring-2 ring-offset-2 ring-offset-[#10181D] scale-[1.02] shadow-lg`
+                              : 'border-[#304149] bg-[#172127] hover:border-[#54D8CF]/50 text-[#ACBAC2]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-xs font-black">
+                            <span>{stage.title}</span>
+                            <span className="text-[10px] font-mono opacity-80">{stage.range}</span>
+                          </div>
+                          <div className="text-[10px] opacity-75 mt-1 font-semibold">{stage.desc}</div>
+                          {isSelected && (
+                            <div className="text-[9px] font-extrabold uppercase tracking-wider mt-2 flex items-center gap-1">
+                              <span>✓ SELECTED</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -1563,7 +1659,7 @@ function App() {
 
                   <div className="space-y-2.5">
                     <button
-                      onClick={() => setView('vision')}
+                      onClick={() => launchVisionMode('form')}
                       className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
                     >
                       <div>
@@ -1574,7 +1670,7 @@ function App() {
                     </button>
 
                     <button
-                      onClick={() => setView('vision')}
+                      onClick={() => launchVisionMode('food')}
                       className="w-full p-3 rounded-xl bg-[#10181D] border border-[#304149] hover:border-[#54D8CF] transition text-left flex items-center justify-between min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
                     >
                       <div>

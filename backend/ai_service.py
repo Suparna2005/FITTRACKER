@@ -191,9 +191,9 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         return {"error": "GROQ_API_KEY is missing"}
 
     prompts = {
-        "food": "Analyze this food image scientifically. Return a raw JSON object (no markdown, no backticks) with keys: 'food_name' (string), 'serving_weight_g' (integer, total dish weight in grams), 'estimated_calories' (integer), 'protein_g' (integer), 'carbs_g' (integer), 'fats_g' (integer), 'confidence' (string), 'scientific_notes' (string, nutritional density assessment), and 'ingredients' (array of objects, each containing: 'name' (string), 'weight_g' (integer, estimated weight of this ingredient in grams), 'calories' (integer), 'protein_g' (number), 'carbs_g' (number), 'fats_g' (number)).",
+        "food": "Analyze this food image scientifically. Identify all individual ingredients, portion weights in grams, total calories, macro & micronutrient breakdowns. Return a raw JSON object (no markdown, no backticks) with keys: 'food_name' (string), 'serving_weight_g' (integer, total dish weight count in grams), 'estimated_calories' (integer, total calorie count), 'protein_g' (integer, total protein in grams), 'carbs_g' (integer, total carbs in grams), 'fats_g' (integer, total fats in grams), 'fiber_g' (number, dietary fiber in grams), 'sugar_g' (number, total sugars in grams), 'vitamins' (array of strings, e.g. ['Vitamin A (25%)', 'Vitamin C (60%)', 'Vitamin B12 (40%)', 'Vitamin K (80%)']), 'minerals' (array of strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)', 'Magnesium (85mg)', 'Zinc (18%)']), 'glycemic_index' (string, e.g. 'Low (GI 38)'), 'health_score' (integer out of 100, e.g. 94), 'confidence' (string, e.g. '95% High Vision Confidence - Scientific Micro & Macro Breakdown'), 'scientific_notes' (string, nutritional density assessment), 'ingredients_detected_count' (integer, total count of detected ingredients), and 'ingredients' (array of objects, each containing: 'name' (string), 'weight_g' (integer, ingredient weight count in grams), 'calories' (integer, ingredient calorie count), 'protein_g' (number), 'carbs_g' (number), 'fats_g' (number), 'fiber_g' (number), 'vitamins' (array of strings, key vitamins in this ingredient), 'minerals' (array of strings, key minerals in this ingredient), 'health_benefits' (string)).",
         "equipment": "Analyze this image of a gym or workout area. Return a raw JSON object (no markdown, no backticks) with keys: 'detected_equipment' (array of strings, e.g. ['Dumbbells', 'Bench', 'Cable Machine']), 'environment_type' (string, e.g. 'Home Gym', 'Commercial Gym', 'Hotel Gym'), and 'suggested_workout_focus' (string).",
-        "physique": "Describe the person in the image. Return a raw JSON object (no markdown) with keys: 'estimated_body_fat_percentage' (string, e.g. '12-15%'), 'body_type_category' (string, choose one: Shredded, Athletic, Fit, Average, Heavy, Obese), and 'notable_features' (string).",
+        "physique": "Describe the person in the image. Return a raw JSON object (no markdown) with keys: 'estimated_body_fat_percentage' (string, e.g. '22-25%'), 'obesity_count' (string, e.g. '22-25% (Optimal Healthy Range)' or '32% (Stage 1 Obesity)'), 'body_type_category' (string, choose one: Shredded, Athletic, Fit, Average, Heavy, Obese), and 'notable_features' (string).",
         "form": "Analyze the exercise form in this image. Identify the exercise. If they are holding a barbell or dumbbell, pay extremely close attention to their grip (horizontal/vertical, overhand/underhand) and flag any grip mistakes. If they are empty-handed, just critique their body posture. Return a raw JSON object (no markdown) with keys: 'detected_exercise' (string), 'form_score' (integer out of 100), 'critique' (string, focus on posture and grip), and 'correction_advice' (string)."
     }
     # Dynamically find the active vision model
@@ -271,6 +271,7 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         return {
             "body_type_category": "Average",
             "estimated_body_fat_percentage": "22-25%",
+            "obesity_count": "22-25% (Optimal Healthy Range)",
             "notable_features": "Mock Data (API Error or Safety Refusal)"
         }
     elif mode == "equipment":
@@ -294,8 +295,15 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
             "protein_g": 46,
             "carbs_g": 54,
             "fats_g": 12,
-            "confidence": "95% (High Vision Confidence - Scientific Breakdown)",
-            "scientific_notes": "High-protein lean meal with complex low-GI carbohydrates, essential dietary fiber, and healthy omega fatty acids.",
+            "fiber_g": 8.5,
+            "sugar_g": 4.2,
+            "vitamins": ["Vitamin A (25%)", "Vitamin C (60%)", "Vitamin B12 (40%)", "Vitamin K (80%)"],
+            "minerals": ["Iron (20%)", "Calcium (15%)", "Potassium (520mg)", "Magnesium (85mg)", "Zinc (18%)"],
+            "glycemic_index": "Low (GI 38)",
+            "health_score": 94,
+            "confidence": "95% (High Vision Confidence - Scientific Micro & Macro Breakdown)",
+            "scientific_notes": "High-protein lean meal rich in bioavailable amino acids, complex low-GI carbohydrates, essential dietary fiber, key vitamins (A, C, B12, K), and vital minerals (Iron, Potassium, Zinc). Excellent for muscle recovery and metabolic health.",
+            "ingredients_detected_count": 4,
             "ingredients": [
                 {
                     "name": "Lean Grilled Chicken Breast",
@@ -303,7 +311,11 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "calories": 297,
                     "protein_g": 41,
                     "carbs_g": 0,
-                    "fats_g": 6
+                    "fats_g": 6,
+                    "fiber_g": 0,
+                    "vitamins": ["Vitamin B12", "Vitamin B6", "Niacin"],
+                    "minerals": ["Phosphorus", "Selenium", "Zinc"],
+                    "health_benefits": "High bioavailable muscle-building protein, low in saturated fat"
                 },
                 {
                     "name": "Steamed Quinoa & Brown Rice",
@@ -311,7 +323,11 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "calories": 156,
                     "protein_g": 4,
                     "carbs_g": 32,
-                    "fats_g": 2
+                    "fats_g": 2,
+                    "fiber_g": 4.5,
+                    "vitamins": ["Vitamin B1", "Folate", "Vitamin E"],
+                    "minerals": ["Magnesium", "Potassium", "Manganese"],
+                    "health_benefits": "Sustained glucose release, rich in complete plant amino acids and fiber"
                 },
                 {
                     "name": "Steamed Broccoli & Carrots",
@@ -319,7 +335,11 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "calories": 35,
                     "protein_g": 2,
                     "carbs_g": 7,
-                    "fats_g": 0.5
+                    "fats_g": 0.5,
+                    "fiber_g": 3.2,
+                    "vitamins": ["Vitamin C (60%)", "Vitamin A (25%)", "Vitamin K"],
+                    "minerals": ["Calcium", "Potassium", "Iron"],
+                    "health_benefits": "Antioxidant cellular protection and immune system defense"
                 },
                 {
                     "name": "Extra Virgin Olive Oil Dressing",
@@ -327,7 +347,11 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "calories": 132,
                     "protein_g": 0,
                     "carbs_g": 0,
-                    "fats_g": 15
+                    "fats_g": 15,
+                    "fiber_g": 0,
+                    "vitamins": ["Vitamin E (15%)", "Vitamin K"],
+                    "minerals": ["Traces of Iron"],
+                    "health_benefits": "Heart-healthy monounsaturated fatty acids and polyphenols"
                 }
             ]
         }

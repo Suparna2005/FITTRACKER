@@ -235,6 +235,12 @@ class FoodLogRequest(BaseModel):
     protein_g: Optional[int] = 0
     carbs_g: Optional[int] = 0
     fats_g: Optional[int] = 0
+    fiber_g: Optional[float] = 0
+    sugar_g: Optional[float] = 0
+    vitamins: Optional[List[str]] = None
+    minerals: Optional[List[str]] = None
+    glycemic_index: Optional[str] = None
+    health_score: Optional[int] = None
     serving_weight_g: Optional[int] = 0
     ingredients: Optional[List[dict]] = None
     scientific_notes: Optional[str] = None
@@ -251,7 +257,7 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
         ing_summary = " | Ingredients: " + ", ".join(ing_parts)
 
     weight_str = f" ({log.serving_weight_g}g total weight)" if log.serving_weight_g else ""
-    food_note = f"[Scientific Vision Food Log] {log.food_name}{weight_str}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g){ing_summary}"
+    food_note = f"[Scientific Vision Food Log] {log.food_name}{weight_str}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g, Fiber: {log.fiber_g or 0}g){ing_summary}"
     
     db_workout = models.DailyWorkout(
         user_id=log.user_id,
@@ -267,8 +273,14 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
             "macros": {
                 "protein": f"{log.protein_g}g",
                 "carbs": f"{log.carbs_g}g",
-                "fats": f"{log.fats_g}g"
+                "fats": f"{log.fats_g}g",
+                "fiber": f"{log.fiber_g or 0}g",
+                "sugar": f"{log.sugar_g or 0}g"
             },
+            "vitamins": log.vitamins or [],
+            "minerals": log.minerals or [],
+            "glycemic_index": log.glycemic_index or "",
+            "health_score": log.health_score or 0,
             "ingredients": log.ingredients or [],
             "scientific_notes": log.scientific_notes or "",
             "meals": [

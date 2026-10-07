@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function VisionHub({ onClose, user, updateUser, plan }) {
+export default function VisionHub({ onClose, user, updateUser, plan, initialMode }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [imgPreview, setImgPreview] = useState(null);
-  const [activeMode, setActiveMode] = useState(null);
+  const [activeMode, setActiveMode] = useState(initialMode || null);
   const [showCamera, setShowCamera] = useState(false);
   const [realtimeWarning, setRealtimeWarning] = useState("Calibrating Biomechanics...");
+
+  useEffect(() => {
+    if (initialMode) {
+      handleScanClick(initialMode);
+    }
+  }, [initialMode]);
   
   // Extract today's planned exercises
   const todaysExercises = plan?.workout_plan?.exercises || [];
@@ -704,6 +710,12 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             protein_g: Number(result.protein_g) || 0,
             carbs_g: Number(result.carbs_g) || 0,
             fats_g: Number(result.fats_g) || 0,
+            fiber_g: Number(result.fiber_g) || 0,
+            sugar_g: Number(result.sugar_g) || 0,
+            vitamins: result.vitamins || [],
+            minerals: result.minerals || [],
+            glycemic_index: result.glycemic_index || "",
+            health_score: Number(result.health_score) || 0,
             serving_weight_g: Number(result.serving_weight_g) || 0,
             ingredients: result.ingredients || [],
             scientific_notes: result.scientific_notes || "",
@@ -977,8 +989,13 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                           </h3>
                           <div className="flex flex-wrap items-center gap-2">
                             {result.serving_weight_g && (
-                              <span className="bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ">
-                                ⚖️ Portion: {result.serving_weight_g} grams (g)
+                              <span className="bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                ⚖️ Weight Count: {result.serving_weight_g}g
+                              </span>
+                            )}
+                            {result.estimated_calories && (
+                              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                ⚡ Calories Count: {result.estimated_calories} kcal
                               </span>
                             )}
                             {result.confidence && (
@@ -989,35 +1006,98 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                           </div>
                         </div>
 
-                        {/* Macro & Portion Stats Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                          <div className="bg-[#C7F36B]/30 border border-[#C7F36B]/30 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-[#C7F36B] font-extrabold uppercase tracking-widest mb-1 flex items-center gap-1">
-                              <span>⚖️ TOTAL WEIGHT</span>
-                            </div>
-                            <div className="text-2xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
+                        {/* Complete Macro, Portion Weight & Micronutrient Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                          <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-[#C7F36B] font-black uppercase tracking-widest mb-1">⚖️ WEIGHT</div>
+                            <div className="text-xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
                           </div>
 
-                          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1">⚡ CALORIES</div>
-                            <div className="text-2xl font-black text-white">{result.estimated_calories || 0}<span className="text-xs text-zinc-400 font-bold ml-0.5">kcal</span></div>
+                          <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-amber-300 font-black uppercase tracking-widest mb-1">⚡ CALORIES</div>
+                            <div className="text-xl font-black text-white">{result.estimated_calories || 0}<span className="text-xs text-amber-300 font-bold ml-0.5">kcal</span></div>
                           </div>
 
-                          <div className="bg-[#54D8CF]/10 border border-[#54D8CF]/20 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-[#54D8CF] font-extrabold uppercase tracking-widest mb-1">💪 PROTEIN</div>
-                            <div className="text-2xl font-black text-[#54D8CF]">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          <div className="bg-[#54D8CF]/15 border border-[#54D8CF]/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-[#54D8CF] font-black uppercase tracking-widest mb-1">💪 PROTEIN</div>
+                            <div className="text-xl font-black text-[#54D8CF]">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
-                          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest mb-1">🌾 CARBS</div>
-                            <div className="text-2xl font-black text-amber-300">{result.carbs_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          <div className="bg-yellow-500/15 border border-yellow-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-yellow-300 font-black uppercase tracking-widest mb-1">🌾 CARBS</div>
+                            <div className="text-xl font-black text-yellow-300">{result.carbs_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
-                          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 flex flex-col justify-between">
-                            <div className="text-[10px] text-rose-400 font-extrabold uppercase tracking-widest mb-1">🥑 FATS</div>
-                            <div className="text-2xl font-black text-rose-300">{result.fats_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          <div className="bg-rose-500/15 border border-rose-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-rose-300 font-black uppercase tracking-widest mb-1">🥑 FATS</div>
+                            <div className="text-xl font-black text-rose-300">{result.fats_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-emerald-300 font-black uppercase tracking-widest mb-1">🌿 FIBER</div>
+                            <div className="text-xl font-black text-emerald-300">{result.fiber_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-purple-500/15 border border-purple-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-purple-300 font-black uppercase tracking-widest mb-1">🍬 SUGAR</div>
+                            <div className="text-xl font-black text-purple-300">{result.sugar_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
+                          </div>
+
+                          <div className="bg-cyan-500/15 border border-cyan-500/30 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-cyan-300 font-black uppercase tracking-widest mb-1">🩺 HEALTH</div>
+                            <div className="text-xl font-black text-cyan-300">{result.health_score || 90}<span className="text-xs font-bold text-cyan-400">/100</span></div>
                           </div>
                         </div>
+
+                        {/* Vitamins & Minerals Spectrum Panel */}
+                        {((result.vitamins && result.vitamins.length > 0) || (result.minerals && result.minerals.length > 0) || result.glycemic_index) && (
+                          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                              <span className="text-xs font-extrabold text-[#54D8CF] uppercase tracking-widest flex items-center gap-1.5">
+                                💊 VITAMINS, MINERALS &amp; GLYCEMIC INDEX
+                              </span>
+                              {result.glycemic_index && (
+                                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  🟢 GI: {result.glycemic_index}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                              {/* Vitamins */}
+                              {result.vitamins && result.vitamins.length > 0 && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
+                                    <span>✨ DETECTED VITAMINS</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {result.vitamins.map((vit, idx) => (
+                                      <span key={idx} className="bg-amber-400/10 border border-amber-400/30 text-amber-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                                        ✨ {vit}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Minerals */}
+                              {result.minerals && result.minerals.length > 0 && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
+                                    <span>🪨 ESSENTIAL MINERALS</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {result.minerals.map((min, idx) => (
+                                      <span key={idx} className="bg-cyan-400/10 border border-cyan-400/30 text-cyan-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                                        🪨 {min}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Itemized Ingredients & Grams Breakdown */}
                         {result.ingredients && result.ingredients.length > 0 && (
@@ -1027,46 +1107,66 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                                 🧪 SCIENTIFIC INGREDIENT &amp; GRAM BREAKDOWN
                               </span>
                               <span className="text-[10px] font-bold text-zinc-400 uppercase">
-                                {result.ingredients.length} DETECTED COMPONENTS
+                                {result.ingredients_detected_count || result.ingredients.length} DETECTED COMPONENTS
                               </span>
                             </div>
 
-                            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                               {result.ingredients.map((ing, i) => {
                                 const ingWeight = Number(ing.weight_g) || 0;
                                 const totalWeight = Number(result.serving_weight_g) || 1;
                                 const weightPct = Math.min(100, Math.round((ingWeight / totalWeight) * 100));
 
                                 return (
-                                  <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl p-3 transition-colors">
-                                    <div className="flex items-center justify-between text-xs mb-1.5">
+                                  <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl p-3 transition-colors space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
                                       <div className="flex items-center gap-2 font-bold text-white">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#C7F36B]"></span>
+                                        <span className="w-2 h-2 rounded-full bg-[#C7F36B]"></span>
                                         <span>{ing.name}</span>
                                       </div>
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-2">
                                         <span className="font-mono font-extrabold text-[#C7F36B] bg-[#C7F36B]/10 border border-[#C7F36B]/20 px-2 py-0.5 rounded text-[11px]">
                                           {ingWeight}g
                                         </span>
-                                        <span className="font-semibold text-zinc-300 text-[11px]">
+                                        <span className="font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-[11px]">
                                           {ing.calories || 0} kcal
                                         </span>
                                       </div>
                                     </div>
 
                                     {/* Gram Proportion Bar */}
-                                    <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden mb-1.5 flex">
+                                    <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden flex">
                                       <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, weightPct)}%` }}></div>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                                    <div className="flex flex-wrap items-center justify-between text-[10px] text-zinc-400 gap-1">
                                       <span>Mass Share: {weightPct}% of plate</span>
-                                      <span className="font-mono">
-                                        P: <strong className="text-[#54D8CF]">{ing.protein_g ?? 0}g</strong> | 
-                                        C: <strong className="text-amber-300">{ing.carbs_g ?? 0}g</strong> | 
-                                        F: <strong className="text-rose-300">{ing.fats_g ?? 0}g</strong>
+                                      <span className="font-mono flex items-center gap-2">
+                                        <span>P: <strong className="text-[#54D8CF]">{ing.protein_g ?? 0}g</strong></span>
+                                        <span>C: <strong className="text-amber-300">{ing.carbs_g ?? 0}g</strong></span>
+                                        <span>F: <strong className="text-rose-300">{ing.fats_g ?? 0}g</strong></span>
+                                        {ing.fiber_g ? <span>Fiber: <strong className="text-emerald-300">{ing.fiber_g}g</strong></span> : null}
                                       </span>
                                     </div>
+
+                                    {/* Ingredient Specific Vitamins & Minerals */}
+                                    {((ing.vitamins && ing.vitamins.length > 0) || (ing.minerals && ing.minerals.length > 0)) && (
+                                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[9px]">
+                                        {ing.vitamins && ing.vitamins.map((v, idx) => (
+                                          <span key={idx} className="bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20">✨ {v}</span>
+                                        ))}
+                                        {ing.minerals && ing.minerals.map((m, idx) => (
+                                          <span key={idx} className="bg-cyan-500/10 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/20">🪨 {m}</span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {ing.health_benefits && (
+                                      <div className="text-[10px] text-zinc-300 bg-white/5 p-1.5 rounded border border-white/5 flex items-center gap-1">
+                                        <span>💡</span>
+                                        <span>{ing.health_benefits}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -1092,8 +1192,8 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
                         <h3 className="font-display text-3xl font-bold text-white">{result.body_type_category || 'Unknown Category'}</h3>
                         <div className="flex flex-wrap gap-3">
                           <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-[150px]">
-                            <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Est. Body Fat</div>
-                            <div className="text-2xl font-bold text-[#C7F36B]">{result.estimated_body_fat_percentage}</div>
+                            <div className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider mb-1">Obesity Count</div>
+                            <div className="text-2xl font-bold text-[#C7F36B]">{result.obesity_count || result.estimated_body_fat_percentage || 'Normal Stage'}</div>
                           </div>
                         </div>
                         <p className="text-sm text-zinc-400">{result.notable_features}</p>
@@ -1179,14 +1279,14 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Auto-Food Logger</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap a picture of your plate. AI detects the food, estimates portion sizes, and extracts macros.</p>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap a picture of your plate. AI detects all ingredients, weight count in grams, total calories, macros, vitamins, and minerals.</p>
               <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
             </div>
           </div>
 
-          {/* Module 3: Body Fat Scanner */}
+          {/* Module 3: Obesity Count Scanner */}
           <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('physique')}>
             <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://wger.de/static/images/muscles/muscular_system_front.svg" className="absolute w-full h-full object-contain filter invert opacity-30 mt-4 transition group-hover:opacity-50" alt="Anatomy" />
@@ -1195,8 +1295,8 @@ export default function VisionHub({ onClose, user, updateUser, plan }) {
               <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
             </div>
             <div className="p-5 relative z-10">
-              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Physique Estimator</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie. AI estimates your exact body fat stage by analyzing your silhouette.</p>
+              <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Obesity Count Scanner</h4>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie. AI estimates your exact obesity count and body composition stage by analyzing your silhouette.</p>
               <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
                 OPEN WEBCAM
               </button>
