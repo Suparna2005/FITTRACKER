@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { API_URL } from './config'
 import { BarChart3 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import WorkoutSplitBuilder from './WorkoutSplitBuilder'
@@ -100,7 +101,7 @@ function App() {
   const fetchNotifs = async () => {
     if (!user) return
     try {
-      const res = await (await fetch(`http://localhost:8000/users/${user.id}/notifications?limit=15`)).json()
+      const res = await (await fetch(`${API_URL}/users/${user.id}/notifications?limit=15`)).json()
       if (res && Array.isArray(res.items)) setNotifs(res)
     } catch {}
   }
@@ -113,7 +114,7 @@ function App() {
   }, [user])
 
   const markRead = async (id) => {
-    try { await fetch(`http://localhost:8000/notifications/${id}/read`, { method: 'POST' }) } catch {}
+    try { await fetch(`${API_URL}/notifications/${id}/read`, { method: 'POST' }) } catch {}
     setNotifs(prev => ({
       unread: Math.max(0, prev.unread - (prev.items.find(n => n.id === id && !n.is_read) ? 1 : 0)),
       items: prev.items.map(n => n.id === id ? { ...n, is_read: true } : n)
@@ -121,12 +122,12 @@ function App() {
   }
 
   const markAllRead = async () => {
-    try { await fetch(`http://localhost:8000/users/${user.id}/notifications/read-all`, { method: 'POST' }) } catch {}
+    try { await fetch(`${API_URL}/users/${user.id}/notifications/read-all`, { method: 'POST' }) } catch {}
     setNotifs(prev => ({ unread: 0, items: prev.items.map(n => ({ ...n, is_read: true })) }))
   }
 
   const deleteNotif = async (notifId) => {
-    try { await fetch(`http://localhost:8000/notifications/${notifId}`, { method: 'DELETE' }) } catch {}
+    try { await fetch(`${API_URL}/notifications/${notifId}`, { method: 'DELETE' }) } catch {}
     setNotifs(prev => ({ unread: prev.unread - (prev.items.find(i => i.id === notifId && !i.is_read) ? 1 : 0), items: prev.items.filter(i => i.id !== notifId) }))
   }
 
@@ -179,7 +180,7 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/reset_password/', {
+      const res = await fetch(`${API_URL}/reset_password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(resetForm)
@@ -237,7 +238,7 @@ function App() {
 
   const fetchSplit = async () => {
     try {
-      const data = await (await fetch(`http://localhost:8000/users/${user.id}/workout_plans`)).json()
+      const data = await (await fetch(`${API_URL}/users/${user.id}/workout_plans`)).json()
       if (Array.isArray(data) && data.length > 0) setMySplit(data[0])
       else setMySplit(null)
     } catch {}
@@ -245,7 +246,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/users/${user.id}/history`)
+      const res = await fetch(`${API_URL}/users/${user.id}/history`)
       if (!res.ok) throw new Error("Failed to fetch")
       const data = await res.json()
       setRawHistory(Array.isArray(data) ? data : [])
@@ -356,7 +357,7 @@ function App() {
       const cleanName = name || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase()
       const cleanGoogleId = googleId || ("g_" + Math.random().toString(36).substring(2, 10))
 
-      const res = await fetch('http://localhost:8000/google_login/', {
+      const res = await fetch(`${API_URL}/google_login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -386,7 +387,7 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/login/', {
+      const res = await fetch(`${API_URL}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginForm)
@@ -407,7 +408,7 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/users/', {
+      const res = await fetch(`${API_URL}/users/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupForm)
@@ -436,7 +437,7 @@ function App() {
     delete payload.weight_unit
     delete payload.height_unit
     try {
-      const res = await fetch(`http://localhost:8000/users/${user.id}`, {
+      const res = await fetch(`${API_URL}/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -468,7 +469,7 @@ function App() {
     }, 0)
 
     try {
-      const res = await fetch('http://localhost:8000/log_history/', {
+      const res = await fetch(`${API_URL}/log_history/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -490,7 +491,7 @@ function App() {
       if (logData.height_today) userUpdatePayload.height = logData.height_today
 
       if (Object.keys(userUpdatePayload).length > 0) {
-        const upRes = await fetch(`http://localhost:8000/users/${user.id}`, {
+        const upRes = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userUpdatePayload)
@@ -517,7 +518,7 @@ function App() {
     }
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:8000/generate_plan/?user_id=${user.id}&plan_type=1-day&use_split=${useSplit ? 'true' : 'false'}`, { method: 'POST' })
+      const res = await fetch(`${API_URL}/generate_plan/?user_id=${user.id}&plan_type=1-day&use_split=${useSplit ? 'true' : 'false'}`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to generate AI plan.')
       const data = await res.json()
       setPlan(data)
@@ -540,7 +541,7 @@ function App() {
     if (!historyDate) { showToast('Please select a date.'); return; }
     setLoading(true)
     try {
-      const data = await (await fetch(`http://localhost:8000/users/${user.id}/history?date=${historyDate}`)).json()
+      const data = await (await fetch(`${API_URL}/users/${user.id}/history?date=${historyDate}`)).json()
       if (data && data.length > 0) {
         const logs = data.filter(d => d.workout_data && d.workout_data.date);
         const plans = data.filter(d => d.workout_data && d.workout_data.day);

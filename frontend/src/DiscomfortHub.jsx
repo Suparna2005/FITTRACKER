@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from './config'
 import { Panel } from './theme'
 
 const EXERCISE_LIST = [
@@ -27,7 +28,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
   const fetchLogs = async () => {
     if (!user) return
     try {
-      const res = await fetch(`http://localhost:8000/users/${user.id}/discomfort_logs`)
+      const res = await fetch(`${API_URL}/users/${user.id}/discomfort_logs`)
       const data = await res.json()
       if (Array.isArray(data)) {
         setHistoryLogs(data)
@@ -55,7 +56,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/log_discomfort/', {
+      const res = await fetch(`${API_URL}/log_discomfort/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +84,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
 
   const handleDeleteLog = async (logId) => {
     try {
-      await fetch(`http://localhost:8000/discomfort_logs/${logId}`, { method: 'DELETE' })
+      await fetch(`${API_URL}/discomfort_logs/${logId}`, { method: 'DELETE' })
       showToast("Log removed.")
       setHistoryLogs(prev => prev.filter(item => item.id !== logId))
       if (activeAnalysis?.id === logId) setActiveAnalysis(null)

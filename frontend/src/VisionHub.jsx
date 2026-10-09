@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { API_URL } from './config';
 
 export default function VisionHub({ onClose, user, updateUser, plan, initialMode }) {
   const [loading, setLoading] = useState(false);
@@ -651,7 +652,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     setLoading(true);
     const base64data = base64full.split(',')[1];
     try {
-      const response = await fetch('http://localhost:8000/analyze_vision/', {
+      const response = await fetch(`${API_URL}/analyze_vision/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_base64: base64data, mode: activeMode })
@@ -681,7 +682,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         };
         const mapped = catMap[result.body_type_category] || catMap["Average"];
         
-        const response = await fetch(`http://localhost:8000/users/${user.id}`, {
+        const response = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ body_fat: mapped })
@@ -691,7 +692,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         
       } else if (activeMode === 'equipment' && result?.detected_equipment) {
         const eqString = result.detected_equipment.join(', ');
-        const response = await fetch(`http://localhost:8000/users/${user.id}`, {
+        const response = await fetch(`${API_URL}/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ equipment: eqString })
@@ -700,7 +701,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         if (updateUser) updateUser(updatedUser);
         
       } else if (activeMode === 'food' && result?.food_name) {
-        const response = await fetch('http://localhost:8000/log_food/', {
+        const response = await fetch(`${API_URL}/log_food/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -729,7 +730,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
       } else if (activeMode === 'form' && result?.detected_exercise) {
         // Construct the log payload using real-time tracked sets & reps
         const stats = workoutStatsRef.current;
-        const response = await fetch('http://localhost:8000/log_workout/', {
+        const response = await fetch(`${API_URL}/log_workout/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

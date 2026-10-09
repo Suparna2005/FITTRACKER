@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_URL } from './config'
 
 export default function Notify({ onClose }) {
   const [users, setUsers] = useState([])
@@ -15,13 +16,13 @@ export default function Notify({ onClose }) {
   useEffect(() => {
   (async () => {
   try {
-  const res = await fetch('http://localhost:8000/users/')
+  const res = await fetch(`${API_URL}/users/`)
   const data = await res.json()
   if (Array.isArray(data)) {
   setUsers(data)
   if (data.length > 0) setUserId(String(data[0].id))
   }
-  } catch { setError('Could not reach backend (http://localhost:8000).') }
+  } catch { setError(`Could not reach backend (${API_URL}).`) }
   })
   }, [])
 
@@ -34,7 +35,7 @@ export default function Notify({ onClose }) {
   const channels = []
   if (sms) channels.push('sms')
   if (email) channels.push('email')
-  const res = await fetch('http://localhost:8000/notify/', {
+  const res = await fetch(`${API_URL}/notify/`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

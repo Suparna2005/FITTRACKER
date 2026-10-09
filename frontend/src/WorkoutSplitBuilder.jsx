@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { API_URL } from './config'
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
 const MUSCLES = [
@@ -97,7 +98,7 @@ export default function WorkoutSplitBuilder({ userId, onClose }) {
     try { localStorage.setItem("fitnessWorkoutPlan", JSON.stringify(plan)) } catch {}
     try {
       const uid = userId || localStorage.getItem("fitnessUserId")
-      if (uid) await fetch(`http://localhost:8000/workout_plans/?user_id=${uid}`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(plan) })
+      if (uid) await fetch(`${API_URL}/workout_plans/?user_id=${uid}`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(plan) })
     } catch {}
     setSaving(false); setDone(true); setStep(3)
   }
