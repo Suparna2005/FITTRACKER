@@ -127,10 +127,16 @@ def update_user(user_id: int, user_update: dict, db: Session = Depends(get_db)):
 
 @app.post("/login/")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    clean_id = user.identifier.strip().lower()
+    from sqlalchemy import func
     db_user = db.query(models.User).filter(
-        (models.User.phone_number == user.identifier) | (models.User.email == user.identifier)
+        (func.lower(models.User.email) == clean_id) | (models.User.phone_number == user.identifier.strip())
     ).first()
-    if not db_user or db_user.password != user.password:
+    if not db_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if db_user.password == "google_oauth_authenticated" and user.password != "google_oauth_authenticated":
+        raise HTTPException(status_code=400, detail="This account was created with Google. Please click 'CONTINUE WITH GOOGLE' to sign in instantly.")
+    if db_user.password != user.password:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     return db_user
 
@@ -145,16 +151,25 @@ def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
     if not req.email:
         raise HTTPException(status_code=400, detail="Email is required for Google login")
     
-    # Check if user exists by email
-    db_user = db.query(models.User).filter(models.User.email == req.email).first()
+    clean_email = req.email.strip().lower()
+    from sqlalchemy import func
+    # Check if user exists by email (case-insensitive) or phone number
+    db_user = db.query(models.User).filter(
+        (func.lower(models.User.email) == clean_email) | (models.User.phone_number == clean_email)
+    ).first()
     
     if not db_user:
-        # Auto-create user account with Google credentials
-        user_name = req.name or req.email.split("@")[0].capitalize()
+        import uuid
+        # Generate guaranteed unique phone identifier for Google OAuth user
+        unique_phone = f"google_{uuid.uuid4().hex[:8]}"
+        while db.query(models.User).filter(models.User.phone_number == unique_phone).first():
+            unique_phone = f"google_{uuid.uuid4().hex[:8]}"
+
+        user_name = req.name or clean_email.split("@")[0].replace(".", " ").capitalize()
         db_user = models.User(
             name=user_name,
-            email=req.email,
-            phone_number=f"google_{req.google_id or req.email}",
+            email=clean_email,
+            phone_number=unique_phone,
             password="google_oauth_authenticated",
             goal="Build Muscle",
             experience_level="Intermediate",

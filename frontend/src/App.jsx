@@ -326,25 +326,8 @@ function App() {
   })()
 
   const handleGoogleLogin = () => {
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: "108398471283-fittracker.apps.googleusercontent.com",
-          callback: (response) => {
-            if (response?.credential) {
-              try {
-                const base64Url = response.credential.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-                const payload = JSON.parse(jsonPayload);
-                submitGoogleAuth(payload.email, payload.name, payload.sub);
-                return;
-              } catch (e) {}
-            }
-          }
-        });
-        window.google.accounts.id.prompt();
-      } catch (e) {}
+    if (!googleEmailInput && loginForm.identifier?.includes('@')) {
+      setGoogleEmailInput(loginForm.identifier.trim())
     }
     setShowGoogleModal(true)
   }
@@ -588,9 +571,9 @@ function App() {
           <button 
             type="button"
             onClick={() => setShowGoogleModal(false)}
-            className="absolute top-2 right-2 text-[#ACBAC2] hover:text-[#F4F7F8] text-xs font-bold bg-[#10181D] rounded-lg border border-[#304149] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="absolute top-4 right-4 text-[#ACBAC2] hover:text-[#F4F7F8] text-xs font-bold bg-[#10181D] rounded-xl border border-[#304149] transition-colors w-9 h-9 flex items-center justify-center"
           >
-            ✕ Close
+            ✕
           </button>
 
           <div className="flex flex-col items-center text-center mb-6">
@@ -603,7 +586,7 @@ function App() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-[#F4F7F8] tracking-wide">Sign in with Google</h3>
-            <p className="text-xs text-[#ACBAC2] mt-1">Enter your Google email address to authorize access</p>
+            <p className="text-xs text-[#ACBAC2] mt-1">Instant Google authorization — enter your Google email to sign in or register.</p>
           </div>
 
           <form onSubmit={(e) => {
@@ -628,9 +611,10 @@ function App() {
             </div>
             <button 
               type="submit"
-              className="btn-lime w-full text-sm uppercase tracking-wide py-3.5"
+              disabled={loading}
+              className="btn-lime w-full text-sm uppercase tracking-wide py-3.5 flex items-center justify-center gap-2"
             >
-              Continue with Google Account →
+              {loading ? 'Authorizing Google Account...' : 'Continue with Google Account →'}
             </button>
           </form>
         </div>

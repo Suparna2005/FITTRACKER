@@ -11,6 +11,8 @@ SQLITE_PATH = os.path.join(BASE_DIR, "fitness_tracker.db")
 DEFAULT_DB_URL = f"sqlite:///{SQLITE_PATH}"
 
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 def _get_engine():
     try:
