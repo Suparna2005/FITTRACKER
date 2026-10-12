@@ -7,3 +7,4 @@ openai
 twilio
 apscheduler
 pydantic
+requests

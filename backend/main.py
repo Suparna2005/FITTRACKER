@@ -1,8 +1,12 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db
-import models, ai_service, scheduler
+import requests, models, ai_service, scheduler
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -141,17 +145,44 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
     return db_user
 
 class GoogleLoginRequest(BaseModel):
-    email: str
+    credential: Optional[str] = None
+    email: Optional[str] = None
     name: Optional[str] = None
     google_id: Optional[str] = None
     picture: Optional[str] = None
 
+@app.get("/auth/google_client_id")
+def get_google_client_id():
+    cid = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    return {"client_id": cid, "configured": bool(cid)}
+
 @app.post("/google_login/")
 def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
-    if not req.email:
+    user_email = req.email
+    user_name = req.name
+    google_sub = req.google_id
+
+    # If cryptographic Google credential (ID Token) is passed, verify directly with Google OAuth servers
+    if req.credential:
+        try:
+            verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={req.credential}"
+            resp = requests.get(verify_url, timeout=5)
+            if resp.status_code == 200:
+                token_data = resp.json()
+                user_email = token_data.get("email")
+                user_name = token_data.get("name") or token_data.get("given_name")
+                google_sub = token_data.get("sub")
+            else:
+                raise HTTPException(status_code=400, detail="Invalid Google OAuth token from Google servers.")
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
+            raise HTTPException(status_code=400, detail=f"Google token verification failed: {str(e)}")
+
+    if not user_email:
         raise HTTPException(status_code=400, detail="Email is required for Google login")
     
-    clean_email = req.email.strip().lower()
+    clean_email = user_email.strip().lower()
     from sqlalchemy import func
     # Check if user exists by email (case-insensitive) or phone number
     db_user = db.query(models.User).filter(
@@ -160,14 +191,13 @@ def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
     
     if not db_user:
         import uuid
-        # Generate guaranteed unique phone identifier for Google OAuth user
         unique_phone = f"google_{uuid.uuid4().hex[:8]}"
         while db.query(models.User).filter(models.User.phone_number == unique_phone).first():
             unique_phone = f"google_{uuid.uuid4().hex[:8]}"
 
-        user_name = req.name or clean_email.split("@")[0].replace(".", " ").capitalize()
+        display_name = user_name or clean_email.split("@")[0].replace(".", " ").capitalize()
         db_user = models.User(
-            name=user_name,
+            name=display_name,
             email=clean_email,
             phone_number=unique_phone,
             password="google_oauth_authenticated",

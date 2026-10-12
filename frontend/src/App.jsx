@@ -85,6 +85,7 @@ function App() {
   const [plan, setPlan] = useState(null)
   const [showGoogleModal, setShowGoogleModal] = useState(false)
   const [googleEmailInput, setGoogleEmailInput] = useState('')
+  const [googleConfig, setGoogleConfig] = useState({ client_id: '', configured: false })
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' })
   const [useSplit, setUseSplit] = useState(true)
   const [mySplit, setMySplit] = useState(null)
@@ -112,6 +113,59 @@ function App() {
     const t = setInterval(fetchNotifs, 30000)
     return () => clearInterval(t)
   }, [user])
+
+  // Fetch Google OAuth Client ID loaded from backend .env
+  useEffect(() => {
+    fetch(`${API_URL}/auth/google_client_id`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.client_id) {
+          setGoogleConfig({ client_id: data.client_id, configured: true })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Initialize Google Identity Services when Client ID from .env is ready
+  useEffect(() => {
+    if (!googleConfig.configured || !window.google?.accounts?.id) return
+    try {
+      window.google.accounts.id.initialize({
+        client_id: googleConfig.client_id,
+        callback: (resp) => {
+          if (resp && resp.credential) {
+            submitGoogleAuth(null, null, null, resp.credential)
+          }
+        }
+      })
+    } catch (e) {
+      console.warn("Google OAuth init:", e)
+    }
+  }, [googleConfig])
+
+  // Render official Google button into slot when modal is visible
+  useEffect(() => {
+    if (showGoogleModal && googleConfig.configured && window.google?.accounts?.id) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('google-btn-slot')
+        if (el) {
+          el.innerHTML = ''
+          try {
+            window.google.accounts.id.renderButton(el, {
+              theme: 'filled_blue',
+              size: 'large',
+              shape: 'pill',
+              width: 300,
+              text: 'continue_with'
+            })
+          } catch (e) {
+            console.warn("Google renderButton:", e)
+          }
+        }
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [showGoogleModal, googleConfig])
 
   const markRead = async (id) => {
     try { await fetch(`${API_URL}/notifications/${id}/read`, { method: 'POST' }) } catch {}
@@ -332,22 +386,29 @@ function App() {
     setShowGoogleModal(true)
   }
 
-  const submitGoogleAuth = async (email, name = null, googleId = null) => {
+  const submitGoogleAuth = async (email = null, name = null, googleId = null, credential = null) => {
     setShowGoogleModal(false)
     setLoading(true)
     try {
-      const cleanEmail = email.trim().toLowerCase()
-      const cleanName = name || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase()
-      const cleanGoogleId = googleId || ("g_" + Math.random().toString(36).substring(2, 10))
+      let bodyPayload = {}
+      if (credential) {
+        bodyPayload = { credential }
+      } else {
+        const cleanEmail = (email || '').trim().toLowerCase()
+        if (!cleanEmail) throw new Error('Please enter a valid Google email address.')
+        const cleanName = name || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase()
+        const cleanGoogleId = googleId || ("g_" + Math.random().toString(36).substring(2, 10))
+        bodyPayload = {
+          email: cleanEmail,
+          name: cleanName,
+          google_id: cleanGoogleId
+        }
+      }
 
       const res = await fetch(`${API_URL}/google_login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cleanEmail,
-          name: cleanName,
-          google_id: cleanGoogleId
-        })
+        body: JSON.stringify(bodyPayload)
       })
 
       if (!res.ok) {
@@ -576,7 +637,7 @@ function App() {
             ✕
           </button>
 
-          <div className="flex flex-col items-center text-center mb-6">
+          <div className="flex flex-col items-center text-center mb-5">
             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg mb-3">
               <svg className="w-8 h-8" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -586,9 +647,55 @@ function App() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-[#F4F7F8] tracking-wide">Sign in with Google</h3>
-            <p className="text-xs text-[#ACBAC2] mt-1">Instant Google authorization — enter your Google email to sign in or register.</p>
+            <p className="text-xs text-[#ACBAC2] mt-1">Google OAuth 2.0 Authentication</p>
           </div>
 
+          {/* Environment Key Status Badge */}
+          <div className="mb-5 p-3.5 rounded-2xl bg-[#10181D] border border-[#304149]">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#ACBAC2]">
+                .ENV KEY STATUS
+              </span>
+              {googleConfig.configured ? (
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  KEY ACTIVE
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  KEY NOT SET
+                </span>
+              )}
+            </div>
+
+            {googleConfig.configured ? (
+              <div className="text-[11px] text-[#ACBAC2] font-mono break-all bg-black/30 p-2 rounded-xl mt-1 border border-[#304149]/60">
+                GOOGLE_CLIENT_ID={googleConfig.client_id}
+              </div>
+            ) : (
+              <div className="text-[11px] text-[#ACBAC2] mt-1 leading-relaxed">
+                <p className="mb-1 text-[11px]">To enable official Google One-Tap/Popup, add your client ID to <code className="text-[#C7F36B] font-mono">backend/.env</code>:</p>
+                <div className="bg-black/40 p-2 rounded-xl text-[10px] font-mono text-white select-all border border-[#304149]/70">
+                  GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* If Client ID is active in .env, render official Google Sign-In button */}
+          {googleConfig.configured && (
+            <div className="mb-4 flex flex-col items-center">
+              <div id="google-btn-slot" className="min-h-[44px] flex items-center justify-center"></div>
+              <div className="my-3 flex items-center gap-3 w-full">
+                <div className="h-[1px] bg-[#304149] flex-1" />
+                <span className="text-[10px] font-bold text-[#ACBAC2] uppercase tracking-widest">OR VIA EMAIL</span>
+                <div className="h-[1px] bg-[#304149] flex-1" />
+              </div>
+            </div>
+          )}
+
+          {/* Email Direct Authorization Form (Fallback / Instant Access) */}
           <form onSubmit={(e) => {
             e.preventDefault();
             if (googleEmailInput.trim()) {
@@ -597,7 +704,7 @@ function App() {
           }} className="flex flex-col gap-4">
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider text-[#ACBAC2] mb-1.5 block">
-                Google Account Email
+                {googleConfig.configured ? 'Google Account Email' : 'Sign In With Google Email (Direct)'}
               </label>
               <input 
                 type="email"
@@ -606,7 +713,7 @@ function App() {
                 onChange={(e) => setGoogleEmailInput(e.target.value)}
                 className="field-dark"
                 required
-                autoFocus
+                autoFocus={!googleConfig.configured}
               />
             </div>
             <button 
