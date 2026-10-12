@@ -145,11 +145,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
     return db_user
 
 class GoogleLoginRequest(BaseModel):
-    credential: Optional[str] = None
-    email: Optional[str] = None
-    name: Optional[str] = None
-    google_id: Optional[str] = None
-    picture: Optional[str] = None
+    credential: str
 
 @app.get("/auth/google_client_id")
 def get_google_client_id():
@@ -158,30 +154,38 @@ def get_google_client_id():
 
 @app.post("/google_login/")
 def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
-    user_email = req.email
-    user_name = req.name
-    google_sub = req.google_id
+    if not req.credential or not req.credential.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Google OAuth ID token credential is required. Direct email sign-in is disabled."
+        )
 
-    # If cryptographic Google credential (ID Token) is passed, verify directly with Google OAuth servers
-    if req.credential:
-        try:
-            verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={req.credential}"
-            resp = requests.get(verify_url, timeout=5)
-            if resp.status_code == 200:
-                token_data = resp.json()
-                user_email = token_data.get("email")
-                user_name = token_data.get("name") or token_data.get("given_name")
-                google_sub = token_data.get("sub")
-            else:
-                raise HTTPException(status_code=400, detail="Invalid Google OAuth token from Google servers.")
-        except Exception as e:
-            if isinstance(e, HTTPException):
-                raise e
-            raise HTTPException(status_code=400, detail=f"Google token verification failed: {str(e)}")
+    # Strictly verify the Google ID Token with Google OAuth servers
+    try:
+        verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={req.credential.strip()}"
+        resp = requests.get(verify_url, timeout=7)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=401,
+                detail="Google OAuth token verification failed. The provided token is invalid or expired."
+            )
+        token_data = resp.json()
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=400, detail=f"Google token verification error: {str(e)}")
 
+    user_email = token_data.get("email")
     if not user_email:
-        raise HTTPException(status_code=400, detail="Email is required for Google login")
-    
+        raise HTTPException(status_code=400, detail="Google account does not contain a valid email address.")
+
+    # Verify that Google confirms the email address is verified
+    is_verified = str(token_data.get("email_verified", "")).lower() == "true"
+    if not is_verified:
+        raise HTTPException(status_code=400, detail="Google email address has not been verified by Google.")
+
+    user_name = token_data.get("name") or token_data.get("given_name")
+    google_sub = token_data.get("sub")
     clean_email = user_email.strip().lower()
     from sqlalchemy import func
     # Check if user exists by email (case-insensitive) or phone number

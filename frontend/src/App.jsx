@@ -84,7 +84,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState(null)
   const [showGoogleModal, setShowGoogleModal] = useState(false)
-  const [googleEmailInput, setGoogleEmailInput] = useState('')
   const [googleConfig, setGoogleConfig] = useState({ client_id: '', configured: false })
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' })
   const [useSplit, setUseSplit] = useState(true)
@@ -134,7 +133,7 @@ function App() {
         client_id: googleConfig.client_id,
         callback: (resp) => {
           if (resp && resp.credential) {
-            submitGoogleAuth(null, null, null, resp.credential)
+            submitGoogleAuth(resp.credential)
           }
         }
       })
@@ -380,35 +379,33 @@ function App() {
   })()
 
   const handleGoogleLogin = () => {
-    if (!googleEmailInput && loginForm.identifier?.includes('@')) {
-      setGoogleEmailInput(loginForm.identifier.trim())
+    if (googleConfig.configured && window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setShowGoogleModal(true)
+          }
+        })
+      } catch {
+        setShowGoogleModal(true)
+      }
+    } else {
+      setShowGoogleModal(true)
     }
-    setShowGoogleModal(true)
   }
 
-  const submitGoogleAuth = async (email = null, name = null, googleId = null, credential = null) => {
+  const submitGoogleAuth = async (credential) => {
+    if (!credential || typeof credential !== 'string') {
+      showToast('Google authentication failed: no credential received.')
+      return
+    }
     setShowGoogleModal(false)
     setLoading(true)
     try {
-      let bodyPayload = {}
-      if (credential) {
-        bodyPayload = { credential }
-      } else {
-        const cleanEmail = (email || '').trim().toLowerCase()
-        if (!cleanEmail) throw new Error('Please enter a valid Google email address.')
-        const cleanName = name || cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase()
-        const cleanGoogleId = googleId || ("g_" + Math.random().toString(36).substring(2, 10))
-        bodyPayload = {
-          email: cleanEmail,
-          name: cleanName,
-          google_id: cleanGoogleId
-        }
-      }
-
       const res = await fetch(`${API_URL}/google_login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyPayload)
+        body: JSON.stringify({ credential })
       })
 
       if (!res.ok) {
@@ -628,7 +625,7 @@ function App() {
     if (!showGoogleModal) return null
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md fade-up">
-        <div className="relative w-full max-w-md bg-[#172127] border border-[#304149] rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden">
+        <div className="relative w-full max-w-md bg-[#172127] border border-[#304149] rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden text-center">
           <button 
             type="button"
             onClick={() => setShowGoogleModal(false)}
@@ -637,8 +634,8 @@ function App() {
             ✕
           </button>
 
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-3">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-4">
               <svg className="w-9 h-9" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -647,40 +644,29 @@ function App() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-[#F4F7F8] tracking-wide">Sign in with Google</h3>
-            <p className="text-xs text-[#ACBAC2] mt-1">Instant Google authorization — enter your Google email to continue.</p>
+            <p className="text-xs text-[#ACBAC2] mt-1.5">
+              Authenticate securely with your verified Google Account
+            </p>
           </div>
 
-          <div id="google-btn-slot" className="mb-4 flex items-center justify-center empty:hidden"></div>
+          {/* Official Google Sign-In Button Slot */}
+          <div className="flex flex-col items-center justify-center my-6 min-h-[50px]">
+            <div id="google-btn-slot" className="flex justify-center items-center"></div>
+          </div>
 
-          {/* Email Direct Authorization Form */}
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (googleEmailInput.trim()) {
-              submitGoogleAuth(googleEmailInput.trim());
-            }
-          }} className="flex flex-col gap-4">
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-[#ACBAC2] mb-1.5 block">
-                Google Account Email
-              </label>
-              <input 
-                type="email"
-                placeholder="your.email@gmail.com"
-                value={googleEmailInput}
-                onChange={(e) => setGoogleEmailInput(e.target.value)}
-                className="field-dark"
-                required
-                autoFocus
-              />
-            </div>
-            <button 
-              type="submit"
-              disabled={loading}
-              className="btn-lime w-full text-sm uppercase tracking-wide py-3.5 flex items-center justify-center gap-2"
-            >
-              {loading ? 'Authorizing Google Account...' : 'Continue with Google Account →'}
-            </button>
-          </form>
+          <div className="p-3.5 rounded-2xl bg-[#10181D] border border-[#304149]/60 text-left">
+            <p className="text-[11px] text-[#ACBAC2] leading-relaxed">
+              🔒 <strong className="text-white">Strict Security:</strong> Google OAuth requires cryptographic identity token verification directly through Google's authorization servers.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowGoogleModal(false)}
+            className="mt-6 w-full py-3 rounded-xl border border-[#304149] text-xs font-bold text-[#ACBAC2] hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     )
