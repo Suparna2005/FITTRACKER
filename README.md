@@ -1,40 +1,122 @@
 # IronForge AI: The Ultimate Vision-Powered Fitness Companion
 
-## Project Overview
-IronForge AI is a cutting-edge, next-generation fitness tracking application that bridges the gap between digital logging and physical training. Unlike traditional fitness apps that rely entirely on manual user input, IronForge acts as a **proactive AI gym companion**. By harnessing the power of on-device computer vision and cloud-based multimodal Large Language Models (LLMs), the application can literally *see* your workout, analyze your form, log your meals, and track your progress in real-time.
-
-The core philosophy behind the project is a **Hybrid AI Architecture**:
-1. **Edge AI (Zero Latency):** Tasks requiring real-time feedback—like tracking joint angles during a squat or recognizing finger gestures to start a set—are processed entirely in the browser using lightweight MediaPipe models. This guarantees complete privacy and 60-FPS zero-latency responsiveness.
-2. **Cloud AI (Deep Intelligence):** Complex reasoning tasks—like looking at a plate of food to calculate macronutrients, or scanning a hotel gym to build a custom workout split—are routed to high-parameter vision models (Llama 3.2 Vision / Qwen 2.5) via the Groq API for instantaneous, intelligent analysis.
+[![Production Status](https://img.shields.io/badge/Production-Live%20HTTPS-brightgreen)](https://30.31.32.136)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-61DAFB)](https://react.dev/)
+[![MediaPipe](https://img.shields.io/badge/Edge%20AI-MediaPipe%20Pose%20%26%20Hands-FF6F00)](https://developers.google.com/mediapipe)
+[![Docker](https://img.shields.io/badge/Deployment-Docker%20Compose-2496ED)](https://www.docker.com/)
 
 ---
 
-## Core Features & Modules
+## 🚀 Live Production Access
+- **Production URL:** [https://30.31.32.136](https://30.31.32.136) (Secured with TLS/SSL Nginx reverse proxy; HTTP auto-redirects to HTTPS)
+- **Interactive API Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs) (Swagger UI)
 
-### 1. 🤖 AI Form Coach (Real-Time Biomechanics)
-The crown jewel of the platform. By pointing your webcam at yourself while lifting, the AI Form Coach overlays a dynamic, real-time skeleton onto your body. 
-- **Auto-Rep Counting:** It calculates joint angles (e.g., hip-to-knee-to-ankle) to track the eccentric and concentric phases of your lift, automatically logging your reps.
-- **Form Correction:** If your elbows swing during a bicep curl or your chest caves during a squat, the skeleton flashes **RED** and provides instant visual feedback to correct your posture, preventing injury.
-- **Hands-Free Gesture Control:** Keep your phone on the bench. The AI tracks your hands—simply hold up 1 finger to start Set 1, 2 fingers for Set 2, etc.
+---
 
-### 2. 📸 Scientific Auto-Food Logger (Vision-to-Grams & Macros)
-Stop searching databases for generic "Chicken Breast". Simply snap a photo of your plate. The backend Vision LLM scientifically analyzes the image to estimate exact dish portion weights in **grams (g)**, extract macronutrients (Protein, Carbs, Fats), generate an **itemized breakdown of individual ingredients with weight (g) and calories**, and provide nutritional density diagnostics directly logged to your daily profile.
+## 📌 Project Overview
+**IronForge AI** is a state-of-the-art, proactive AI fitness tracking and coaching platform that unites edge computer vision and cloud multimodal Large Language Models (LLMs) to transform how athletes train, eat, and progress. 
 
-### 3. 🧬 Physique Estimator
-Upload a photo or stand in front of the camera, align yourself with the on-screen silhouette, and the AI will analyze your body composition to estimate your current body fat percentage, providing a baseline for your fitness journey.
+Unlike traditional fitness apps that demand tedious manual logging, IronForge AI acts as an **autonomous, proactive gym companion**. It continuously tracks your form, verifies full range of motion, logs reps only when execution is biomechanically perfect, identifies and calculates nutrition down to the gram, and adapts workouts based on discomfort or available equipment.
+
+### Core Architecture: Hybrid Edge/Cloud AI
+1. **Edge AI (Zero Latency, Complete Privacy):** Real-time biomechanics—including 33-point 3D skeletal tracking, joint trigonometry, setup posture calibration, rep counting FSM, and gesture recognition—run directly in the browser via Google MediaPipe at 60 FPS without streaming video over the network.
+2. **Cloud AI (Multimodal Reasoning):** Complex contextual tasks—such as estimating portion weight in grams, parsing itemized ingredient macros, silhouette body composition diagnostics, and spatial gym mesh analysis—are processed in sub-second inference via Groq Cloud Vision (`Llama 3.2 Vision` / `Qwen 2.5 VL`).
+
+---
+
+## ⚡ Core Features & Modules
+
+### 1. 🤖 Precision AI Form Coach & Rep Counter
+- **Setup Calibration Gate (`READY` Hold):** Prevents false reps from casual shifts, sitting down, typing, or finger twitches. Athletes must hold a verified, locked-out starting posture for $\ge 4$ consecutive frames (~150ms) to calibrate.
+- **Dynamic Multi-Frame Exercise Classifier:** In **Auto-Detect** mode, MediaPipe votes over a 15-frame rolling window to identify active exercises (Squats, Bicep Curls, Deadlifts, Overhead Press, Lunges) with a live UI confidence badge.
+- **Strict 4-Phase Rep FSM:** Reps require a full biomechanical cycle:
+  $$\text{Setup / Lockout} \longrightarrow \text{Eccentric / Concentric} \longrightarrow \text{Peak Inflection Depth} \longrightarrow \text{Return to Lockout}$$
+  Reversing early without reaching parallel/depth flags `⚠️ NO REP: INCOMPLETE DEPTH`.
+- **Anti-Jitter & Form Disqualification:** 
+  - Minimum rep duration threshold of $\ge 1.0\text{ s}$ ($1000\text{ ms}$) filters camera noise and rapid twitches.
+  - Active posture monitoring disqualifies bad reps (e.g. rounded spine, flared elbows, collapsed chest, valgus knees) as `❌ NO REP` without incrementing the counter.
+- **Acoustic Feedback:** Web Audio API triggers melodic harmonic chimes on perfect reps and warning tones on form violations.
+- **Debounced Hand Gesture Controls:** Hold up fingers for $\ge 10$ steady frames (~350ms) to unlock sets hands-free (1 finger for Set 1, 2 for Set 2, etc.). Isolated from rep counts.
+
+### 2. 📸 Scientific Auto-Food Logger (Grams & Ingredient Breakdown)
+- **Gram-Level Portion Weight:** Snapping a photo of a meal estimates total mass in **grams (`g`)** and calories (`kcal`).
+- **Itemized Ingredient Breakdown:** Identifies every component on the plate, detailing individual weight (`g`), calories, and macronutrient splits (Protein, Carbs, Fats) with proportional mass-share bars.
+- **Nutritional Density & Bio-Diagnostics:** Generates glycemic diagnostics, micronutrient estimates, and fiber profiles saved directly to your daily diet ledger.
+
+### 3. 🧬 Physique & Obesity Estimator
+- Upload a photo or stand before the camera; AI estimates body fat percentage, muscularity index, and obesity classification by analyzing physical silhouettes.
 
 ### 4. 🏋️‍♂️ Spatial Equipment Scanner
-Traveling and stuck in a hotel gym? Pan your camera across the room. The Spatial Mesh Scanner will detect all available dumbbells, machines, and cables, and automatically generate a custom workout split optimized for the exact equipment you have access to.
+- Point your camera around any gym or hotel fitness room. Spatial recognition catalogs available dumbbells, barbells, benches, and machines, generating a customized split tailored to the accessible equipment.
 
-### 5. 📊 Dynamic Dashboard & Split Builder
-A futuristic, dark-mode command center. Review your daily warfare log, track your volume and intensity over time with interactive Recharts, and use the intelligent Workout Split Builder to drag-and-drop your perfect training week.
+### 5. 🏥 AI Doctor & Physical Trainer Adaptation Hub
+- Athletes can log pain or discomfort with timing and severity.
+- Intelligent adaptation engine rewrites workout splits, substituting non-injurious alternatives for aggravating movements.
+
+### 6. 🔐 Hardened Google OAuth 2.0 & Enterprise Security
+- One-click Google sign-in powered by Google Identity Services.
+- Cryptographic JWT verification on the backend (`POST /google_login/` against Google tokeninfo endpoint).
+- Strict email bypass protection and clean, production-grade login UI.
 
 ---
 
-## Technical Architecture
-- **Frontend Engine:** React 18 & Vite for a lightning-fast Single Page Application (SPA).
-- **Styling:** Tailwind CSS, utilizing complex glassmorphism, animated synthwave laser meshes, and dynamic layering.
-- **Edge AI:** Google MediaPipe (Pose & Hands) integrated directly into the React component lifecycle via robust `useRef` rendering loops to completely bypass standard React re-renders.
-- **Backend API:** FastAPI (Python) providing a highly concurrent, secure gateway.
-- **Cloud AI Inference:** Groq API integration with dynamic fallback logic, utilizing `llama-3.2-11b-vision` for sub-second image reasoning.
-- **Database:** SQLite (managed via SQLAlchemy) for lightweight, serverless persistence of workout logs and user data.
+## 🏗️ Technical Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 18, Vite, Tailwind CSS, Lucide Icons, Recharts |
+| **Edge AI** | Google MediaPipe (Pose & Hands), Web Audio API, Web Speech API |
+| **Backend API** | FastAPI (Python 3.10+), Uvicorn, SQLAlchemy, Pydantic |
+| **Database** | PostgreSQL 15 (Production Docker) / SQLite (Development) |
+| **Cloud AI** | Groq Multimodal Vision API (`llama-3.2-11b-vision`, `qwen-2.5-vl`) |
+| **Web Server / Reverse Proxy**| Nginx with TLS/SSL encryption, HTTP-to-HTTPS redirect |
+| **Containerization** | Docker, Docker Compose |
+
+---
+
+## 💻 Local Development Setup
+
+### 1. Prerequisites
+- Node.js 18+ & npm
+- Python 3.10+
+- Git
+
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt  # Or: pip install fastapi uvicorn requests sqlalchemy python-dotenv psycopg2-binary
+uvicorn main:app --reload --port 8000
+```
+
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 🐳 Docker Production Deployment
+
+To run the complete production stack (PostgreSQL + FastAPI + Nginx HTTPS):
+
+```bash
+# Clone the repository
+git clone https://github.com/Suparna2005/FITTRACKER.git
+cd FITTRACKER
+
+# Configure environment keys in backend/.env
+# GROQ_API_KEY=your_key
+# GOOGLE_CLIENT_ID=your_google_client_id
+
+# Launch with Docker Compose
+docker-compose up -d --build
+```
+
+Access the application at `https://localhost` or your server's IP address (`https://30.31.32.136`).

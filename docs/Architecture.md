@@ -1,50 +1,106 @@
-# Fitness Tracker Architecture
+# IronForge AI System Architecture
 
 ## 1. High-Level Architecture Overview
 
-The AI-Powered Fitness Tracker is built on a modern, decoupled client-server architecture:
-- **Frontend (Client):** React (Vite) + Tailwind CSS + MediaPipe
-- **Backend (Server):** FastAPI (Python) + SQLite
-- **AI Integration:** Groq (Llama 3.2 Vision / Qwen) for remote processing, Google MediaPipe for edge processing.
+IronForge AI is built upon an enterprise **Hybrid Edge/Cloud AI Architecture**. Real-time physical biomechanics run client-side on edge processors with zero latency, while deep multimodal reasoning runs asynchronously on high-parameter cloud neural networks.
 
 ```mermaid
 graph TD
-    Client[React Frontend] <--> API[FastAPI Backend]
-    API <--> DB[(SQLite Database)]
-    API <--> Groq[Groq API Vision Models]
-    
-    subgraph Client-Side Edge AI
-    Client <--> MP_Pose[MediaPipe Pose]
-    Client <--> MP_Hands[MediaPipe Hands]
+    Client[React 18 + Vite Frontend]
+    Nginx[Nginx Reverse Proxy / SSL Termination]
+    API[FastAPI Backend Gateway]
+    DB[(PostgreSQL 15 / SQLite Database)]
+    Groq[Groq Cloud Vision AI: Llama-3.2 / Qwen-2.5]
+    GoogleAuth[Google OAuth 2.0 Tokeninfo Service]
+
+    Client -->|HTTPS :443| Nginx
+    Nginx -->|Static Assets| Client
+    Nginx -->|Reverse Proxy /api, /auth, /docs| API
+    API <-->|SQLAlchemy ORM| DB
+    API <-->|Multimodal Inference| Groq
+    API <-->|JWT Verification| GoogleAuth
+
+    subgraph Client-Side Edge AI Engine
+        MP_Pose[MediaPipe Pose 33-Point 3D Tracking]
+        MP_Hands[MediaPipe Hands 21-Point Gesture Engine]
+        BiomechanicalFSM[Biomechanical FSM & Calibration Gate]
+        Classifier[15-Frame Kinetic Exercise Classifier]
+        AudioFX[Web Audio API Acoustic Synthesizer]
+        SpeechRec[Web Speech API Voice Commander]
+
+        Client <--> MP_Pose
+        Client <--> MP_Hands
+        MP_Pose --> BiomechanicalFSM
+        MP_Pose --> Classifier
+        BiomechanicalFSM --> AudioFX
+        Client <--> SpeechRec
     end
 ```
 
-## 2. Frontend Architecture (React)
+---
 
-The frontend handles the user interface, real-time webcam streams, and edge AI processing.
+## 2. Client-Side Edge AI Engine (Browser Layer)
 
-* **Core Framework:** React 18 with Vite for lightning-fast HMR and building.
-* **Styling:** Tailwind CSS for utility-first, highly responsive, and modern UI design.
-* **State Management:** React `useState` and `useRef` for high-frequency updates (especially in the camera loop to prevent re-renders).
-* **Edge AI (Computer Vision):**
-  * `window.Pose`: MediaPipe Pose used for body tracking (squats, bicep curls) at 30+ FPS entirely in the browser.
-  * `window.Hands`: MediaPipe Hands used for real-time finger signal detection.
+The frontend operates real-time computer vision entirely within the client's browser using Google MediaPipe. Video frames are analyzed locally in canvas buffers and **are never streamed to backend servers**, guaranteeing zero network latency and privacy.
 
-## 3. Backend Architecture (FastAPI)
+### 2.1 Biomechanical Rep Counting & Calibration Gate
+- **Setup Calibration Gate (`READY` Hold):** 
+  To eliminate false rep counting from camera jitter, sitting, typing, or posture shifts, the tracker requires holding a clean, locked-out starting posture for $\ge 4$ consecutive frames (~150ms). A repetition **cannot initiate** from mid-air or relaxed sitting.
+- **Trigonometric Joint Angle Computation:**
+  $$\theta = \left| \operatorname{atan2}(c_y - b_y, c_x - b_x) - \operatorname{atan2}(a_y - b_y, a_x - b_x) \right| \times \frac{180}{\pi}$$
+  Angles exceeding $180^\circ$ are reflected ($360^\circ - \theta$).
+- **Exponential Moving Average (EMA) Smoothing:**
+  $$\hat{\theta}_t = \alpha \cdot \theta_t + (1 - \alpha) \cdot \hat{\theta}_{t-1} \quad (\alpha = 0.35)$$
+  Smooths high-frequency sensor noise across frames.
+- **Landmark Visibility Filter:** Points with MediaPipe confidence $\le 0.60$ are ignored to prevent phantom angle computations.
 
-The backend serves as a secure bridge to external APIs and manages persistent user data.
+### 2.2 Kinetic Multi-Frame Exercise Classifier
+When in **Auto-Detect** mode:
+1. Evaluates body arrangement (upper body vs lower body visibility, hand elevation relative to shoulders, knee-to-ankle displacement).
+2. Maintains a rolling vote buffer of 15 frames:
+   - If $\ge 6$ votes agree on an exercise pattern, dynamically sets the active target:
+     - **Squat**
+     - **Bicep Curl**
+     - **Deadlift**
+     - **Overhead Press**
+     - **Lunges**
+3. Synchronizes the UI with a glowing badge: `AI RECOGNIZING: [EXERCISE]`.
 
-* **Core Framework:** FastAPI for asynchronous, high-performance API endpoints.
-* **Database:** SQLite (via SQLAlchemy or raw queries) for storing user profiles, workout histories, and food logs.
-* **AI Service Module (`ai_service.py`):**
-  * Intercepts Base64 images from the frontend.
-  * Dynamically fetches available multimodal models from Groq.
-  * Implements fallback logic (e.g., routing to `qwen-2.5-vl` if `llama-3.2-11b-vision` is unavailable).
-  * Prompts the AI and returns structured JSON responses (e.g. food vision parsing returns total portion weight in grams `serving_weight_g`, itemized ingredient breakdowns with `weight_g` & `calories`, and `scientific_notes`).
+### 2.3 Strict 4-Phase Rep Finite State Machine (FSM)
+Every counted repetition must satisfy:
+1. `READY`: Calibrated lockout held.
+2. `ECCENTRIC` / `CONCENTRIC`: Traverses $\ge 40^\circ$ of motion with clean posture.
+3. `INFLECTION`: Hits true depth (Squat $\le 100^\circ$, Bicep Curl $\le 56^\circ$, Overhead Press lockout $\ge 158^\circ$, Deadlift hinge $\le 108^\circ$).
+4. `RETURN`: Returns completely to lockout.
+5. **Quality Gate:** Total rep duration $\ge 1.0\text{ s}$ ($1000\text{ ms}$) and zero form violations. Form violations flag `❌ NO REP` and do not increment the counter.
 
-## 4. Hybrid AI Strategy
+### 2.4 Acoustic Feedback & Hand Gesture Set Control
+- **Web Audio API:** Generates real-time synthesized acoustic tones (587Hz $\to$ 880Hz harmonic ping on successful rep; 220Hz $\to$ 140Hz warning tone on form violation).
+- **Debounced Hand Gestures:** Detects raised finger counts using geometric distance vectors between fingertips and wrist base. Requires 10 consecutive frames (~350ms) to trigger a set start.
 
-The system utilizes a **Hybrid AI Strategy** to balance speed and intelligence:
+---
 
-1. **Edge AI (Zero Latency):** Tasks requiring real-time feedback (rep counting, form correction, finger signal detection) are executed entirely on the user's device using lightweight MediaPipe models. No data is sent to the server during active sets.
-2. **Cloud AI (High Intelligence):** Tasks requiring deep reasoning and object recognition (food macro analysis, physique estimation, equipment scanning) are sent to the cloud via Groq's high-parameter vision models.
+## 3. Backend Gateway Architecture (FastAPI)
+
+The backend provides high-performance, asynchronous RESTful API services:
+- **FastAPI Core:** Non-blocking async endpoints utilizing ASGI Uvicorn workers.
+- **Database Abstraction:** SQLAlchemy ORM configured with connection pooling. Supports PostgreSQL 15 in production and SQLite in development.
+- **Security & Google OAuth 2.0:**
+  - Endpoint `POST /google_login/` receives Google JWT tokens (`credential: str`).
+  - Verifies signatures cryptographically against `https://oauth2.googleapis.com/tokeninfo`.
+  - Automatically provisions athlete profiles. Rejects arbitrary email bypass requests.
+- **Cloud Vision Service (`ai_service.py`):**
+  - Accepts compressed Base64 images from frontend.
+  - Injects structured JSON schemas into Groq system prompts.
+  - Implements multi-model fallback (`llama-3.2-11b-vision` $\to$ `qwen-2.5-vl`).
+  - Extracts gram portion weights, itemized ingredients, macros, and diagnostics.
+
+---
+
+## 4. Production Web Server & Reverse Proxy (Nginx)
+
+Nginx handles edge traffic on the host:
+- Terminates SSL/TLS on port 443 with self-signed or CA-issued certificates.
+- Redirects HTTP port 80 traffic to HTTPS port 443.
+- Serves pre-built Vite production assets (`/usr/share/nginx/html`).
+- Proxies `/api/`, `/docs`, `/openapi.json`, and auth routes to `http://backend:8000`.
