@@ -654,12 +654,6 @@ function App() {
             <div id="google-btn-slot" className="flex justify-center items-center"></div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-[#10181D] border border-[#304149]/60 text-left">
-            <p className="text-[11px] text-[#ACBAC2] leading-relaxed">
-              🔒 <strong className="text-white">Strict Security:</strong> Google OAuth requires cryptographic identity token verification directly through Google's authorization servers.
-            </p>
-          </div>
-
           <button
             type="button"
             onClick={() => setShowGoogleModal(false)}
