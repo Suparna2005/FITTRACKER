@@ -1715,30 +1715,33 @@ function App() {
               <div className="mt-6 p-6 rounded-2xl bg-[#10181D] border border-[#304149] flex flex-col sm:flex-row items-center gap-6">
                 <div className="p-3 bg-[#C7F36B] rounded-2xl shrink-0 shadow-xl">
                   <img 
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://30.31.32.136&color=10-24-29&bgcolor=c7f36b" 
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://idaho-ion-congratulations-questions.trycloudflare.com&color=10-24-29&bgcolor=c7f36b" 
                     alt="Scan QR to open app on phone" 
                     className="w-36 h-36 rounded-lg"
                   />
                 </div>
-                <div className="space-y-2 text-center sm:text-left">
-                  <div className="text-[11px] font-black text-[#54D8CF] tracking-widest uppercase">INSTANT CAMERA SCAN</div>
+                <div className="space-y-2 text-center sm:text-left flex-1">
+                  <div className="text-[11px] font-black text-[#54D8CF] tracking-widest uppercase">INSTANT MOBILE SCAN (WORKS ON 4G / 5G / ANY WI-FI)</div>
                   <h4 className="text-lg font-bold text-[#F4F7F8]">Scan With Your Phone Camera</h4>
                   <p className="text-xs text-[#ACBAC2] leading-relaxed">
-                    Point your iPhone or Android camera at the QR code above to instantly open the app URL on your phone. Then follow the 2-step prompt to install it directly to your home screen!
+                    Point your iPhone or Android camera at the QR code to open the app on your phone. Works worldwide with zero SSL security warnings!
                   </p>
                   <div className="pt-2 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
-                    <span className="font-mono text-xs text-[#C7F36B] bg-black/60 px-3 py-1.5 rounded-lg border border-[#304149]">
-                      https://30.31.32.136
+                    <span className="font-mono text-xs text-[#C7F36B] bg-black/60 px-3 py-1.5 rounded-lg border border-[#304149] break-all">
+                      https://idaho-ion-congratulations-questions.trycloudflare.com
                     </span>
                     <button 
                       onClick={() => {
-                        navigator.clipboard?.writeText('https://30.31.32.136');
-                        showToast('URL copied to clipboard!');
+                        navigator.clipboard?.writeText('https://idaho-ion-congratulations-questions.trycloudflare.com');
+                        showToast('Mobile URL copied to clipboard!');
                       }}
                       className="text-xs font-bold text-[#ACBAC2] hover:text-white bg-[#172127] border border-[#304149] px-3 py-1.5 rounded-lg"
                     >
                       Copy Link
                     </button>
+                  </div>
+                  <div className="text-[10px] text-zinc-500 pt-1">
+                    Campus Intranet URL (requires Brainware Wi-Fi): <code className="text-zinc-400">https://30.31.32.136</code>
                   </div>
                 </div>
               </div>

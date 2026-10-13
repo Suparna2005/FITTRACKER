@@ -11,7 +11,8 @@
 ---
 
 ## 🚀 Live Production Access
-- **Production URL:** [https://30.31.32.136](https://30.31.32.136) (Secured with TLS/SSL Nginx reverse proxy; HTTP auto-redirects to HTTPS)
+- **Production URL (Campus Network):** [https://30.31.32.136](https://30.31.32.136) (Secured with TLS/SSL Nginx reverse proxy; HTTP auto-redirects to HTTPS)
+- **Public Mobile App URL (Any Phone / 4G / 5G):** [https://idaho-ion-congratulations-questions.trycloudflare.com](https://idaho-ion-congratulations-questions.trycloudflare.com)
 - **Interactive API Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs) (Swagger UI)
 
 ---
