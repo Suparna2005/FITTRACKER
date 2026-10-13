@@ -1121,13 +1121,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         if (updateUser) updateUser(updatedUser);
         
       } else if (activeMode === 'food' && result?.food_name) {
+        const dishWeight = Number(result.serving_weight_g) || 0;
+        const dishCals = Number(result.estimated_calories) || 0;
+        const calPerG = Number(result.calories_per_g) || (dishWeight > 0 ? Number((dishCals / dishWeight).toFixed(2)) : 0);
+        const calPer100g = Number(result.calories_per_100g) || (dishWeight > 0 ? Number(((dishCals / dishWeight) * 100).toFixed(1)) : 0);
+
         const response = await fetch(`${API_URL}/log_food/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: user.id,
             food_name: result.food_name,
-            calories: Number(result.estimated_calories) || 0,
+            calories: dishCals,
+            calories_per_g: calPerG,
+            calories_per_100g: calPer100g,
             protein_g: Number(result.protein_g) || 0,
             carbs_g: Number(result.carbs_g) || 0,
             fats_g: Number(result.fats_g) || 0,
@@ -1137,15 +1144,16 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             minerals: result.minerals || [],
             glycemic_index: result.glycemic_index || "",
             health_score: Number(result.health_score) || 0,
-            serving_weight_g: Number(result.serving_weight_g) || 0,
+            serving_weight_g: dishWeight,
             ingredients: result.ingredients || [],
             scientific_notes: result.scientific_notes || "",
             date: new Date().toISOString().split('T')[0]
           })
         });
         const resData = await response.json();
-        const weightText = result.serving_weight_g ? ` (${result.serving_weight_g}g)` : '';
-        alert(resData.message || `Successfully logged ${result.food_name}${weightText} (${result.estimated_calories} kcal) to database!`);
+        const weightText = dishWeight ? ` (${dishWeight}g)` : '';
+        const calDensityText = calPerG ? ` [${calPerG} kcal/g]` : '';
+        alert(resData.message || `Successfully logged ${result.food_name}${weightText} (${dishCals} kcal${calDensityText}) to database!`);
 
       } else if (activeMode === 'form' && result?.detected_exercise) {
         // Construct the log payload using real-time tracked sets & reps
@@ -1413,23 +1421,36 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 ) : (
                   <div className="space-y-4 fade-up">
                     {/* Dynamic Rendering Based on Mode */}
-                    {activeMode === 'food' && (
+                    {activeMode === 'food' && (() => {
+                      const dishWeight = Number(result.serving_weight_g) || 0;
+                      const dishCals = Number(result.estimated_calories) || 0;
+                      const dishCalPerG = result.calories_per_g !== undefined && result.calories_per_g !== null
+                        ? Number(result.calories_per_g).toFixed(2)
+                        : (dishWeight > 0 ? (dishCals / dishWeight).toFixed(2) : '0.00');
+                      const dishCalPer100g = result.calories_per_100g !== undefined && result.calories_per_100g !== null
+                        ? Number(result.calories_per_100g).toFixed(1)
+                        : (dishWeight > 0 ? ((dishCals / dishWeight) * 100).toFixed(1) : '0.0');
+
+                      return (
                       <div className="space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <h3 className="font-display text-3xl font-bold text-white tracking-wide">
                             {result.food_name || 'Unknown Dish'}
                           </h3>
                           <div className="flex flex-wrap items-center gap-2">
-                            {result.serving_weight_g && (
+                            {dishWeight > 0 && (
                               <span className="bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                ⚖️ Weight Count: {result.serving_weight_g}g
+                                ⚖️ Weight: {dishWeight}g
                               </span>
                             )}
-                            {result.estimated_calories && (
+                            {dishCals > 0 && (
                               <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                ⚡ Calories Count: {result.estimated_calories} kcal
+                                ⚡ Calories: {dishCals} kcal
                               </span>
                             )}
+                            <span className="bg-orange-500/20 text-orange-300 border border-orange-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                              🔥 Density: {dishCalPerG} kcal/g ({dishCalPer100g} kcal/100g)
+                            </span>
                             {result.confidence && (
                               <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                 🔬 {result.confidence}
@@ -1438,16 +1459,22 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           </div>
                         </div>
 
-                        {/* Complete Macro, Portion Weight & Micronutrient Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                        {/* Complete Macro, Portion Weight, Density & Micronutrient Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5">
                           <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/30 rounded-2xl p-3 flex flex-col justify-between">
                             <div className="text-[9px] text-[#C7F36B] font-black uppercase tracking-widest mb-1">⚖️ WEIGHT</div>
-                            <div className="text-xl font-black text-white">{result.serving_weight_g || 0}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
+                            <div className="text-xl font-black text-white">{dishWeight}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex flex-col justify-between">
                             <div className="text-[9px] text-amber-300 font-black uppercase tracking-widest mb-1">⚡ CALORIES</div>
-                            <div className="text-xl font-black text-white">{result.estimated_calories || 0}<span className="text-xs text-amber-300 font-bold ml-0.5">kcal</span></div>
+                            <div className="text-xl font-black text-white">{dishCals}<span className="text-xs text-amber-300 font-bold ml-0.5">kcal</span></div>
+                          </div>
+
+                          <div className="bg-orange-500/20 border border-orange-500/35 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-orange-300 font-black uppercase tracking-widest mb-1">🔥 CAL / GRAM</div>
+                            <div className="text-xl font-black text-orange-300">{dishCalPerG}<span className="text-xs font-bold ml-0.5">kcal/g</span></div>
+                            <div className="text-[9px] text-zinc-400 font-semibold">{dishCalPer100g} kcal/100g</div>
                           </div>
 
                           <div className="bg-[#54D8CF]/15 border border-[#54D8CF]/30 rounded-2xl p-3 flex flex-col justify-between">
@@ -1543,47 +1570,75 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                               </span>
                             </div>
 
-                            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                               {result.ingredients.map((ing, i) => {
-                                const ingWeight = Number(ing.weight_g) || 0;
-                                const totalWeight = Number(result.serving_weight_g) || 1;
+                                const ingName = ing.name || ing.ingredient || ing.item || ing.food_item || ing.title || `Component #${i + 1}`;
+                                const ingWeight = Number(ing.weight_g) || Number(ing.weight) || 0;
+                                const ingCals = Number(ing.calories) || Number(ing.estimated_calories) || Number(ing.kcal) || 0;
+                                const ingCalPerG = ing.calories_per_g !== undefined && ing.calories_per_g !== null
+                                  ? Number(ing.calories_per_g).toFixed(2)
+                                  : (ingWeight > 0 ? (ingCals / ingWeight).toFixed(2) : '0.00');
+                                const ingCalPer100g = ing.calories_per_100g !== undefined && ing.calories_per_100g !== null
+                                  ? Number(ing.calories_per_100g).toFixed(1)
+                                  : (ingWeight > 0 ? ((ingCals / ingWeight) * 100).toFixed(1) : '0.0');
+
+                                const totalWeight = dishWeight || 1;
                                 const weightPct = Math.min(100, Math.round((ingWeight / totalWeight) * 100));
 
                                 return (
-                                  <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl p-3 transition-colors space-y-2">
-                                    <div className="flex items-center justify-between text-xs">
+                                  <div key={i} className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-xl p-3.5 transition-colors space-y-2.5">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                                       <div className="flex items-center gap-2 font-bold text-white">
-                                        <span className="w-2 h-2 rounded-full bg-[#C7F36B]"></span>
-                                        <span>{ing.name}</span>
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#C7F36B] shadow-[0_0_8px_#C7F36B]"></span>
+                                        <span className="text-sm tracking-wide font-black text-white">{ingName}</span>
                                       </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-mono font-extrabold text-[#C7F36B] bg-[#C7F36B]/10 border border-[#C7F36B]/20 px-2 py-0.5 rounded text-[11px]">
-                                          {ingWeight}g
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-mono font-extrabold text-[#C7F36B] bg-[#C7F36B]/15 border border-[#C7F36B]/30 px-2.5 py-1 rounded-md text-[11px]">
+                                          ⚖️ {ingWeight}g
                                         </span>
-                                        <span className="font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-[11px]">
-                                          {ing.calories || 0} kcal
+                                        <span className="font-mono font-extrabold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-md text-[11px]">
+                                          ⚡ {ingCals} kcal
+                                        </span>
+                                        <span className="font-mono font-extrabold text-orange-300 bg-orange-500/20 border border-orange-500/35 px-2.5 py-1 rounded-md text-[11px]">
+                                          🔥 {ingCalPerG} kcal/g ({ingCalPer100g} kcal/100g)
                                         </span>
                                       </div>
                                     </div>
 
                                     {/* Gram Proportion Bar */}
                                     <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden flex">
-                                      <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, weightPct)}%` }}></div>
+                                      <div className="bg-gradient-to-r from-emerald-500 via-teal-400 to-[#C7F36B] h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(5, weightPct)}%` }}></div>
                                     </div>
 
-                                    <div className="flex flex-wrap items-center justify-between text-[10px] text-zinc-400 gap-1">
-                                      <span>Mass Share: {weightPct}% of plate</span>
-                                      <span className="font-mono flex items-center gap-2">
-                                        <span>P: <strong className="text-[#54D8CF]">{ing.protein_g ?? 0}g</strong></span>
-                                        <span>C: <strong className="text-amber-300">{ing.carbs_g ?? 0}g</strong></span>
-                                        <span>F: <strong className="text-rose-300">{ing.fats_g ?? 0}g</strong></span>
-                                        {ing.fiber_g ? <span>Fiber: <strong className="text-emerald-300">{ing.fiber_g}g</strong></span> : null}
-                                      </span>
+                                    {/* Macro Pill breakdown for each ingredient */}
+                                    <div className="flex flex-wrap items-center justify-between text-[11px] text-zinc-300 gap-1.5 pt-1 border-t border-white/5">
+                                      <span className="text-[10px] text-zinc-400 font-semibold">Mass Share: <strong className="text-white">{weightPct}%</strong> of plate</span>
+                                      <div className="flex flex-wrap items-center gap-2 font-mono">
+                                        <span className="bg-[#54D8CF]/10 text-[#54D8CF] px-2 py-0.5 rounded border border-[#54D8CF]/20">
+                                          P: <strong>{ing.protein_g ?? 0}g</strong>
+                                        </span>
+                                        <span className="bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20">
+                                          C: <strong>{ing.carbs_g ?? 0}g</strong>
+                                        </span>
+                                        <span className="bg-rose-500/10 text-rose-300 px-2 py-0.5 rounded border border-rose-500/20">
+                                          F: <strong>{ing.fats_g ?? 0}g</strong>
+                                        </span>
+                                        {ing.fiber_g !== undefined && ing.fiber_g !== null && (
+                                          <span className="bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20">
+                                            Fiber: <strong>{ing.fiber_g}g</strong>
+                                          </span>
+                                        )}
+                                        {ing.sugar_g !== undefined && ing.sugar_g !== null && (
+                                          <span className="bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20">
+                                            Sugar: <strong>{ing.sugar_g}g</strong>
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
 
                                     {/* Ingredient Specific Vitamins & Minerals */}
                                     {((ing.vitamins && ing.vitamins.length > 0) || (ing.minerals && ing.minerals.length > 0)) && (
-                                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[9px]">
+                                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[9px]">
                                         {ing.vitamins && ing.vitamins.map((v, idx) => (
                                           <span key={idx} className="bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20">✨ {v}</span>
                                         ))}
@@ -1617,7 +1672,8 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           </div>
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
 
                     {activeMode === 'physique' && (
                       <>

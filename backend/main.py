@@ -281,6 +281,8 @@ class FoodLogRequest(BaseModel):
     user_id: int
     food_name: str
     calories: int
+    calories_per_g: Optional[float] = None
+    calories_per_100g: Optional[float] = None
     protein_g: Optional[int] = 0
     carbs_g: Optional[int] = 0
     fats_g: Optional[int] = 0
@@ -302,10 +304,19 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
     
     ing_summary = ""
     if log.ingredients:
-        ing_parts = [f"{i.get('name', 'Item')} ({i.get('weight_g', 0)}g - {i.get('calories', 0)} kcal)" for i in log.ingredients]
+        ing_parts = []
+        for i in log.ingredients:
+            iname = i.get('name') or i.get('ingredient') or i.get('item') or 'Item'
+            iwt = i.get('weight_g', 0)
+            ical = i.get('calories', 0)
+            ical_per_g = i.get('calories_per_g') or (round(ical / max(iwt, 1), 2) if iwt else 0)
+            ing_parts.append(f"{iname} ({iwt}g - {ical} kcal, {ical_per_g} kcal/g)")
         ing_summary = " | Ingredients: " + ", ".join(ing_parts)
 
-    weight_str = f" ({log.serving_weight_g}g total weight)" if log.serving_weight_g else ""
+    cal_per_g = log.calories_per_g or (round(log.calories / max(log.serving_weight_g or 1, 1), 2) if log.serving_weight_g else 0)
+    cal_per_100g = log.calories_per_100g or (round((log.calories / max(log.serving_weight_g or 1, 1)) * 100, 1) if log.serving_weight_g else 0)
+    density_str = f", {cal_per_g} kcal/g" if cal_per_g else ""
+    weight_str = f" ({log.serving_weight_g}g total weight{density_str})" if log.serving_weight_g else ""
     food_note = f"[Scientific Vision Food Log] {log.food_name}{weight_str}: {log.calories} kcal (Protein: {log.protein_g}g, Carbs: {log.carbs_g}g, Fats: {log.fats_g}g, Fiber: {log.fiber_g or 0}g){ing_summary}"
     
     db_workout = models.DailyWorkout(
@@ -318,6 +329,8 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
         },
         diet_data={
             "daily_calories": log.calories,
+            "calories_per_g": cal_per_g,
+            "calories_per_100g": cal_per_100g,
             "serving_weight_g": log.serving_weight_g or 0,
             "macros": {
                 "protein": f"{log.protein_g}g",
@@ -333,14 +346,14 @@ def log_food(log: FoodLogRequest, db: Session = Depends(get_db)):
             "ingredients": log.ingredients or [],
             "scientific_notes": log.scientific_notes or "",
             "meals": [
-                {"name": f"Vision Scanned Meal ({log.serving_weight_g or 'N/A'}g)", "meal": f"{log.food_name} — {log.calories} kcal"}
+                {"name": f"Vision Scanned Meal ({log.serving_weight_g or 'N/A'}g - {cal_per_g} kcal/g)", "meal": f"{log.food_name} — {log.calories} kcal ({cal_per_g} kcal/g)"}
             ]
         },
         status="completed"
     )
     db.add(db_workout)
     db.commit()
-    return {"status": "success", "message": f"Successfully logged {log.food_name} ({log.serving_weight_g or 'N/A'}g, {log.calories} kcal) to database!"}
+    return {"status": "success", "message": f"Successfully logged {log.food_name} ({log.serving_weight_g or 'N/A'}g, {log.calories} kcal, {cal_per_g} kcal/g) to database!"}
 
 class WorkoutLogRequest(BaseModel):
     user_id: int

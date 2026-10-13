@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 import urllib.request
 import urllib.error
 from dotenv import load_dotenv
@@ -185,19 +186,209 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
         print(f"Error calling Groq: {e}")
         return _get_mock(str(e))
 
+def _normalize_food_data(data: dict) -> dict:
+    if not isinstance(data, dict):
+        return data
+
+    def _to_num(val, default=0.0):
+        if val is None:
+            return default
+        if isinstance(val, (int, float)):
+            return float(val)
+        try:
+            clean_str = re.sub(r"[^\d.]", "", str(val))
+            return float(clean_str) if clean_str else default
+        except Exception:
+            return default
+
+    food_name = (
+        data.get("food_name") or
+        data.get("dish_name") or
+        data.get("name") or
+        data.get("dish") or
+        data.get("food") or
+        "Scanned Meal"
+    )
+
+    raw_ingredients = data.get("ingredients") or []
+    if isinstance(raw_ingredients, dict):
+        raw_ingredients = [{"name": k, **(v if isinstance(v, dict) else {"calories": v})} for k, v in raw_ingredients.items()]
+    elif isinstance(raw_ingredients, str):
+        raw_ingredients = [{"name": raw_ingredients, "weight_g": 0, "calories": 0}]
+
+    normalized_ingredients = []
+    total_ing_weight = 0
+    total_ing_cals = 0
+    total_ing_p = 0.0
+    total_ing_c = 0.0
+    total_ing_f = 0.0
+    total_ing_fiber = 0.0
+
+    for idx, ing in enumerate(raw_ingredients):
+        if isinstance(ing, str):
+            ing = {"name": ing}
+        elif not isinstance(ing, dict):
+            continue
+
+        name = (
+            ing.get("name") or
+            ing.get("ingredient") or
+            ing.get("item") or
+            ing.get("food_item") or
+            ing.get("food") or
+            ing.get("title") or
+            f"Component #{idx + 1}"
+        )
+
+        weight_g = round(_to_num(ing.get("weight_g") or ing.get("weight") or ing.get("grams") or ing.get("portion_g") or ing.get("mass_g"), 0))
+        calories = round(_to_num(ing.get("calories") or ing.get("estimated_calories") or ing.get("kcal") or ing.get("calorie") or ing.get("cals"), 0))
+        protein_g = round(_to_num(ing.get("protein_g") or ing.get("protein") or ing.get("prot_g"), 0), 1)
+        carbs_g = round(_to_num(ing.get("carbs_g") or ing.get("carbs") or ing.get("carb_g") or ing.get("carbohydrates"), 0), 1)
+        fats_g = round(_to_num(ing.get("fats_g") or ing.get("fat_g") or ing.get("fats") or ing.get("fat"), 0), 1)
+        fiber_g = round(_to_num(ing.get("fiber_g") or ing.get("fiber") or ing.get("dietary_fiber"), 0), 1)
+        sugar_g = round(_to_num(ing.get("sugar_g") or ing.get("sugar") or ing.get("sugars"), 0), 1)
+
+        if weight_g > 0:
+            calories_per_g = round(calories / weight_g, 2)
+            calories_per_100g = round((calories / weight_g) * 100, 1)
+        else:
+            calories_per_g = round(_to_num(ing.get("calories_per_g"), 0.0), 2)
+            calories_per_100g = round(_to_num(ing.get("calories_per_100g"), 0.0), 1)
+
+        total_ing_weight += weight_g
+        total_ing_cals += calories
+        total_ing_p += protein_g
+        total_ing_c += carbs_g
+        total_ing_f += fats_g
+        total_ing_fiber += fiber_g
+
+        vitamins = ing.get("vitamins") or []
+        if isinstance(vitamins, str):
+            vitamins = [vitamins]
+        minerals = ing.get("minerals") or []
+        if isinstance(minerals, str):
+            minerals = [minerals]
+
+        health_benefits = str(ing.get("health_benefits") or ing.get("benefits") or ing.get("benefit") or ing.get("notes") or "").strip()
+
+        normalized_ingredients.append({
+            "name": name,
+            "weight_g": int(weight_g),
+            "calories": int(calories),
+            "calories_per_g": calories_per_g,
+            "calories_per_100g": calories_per_100g,
+            "protein_g": protein_g,
+            "carbs_g": carbs_g,
+            "fats_g": fats_g,
+            "fiber_g": fiber_g,
+            "sugar_g": sugar_g,
+            "vitamins": vitamins,
+            "minerals": minerals,
+            "health_benefits": health_benefits
+        })
+
+    serving_weight_g = round(_to_num(data.get("serving_weight_g") or data.get("total_weight_g") or data.get("weight_g") or data.get("weight"), total_ing_weight))
+    if serving_weight_g == 0 and total_ing_weight > 0:
+        serving_weight_g = total_ing_weight
+
+    estimated_calories = round(_to_num(data.get("estimated_calories") or data.get("calories") or data.get("total_calories") or data.get("kcal"), total_ing_cals))
+    if estimated_calories == 0 and total_ing_cals > 0:
+        estimated_calories = total_ing_cals
+
+    protein_g = round(_to_num(data.get("protein_g") or data.get("protein"), total_ing_p), 1)
+    carbs_g = round(_to_num(data.get("carbs_g") or data.get("carbs"), total_ing_c), 1)
+    fats_g = round(_to_num(data.get("fats_g") or data.get("fats") or data.get("fat_g"), total_ing_f), 1)
+    fiber_g = round(_to_num(data.get("fiber_g") or data.get("fiber"), total_ing_fiber), 1)
+    sugar_g = round(_to_num(data.get("sugar_g") or data.get("sugar"), 0), 1)
+
+    if serving_weight_g > 0:
+        calories_per_g = round(estimated_calories / serving_weight_g, 2)
+        calories_per_100g = round((estimated_calories / serving_weight_g) * 100, 1)
+    else:
+        calories_per_g = round(_to_num(data.get("calories_per_g"), 0.0), 2)
+        calories_per_100g = round(_to_num(data.get("calories_per_100g"), 0.0), 1)
+
+    vitamins = data.get("vitamins") or []
+    if isinstance(vitamins, str):
+        vitamins = [vitamins]
+    minerals = data.get("minerals") or []
+    if isinstance(minerals, str):
+        minerals = [minerals]
+
+    glycemic_index = str(data.get("glycemic_index") or "Low to Medium").strip()
+    health_score = int(_to_num(data.get("health_score"), 90))
+    confidence = str(data.get("confidence") or "High Vision Confidence - Complete Gram & Macro Breakdown").strip()
+    scientific_notes = str(data.get("scientific_notes") or "").strip()
+
+    return {
+        "food_name": food_name,
+        "serving_weight_g": int(serving_weight_g),
+        "estimated_calories": int(estimated_calories),
+        "calories_per_g": calories_per_g,
+        "calories_per_100g": calories_per_100g,
+        "protein_g": protein_g,
+        "carbs_g": carbs_g,
+        "fats_g": fats_g,
+        "fiber_g": fiber_g,
+        "sugar_g": sugar_g,
+        "vitamins": vitamins,
+        "minerals": minerals,
+        "glycemic_index": glycemic_index,
+        "health_score": health_score,
+        "confidence": confidence,
+        "scientific_notes": scientific_notes,
+        "ingredients_detected_count": len(normalized_ingredients),
+        "ingredients": normalized_ingredients
+    }
+
 def analyze_vision_image(base64_image: str, mode: str = "food"):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return {"error": "GROQ_API_KEY is missing"}
 
     prompts = {
-        "food": "Analyze this food image scientifically. Identify all individual ingredients, portion weights in grams, total calories, macro & micronutrient breakdowns. Return a raw JSON object (no markdown, no backticks) with keys: 'food_name' (string), 'serving_weight_g' (integer, total dish weight count in grams), 'estimated_calories' (integer, total calorie count), 'protein_g' (integer, total protein in grams), 'carbs_g' (integer, total carbs in grams), 'fats_g' (integer, total fats in grams), 'fiber_g' (number, dietary fiber in grams), 'sugar_g' (number, total sugars in grams), 'vitamins' (array of strings, e.g. ['Vitamin A (25%)', 'Vitamin C (60%)', 'Vitamin B12 (40%)', 'Vitamin K (80%)']), 'minerals' (array of strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)', 'Magnesium (85mg)', 'Zinc (18%)']), 'glycemic_index' (string, e.g. 'Low (GI 38)'), 'health_score' (integer out of 100, e.g. 94), 'confidence' (string, e.g. '95% High Vision Confidence - Scientific Micro & Macro Breakdown'), 'scientific_notes' (string, nutritional density assessment), 'ingredients_detected_count' (integer, total count of detected ingredients), and 'ingredients' (array of objects, each containing: 'name' (string), 'weight_g' (integer, ingredient weight count in grams), 'calories' (integer, ingredient calorie count), 'protein_g' (number), 'carbs_g' (number), 'fats_g' (number), 'fiber_g' (number), 'vitamins' (array of strings, key vitamins in this ingredient), 'minerals' (array of strings, key minerals in this ingredient), 'health_benefits' (string)).",
+        "food": (
+            "Analyze this food image scientifically. Identify all individual ingredients, portion weights in grams, total calories, macro & micronutrient breakdowns. "
+            "Return a raw JSON object (no markdown, no backticks) with keys: "
+            "'food_name' (string, full descriptive dish name), "
+            "'serving_weight_g' (integer, total dish weight count in grams), "
+            "'estimated_calories' (integer, total calorie count in kcal), "
+            "'calories_per_g' (number, calories per gram for the entire dish, e.g. 1.24), "
+            "'calories_per_100g' (number, calories per 100g for the entire dish, e.g. 124.0), "
+            "'protein_g' (number, total protein in grams), "
+            "'carbs_g' (number, total carbs in grams), "
+            "'fats_g' (number, total fats in grams), "
+            "'fiber_g' (number, dietary fiber in grams), "
+            "'sugar_g' (number, total sugars in grams), "
+            "'vitamins' (array of strings, e.g. ['Vitamin A (25%)', 'Vitamin C (60%)', 'Vitamin B12 (40%)', 'Vitamin K (80%)']), "
+            "'minerals' (array of strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)', 'Magnesium (85mg)', 'Zinc (18%)']), "
+            "'glycemic_index' (string, e.g. 'Low (GI 38)'), "
+            "'health_score' (integer out of 100, e.g. 94), "
+            "'confidence' (string, e.g. '95% High Vision Confidence - Scientific Micro & Macro Breakdown'), "
+            "'scientific_notes' (string, detailed nutritional density assessment), "
+            "'ingredients_detected_count' (integer, total count of detected ingredients), and "
+            "'ingredients' (array of objects, each containing: "
+            "'name' (string, specific and accurate ingredient name), "
+            "'weight_g' (integer, ingredient portion weight in grams), "
+            "'calories' (integer, ingredient calories in kcal), "
+            "'calories_per_g' (number, calories per gram for this specific ingredient, e.g. 1.65), "
+            "'calories_per_100g' (number, calories per 100g for this specific ingredient, e.g. 165.0), "
+            "'protein_g' (number, protein in grams), "
+            "'carbs_g' (number, carbohydrates in grams), "
+            "'fats_g' (number, fats in grams), "
+            "'fiber_g' (number, dietary fiber in grams), "
+            "'sugar_g' (number, sugars in grams), "
+            "'vitamins' (array of strings, key vitamins in this ingredient), "
+            "'minerals' (array of strings, key minerals in this ingredient), "
+            "'health_benefits' (string, physiological and health benefits of this ingredient))."
+        ),
         "equipment": "Analyze this image of a gym or workout area. Return a raw JSON object (no markdown, no backticks) with keys: 'detected_equipment' (array of strings, e.g. ['Dumbbells', 'Bench', 'Cable Machine']), 'environment_type' (string, e.g. 'Home Gym', 'Commercial Gym', 'Hotel Gym'), and 'suggested_workout_focus' (string).",
         "physique": "Describe the person in the image. Return a raw JSON object (no markdown) with keys: 'estimated_body_fat_percentage' (string, e.g. '22-25%'), 'obesity_count' (string, e.g. '22-25% (Optimal Healthy Range)' or '32% (Stage 1 Obesity)'), 'body_type_category' (string, choose one: Shredded, Athletic, Fit, Average, Heavy, Obese), and 'notable_features' (string).",
         "form": "Analyze the exercise form in this image. Identify the exercise. If they are holding a barbell or dumbbell, pay extremely close attention to their grip (horizontal/vertical, overhand/underhand) and flag any grip mistakes. If they are empty-handed, just critique their body posture. Return a raw JSON object (no markdown) with keys: 'detected_exercise' (string), 'form_score' (integer out of 100), 'critique' (string, focus on posture and grip), and 'correction_advice' (string)."
     }
-    # Dynamically find the active vision model
-    active_vision_model = "llama-3.2-11b-vision" # Default to the current production model
+
+    # Dynamically select active vision model
+    active_vision_model = "qwen/qwen3.8-27b"
     try:
         m_req = urllib.request.Request(
             "https://api.groq.com/openai/v1/models", 
@@ -206,10 +397,9 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         with urllib.request.urlopen(m_req) as m_res:
             m_data = json.loads(m_res.read().decode('utf-8'))
             models = [m["id"] for m in m_data.get("data", [])]
-            vision_models = [m for m in models if "vision" in m.lower() or "qwen" in m.lower()]
+            vision_models = [m for m in models if "vision" in m.lower() or "qwen" in m.lower() or "vl" in m.lower()]
             if vision_models:
-                # Prefer 11b if available, otherwise just grab the first one
-                active_vision_model = next((m for m in vision_models if "11b" in m), vision_models[0])
+                active_vision_model = next((m for m in vision_models if "qwen" in m.lower()), vision_models[0])
     except Exception as e:
         print(f"Could not fetch models: {e}")
 
@@ -226,45 +416,59 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
             }
         ],
         "temperature": 0.2,
-        "max_tokens": 1024
+        "max_tokens": 2048
     }
 
-    
-    try:
-        req = urllib.request.Request(
-            url, 
-            data=json.dumps(payload).encode('utf-8'), 
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {api_key}',
-                'User-Agent': 'FitnessTracker/1.0'
-            }
-        )
-        with urllib.request.urlopen(req) as response:
-            result = json.loads(response.read().decode('utf-8'))
-            content = result["choices"][0]["message"]["content"].strip()
-            
-            # Use the robust repair logic
-            try:
-                parsed = _deep_parse(json.loads(_repair_json(content)))
+    req_data = json.dumps(payload).encode('utf-8')
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}',
+        'User-Agent': 'FitnessTracker/1.0'
+    }
+
+    err_msg = ""
+    # Attempt up to 3 times to mitigate transient 503 / 429 over-capacity errors
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(url, data=req_data, headers=headers)
+            with urllib.request.urlopen(req) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                content = result["choices"][0]["message"]["content"].strip()
+                
+                # Use robust repair logic
+                parsed = None
+                try:
+                    parsed = _deep_parse(json.loads(_repair_json(content)))
+                except Exception as pe:
+                    print(f"Failed strict parsing, falling back to basic: {pe}")
+                    cleaned = content
+                    if cleaned.startswith("```"):
+                        cleaned = cleaned.strip("`")
+                        if cleaned.startswith("json"):
+                            cleaned = cleaned[4:]
+                        cleaned = cleaned.strip()
+                    parsed = json.loads(cleaned)
+
                 if isinstance(parsed, dict):
+                    if mode == "food":
+                        return _normalize_food_data(parsed)
                     return parsed
-            except Exception as pe:
-                print(f"Failed strict parsing, falling back to basic: {pe}")
-                if content.startswith("```"):
-                    content = content.strip("`")
-                    if content.startswith("json"):
-                        content = content[4:]
-                    content = content.strip()
-                return json.loads(content)
-            
-    except urllib.error.HTTPError as he:
-        error_body = he.read().decode('utf-8')
-        err_msg = f"HTTP {he.code}: {error_body}"
-        print(f"Vision API Error: {err_msg}")
-    except Exception as e:
-        err_msg = str(e)
-        print(f"Vision API Error: {err_msg}")
+
+        except urllib.error.HTTPError as he:
+            error_body = he.read().decode('utf-8')
+            err_msg = f"HTTP {he.code}: {error_body}"
+            print(f"Vision API Error (Attempt {attempt}): {err_msg}")
+            if he.code in (429, 503) and attempt < 3:
+                time.sleep(1.5 * attempt)
+                continue
+            break
+        except Exception as e:
+            err_msg = str(e)
+            print(f"Vision API Error (Attempt {attempt}): {err_msg}")
+            if attempt < 3:
+                time.sleep(1.5 * attempt)
+                continue
+            break
         
     # Return fallback mock data based on mode
     if mode == "physique":
@@ -288,10 +492,12 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
             "correction_advice": "The Vision model refused to process this image or crashed."
         }
     else:
-        return {
+        fallback_food = {
             "food_name": "Grilled Chicken & Quinoa Energy Bowl",
             "serving_weight_g": 420,
             "estimated_calories": 520,
+            "calories_per_g": 1.24,
+            "calories_per_100g": 123.8,
             "protein_g": 46,
             "carbs_g": 54,
             "fats_g": 12,
@@ -309,10 +515,13 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "name": "Lean Grilled Chicken Breast",
                     "weight_g": 180,
                     "calories": 297,
+                    "calories_per_g": 1.65,
+                    "calories_per_100g": 165.0,
                     "protein_g": 41,
                     "carbs_g": 0,
                     "fats_g": 6,
                     "fiber_g": 0,
+                    "sugar_g": 0,
                     "vitamins": ["Vitamin B12", "Vitamin B6", "Niacin"],
                     "minerals": ["Phosphorus", "Selenium", "Zinc"],
                     "health_benefits": "High bioavailable muscle-building protein, low in saturated fat"
@@ -321,10 +530,13 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "name": "Steamed Quinoa & Brown Rice",
                     "weight_g": 140,
                     "calories": 156,
+                    "calories_per_g": 1.11,
+                    "calories_per_100g": 111.4,
                     "protein_g": 4,
                     "carbs_g": 32,
                     "fats_g": 2,
                     "fiber_g": 4.5,
+                    "sugar_g": 1,
                     "vitamins": ["Vitamin B1", "Folate", "Vitamin E"],
                     "minerals": ["Magnesium", "Potassium", "Manganese"],
                     "health_benefits": "Sustained glucose release, rich in complete plant amino acids and fiber"
@@ -333,10 +545,13 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "name": "Steamed Broccoli & Carrots",
                     "weight_g": 85,
                     "calories": 35,
+                    "calories_per_g": 0.41,
+                    "calories_per_100g": 41.2,
                     "protein_g": 2,
                     "carbs_g": 7,
                     "fats_g": 0.5,
                     "fiber_g": 3.2,
+                    "sugar_g": 2.5,
                     "vitamins": ["Vitamin C (60%)", "Vitamin A (25%)", "Vitamin K"],
                     "minerals": ["Calcium", "Potassium", "Iron"],
                     "health_benefits": "Antioxidant cellular protection and immune system defense"
@@ -345,16 +560,20 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     "name": "Extra Virgin Olive Oil Dressing",
                     "weight_g": 15,
                     "calories": 132,
+                    "calories_per_g": 8.80,
+                    "calories_per_100g": 880.0,
                     "protein_g": 0,
                     "carbs_g": 0,
                     "fats_g": 15,
                     "fiber_g": 0,
+                    "sugar_g": 0,
                     "vitamins": ["Vitamin E (15%)", "Vitamin K"],
                     "minerals": ["Traces of Iron"],
                     "health_benefits": "Heart-healthy monounsaturated fatty acids and polyphenols"
                 }
             ]
         }
+        return _normalize_food_data(fallback_food)
 
 def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, severity: str = "Moderate", timing: str = "During exercise"):
     """
