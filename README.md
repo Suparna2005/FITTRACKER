@@ -42,7 +42,9 @@ Unlike traditional fitness apps that demand tedious manual logging, IronForge AI
 - **Debounced Hand Gesture Controls:** Hold up fingers for $\ge 10$ steady frames (~350ms) to unlock sets hands-free (1 finger for Set 1, 2 for Set 2, etc.). Isolated from rep counts.
 
 ### 2. 📸 Scientific Auto-Food Logger (Grams, Calories/Gram & Density Breakdown)
-- **Gram-Level Portion Weight & Calorie Density:** Snapping a photo of a meal estimates total mass in **grams (`g`)**, total calories (`kcal`), **calories per gram (`kcal/g`)**, and energy density per 100g (`kcal/100g`).
+- **Dual Ingestion (Live Camera & Photo Upload):** Athletes can snap live pictures via webcam or upload smartphone gallery photos directly via the `📁 UPLOAD PHOTO` button with automatic client-side resolution scaling.
+- **Interactive Weight Customization & Dynamic Recalculation:** Athletes can edit the **Total Meal Weight** or any individual **Ingredient Weight** (in grams). The system instantly recomputes calories, protein, carbs, fats, fiber, and sugars based on intrinsic calories-per-gram density ratios.
+- **Gram-Level Portion Weight & Calorie Density:** Estimates total mass in **grams (`g`)**, total calories (`kcal`), **calories per gram (`kcal/g`)**, and energy density per 100g (`kcal/100g`).
 - **Itemized Ingredient Breakdown:** Identifies every component on the plate, detailing individual weight (`g`), calories, and energy density (`kcal/g` & `kcal/100g`).
 - **Complete Macro & Micronutrient Profile:** Delivers granular breakdown of Protein, Carbohydrates, Fats, Dietary Fiber, and Sugars with mass-share proportion bars.
 - **Nutritional Density & Bio-Diagnostics:** Generates glycemic index (GI) diagnostics, vitamin & mineral profiles, and clinical nutritional density notes saved directly to your daily diet ledger.

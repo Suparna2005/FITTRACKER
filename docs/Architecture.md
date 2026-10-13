@@ -91,11 +91,24 @@ The backend provides high-performance, asynchronous RESTful API services:
   - Endpoint `POST /users/` provisions athlete profiles with duplicate prevention and clean 400 error handling.
   - Endpoint `POST /reset_password/` handles credential recovery and password reset.
 - **Cloud Vision Service (`ai_service.py`):**
-  - Accepts compressed Base64 images from frontend.
+  - Accepts compressed Base64 images from frontend webcam or file uploads.
   - Injects structured JSON schemas into Groq system prompts (`qwen/qwen3.8-27b` / `llama-3.2-11b-vision`).
   - Implements multi-model fallback and transient error retry logic with exponential backoff.
   - Computes complete energy density: calories per gram ($\text{kcal/g}$) and per 100g ($\text{kcal/100g}$) for the whole dish and each itemized ingredient.
   - Normalizes full macro and micronutrient arrays (Protein, Carbs, Fats, Dietary Fiber, Sugars, Vitamins, Minerals, Glycemic Index).
+
+### 3.1 Scientific Analysis of Food Weight Estimation from 2D Photos
+1. **The Physical Limitation of Single-View 2D Photography:**
+   Estimating physical mass solely from a single RGB 2D photo has inherent physical constraints:
+   - **Lack of Volumetric Depth ($Z$-axis):** A 2D image records pixels on an $(X, Y)$ plane. A 150g portion and a 300g portion can appear identical in surface area depending on distance to the lens or portion depth.
+   - **Density Variance ($\text{Mass} = \text{Volume} \times \text{Density}$):** Two foods of identical volume have vastly different densities (e.g., whipped Greek yogurt vs. dense peanut butter).
+   - **Occluded & Sub-Surface Layers:** Complex dishes (curries, burritos, salads, bowls) have ingredients and calorie-dense cooking oils concealed beneath top layers.
+2. **Role of Pretrained Vision Models:**
+   Vision models excel at **semantic component identification** and determining intrinsic **caloric and macronutrient density** ($\text{kcal/g}$, protein %, carb %, fat %) based on comprehensive nutritional data. However, their portion weight estimate in grams is an empirical heuristic.
+3. **The Hybrid Solution (Computer Vision + User Calibration):**
+   - The AI identifies all ingredients, classifies the dish, and calculates baseline nutrient densities ($\text{kcal/g}$).
+   - The athlete inputs or adjusts the ground-truth scale weight (e.g., actual kitchen scale reading in grams).
+   - The frontend recalculates all calories, protein, carbs, fats, fiber, and sugars dynamically based on the verified weight, delivering scientific precision.
 
 ---
 

@@ -43,7 +43,21 @@ Critical for running zero-latency computer vision and biomechanics without trigg
   ```
 - `workoutStatsRef`: Maintains current set/rep count state for instant database synchronization upon completing or closing sets.
 
-### 1.3 Browser Persistence (`localStorage`)
+### 1.3 Dynamic Weight & Macronutrient Calibration Engine
+In `VisionHub.jsx`, the user can calibrate portion weights, which dynamically recalculates nutritional macros using intrinsic caloric and macronutrient densities:
+- `activeModeRef`: A persistent React ref holding the active Vision Hub mode (`'food'`, `'form'`, `'physique'`, `'equipment'`) ensuring asynchronous image uploads correctly route to the expected backend model.
+- `handleTotalWeightChange(newTotalWeight)`: Scales all ingredients and dish macros proportionally:
+  $$\text{Scale Ratio } R = \frac{\text{New Total Weight}}{\text{Old Total Weight}}$$
+  $$\text{Ingredient Weight}_{\text{new}} = \text{Ingredient Weight}_{\text{old}} \times R$$
+  $$\text{Ingredient Calories}_{\text{new}} = \text{Ingredient Weight}_{\text{new}} \times \text{calories\_per\_g}$$
+  Intrinsic caloric density ($\text{kcal/g}$) and macronutrient ratios remain scale-invariant.
+- `handleIngredientWeightChange(index, newWeightVal)`: Adjusts a single ingredient's weight while holding its intrinsic nutrient density constant:
+  $$\text{Ingredient Calories} = \text{Weight}_g \times \text{calories\_per\_g}$$
+  $$\text{Ingredient Protein} = \text{Weight}_g \times \left(\frac{\text{Protein}_g}{\text{Base Weight}_g}\right)$$
+  Automatically re-aggregates total dish weight, total calories, macronutrients, and plate mass shares in real-time.
+- `fileInputRef`: Manages hidden `<input type="file" />` element triggered by `handleUploadClick` or fallback triggers.
+
+### 1.4 Browser Persistence (`localStorage`)
 - `fitnessUserId`: Retains athlete authentication context across page refreshes and browser restarts.
 
 ---

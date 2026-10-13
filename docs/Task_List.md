@@ -38,6 +38,8 @@
 - [x] **Calories Per Gram ($\text{kcal/g}$) & per 100g Calculation:** Built backend normalizer computing energy density for total dishes and each itemized component.
 - [x] **9-Card Macro & Density Frontend Grid:** Displayed portion weight, calories, energy density, protein, carbs, fats, fiber, sugars, and health score in VisionHub.
 - [x] **Itemized Component Calorie Density Badges:** Attached individual weight, calorie, and $\text{kcal/g}$ badges plus macro pills to every detected ingredient.
+- [x] **Dual Image Ingestion (Webcam + Photo Upload):** Added dedicated `📁 UPLOAD PHOTO` button in VisionHub module cards and scan results, triggering file picker with client-side image downscaling.
+- [x] **Interactive Weight Customization & Dynamic Macro Engine:** Implemented editable Total Dish Weight and Individual Ingredient Weight inputs with instant real-time recalculation of calories, macronutrients, and mass share bars using scale-invariant caloric density ($\text{kcal/g}$).
 - [x] **Nginx 50MB Image Upload Support:** Configured `client_max_body_size 50M` and extended proxy timeouts to eliminate HTTP 413 errors on high-resolution smartphone camera food pictures.
 
 ### Precision Biomechanical Engine & Anti-Jitter Overhaul

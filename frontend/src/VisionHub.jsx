@@ -6,6 +6,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const [result, setResult] = useState(null);
   const [imgPreview, setImgPreview] = useState(null);
   const [activeMode, setActiveMode] = useState(initialMode || null);
+  const activeModeRef = useRef(activeMode);
+  useEffect(() => {
+    activeModeRef.current = activeMode;
+  }, [activeMode]);
+
   const [showCamera, setShowCamera] = useState(false);
   const [realtimeWarning, setRealtimeWarning] = useState("Calibrating Biomechanics...");
   const [detectedExerciseDisplay, setDetectedExerciseDisplay] = useState('Squat');
@@ -283,8 +288,22 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     return angle;
   };
 
+  const handleUploadClick = (mode) => {
+    setActiveMode(mode);
+    activeModeRef.current = mode;
+    setImgPreview(null);
+    setResult(null);
+    setShowCamera(false);
+    stopCamera();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
   const handleScanClick = async (mode) => {
     setActiveMode(mode);
+    activeModeRef.current = mode;
     setImgPreview(null);
     setResult(null);
     setShowCamera(true);
@@ -1071,11 +1090,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const processImage = async (base64full) => {
     setLoading(true);
     const base64data = base64full.split(',')[1];
+    const modeToUse = activeModeRef.current || activeMode || 'food';
     try {
       const response = await fetch(`${API_URL}/analyze_vision/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: base64data, mode: activeMode })
+        body: JSON.stringify({ image_base64: base64data, mode: modeToUse })
       });
       const data = await response.json();
       setResult(data);
@@ -1084,6 +1104,140 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
       setResult({ error: "Failed to connect to backend Vision API" });
     }
     setLoading(false);
+  };
+
+  const handleTotalWeightChange = (newTotalWeightVal) => {
+    if (!result) return;
+    if (newTotalWeightVal === '') {
+      setResult(prev => ({ ...prev, serving_weight_g: '' }));
+      return;
+    }
+    const newTotal = parseFloat(newTotalWeightVal);
+    if (isNaN(newTotal) || newTotal < 0) return;
+
+    const oldTotal = Number(result.serving_weight_g) || 0;
+    const ratio = oldTotal > 0 ? (newTotal / oldTotal) : 1;
+
+    const updatedIngredients = (result.ingredients || []).map(ing => {
+      const oldIngW = Number(ing.weight_g) || 0;
+      const newIngW = Math.max(0, Math.round(oldIngW * ratio));
+      const calPerG = ing.calories_per_g !== undefined && ing.calories_per_g !== null
+        ? Number(ing.calories_per_g)
+        : (oldIngW > 0 ? (Number(ing.calories) / oldIngW) : 0);
+      const protRatio = oldIngW > 0 ? ((Number(ing.protein_g) || 0) / oldIngW) : 0;
+      const carbRatio = oldIngW > 0 ? ((Number(ing.carbs_g) || 0) / oldIngW) : 0;
+      const fatRatio = oldIngW > 0 ? ((Number(ing.fats_g) || 0) / oldIngW) : 0;
+      const fiberRatio = oldIngW > 0 ? ((Number(ing.fiber_g) || 0) / oldIngW) : 0;
+      const sugarRatio = oldIngW > 0 ? ((Number(ing.sugar_g) || 0) / oldIngW) : 0;
+
+      return {
+        ...ing,
+        weight_g: newIngW,
+        calories: Math.round(newIngW * calPerG),
+        protein_g: Number((newIngW * protRatio).toFixed(1)),
+        carbs_g: Number((newIngW * carbRatio).toFixed(1)),
+        fats_g: Number((newIngW * fatRatio).toFixed(1)),
+        fiber_g: Number((newIngW * fiberRatio).toFixed(1)),
+        sugar_g: Number((newIngW * sugarRatio).toFixed(1)),
+      };
+    });
+
+    const sumCals = updatedIngredients.length > 0 
+      ? updatedIngredients.reduce((acc, cur) => acc + (Number(cur.calories) || 0), 0)
+      : Math.round((Number(result.estimated_calories) || 0) * ratio);
+    const sumProt = updatedIngredients.length > 0
+      ? Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.protein_g) || 0), 0).toFixed(1))
+      : Number(((Number(result.protein_g) || 0) * ratio).toFixed(1));
+    const sumCarbs = updatedIngredients.length > 0
+      ? Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.carbs_g) || 0), 0).toFixed(1))
+      : Number(((Number(result.carbs_g) || 0) * ratio).toFixed(1));
+    const sumFats = updatedIngredients.length > 0
+      ? Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.fats_g) || 0), 0).toFixed(1))
+      : Number(((Number(result.fats_g) || 0) * ratio).toFixed(1));
+    const sumFiber = updatedIngredients.length > 0
+      ? Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.fiber_g) || 0), 0).toFixed(1))
+      : Number(((Number(result.fiber_g) || 0) * ratio).toFixed(1));
+    const sumSugar = updatedIngredients.length > 0
+      ? Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.sugar_g) || 0), 0).toFixed(1))
+      : Number(((Number(result.sugar_g) || 0) * ratio).toFixed(1));
+
+    const dishCalPerG = newTotal > 0 ? Number((sumCals / newTotal).toFixed(2)) : (Number(result.calories_per_g) || 0);
+    const dishCalPer100g = newTotal > 0 ? Number(((sumCals / newTotal) * 100).toFixed(1)) : (Number(result.calories_per_100g) || 0);
+
+    setResult(prev => ({
+      ...prev,
+      serving_weight_g: Math.round(newTotal),
+      estimated_calories: sumCals,
+      calories_per_g: dishCalPerG,
+      calories_per_100g: dishCalPer100g,
+      protein_g: sumProt,
+      carbs_g: sumCarbs,
+      fats_g: sumFats,
+      fiber_g: sumFiber,
+      sugar_g: sumSugar,
+      ingredients: updatedIngredients
+    }));
+  };
+
+  const handleIngredientWeightChange = (index, newWeightVal) => {
+    if (!result || !result.ingredients || !result.ingredients[index]) return;
+    if (newWeightVal === '') {
+      const updated = [...result.ingredients];
+      updated[index] = { ...updated[index], weight_g: '' };
+      setResult(prev => ({ ...prev, ingredients: updated }));
+      return;
+    }
+    const newW = Math.max(0, parseFloat(newWeightVal));
+    if (isNaN(newW)) return;
+
+    const updatedIngredients = result.ingredients.map((ing, i) => {
+      if (i !== index) return ing;
+      const oldW = Number(ing.weight_g) || 0;
+      const calPerG = ing.calories_per_g !== undefined && ing.calories_per_g !== null
+        ? Number(ing.calories_per_g)
+        : (oldW > 0 ? (Number(ing.calories) / oldW) : 0);
+      const protRatio = oldW > 0 ? ((Number(ing.protein_g) || 0) / oldW) : 0;
+      const carbRatio = oldW > 0 ? ((Number(ing.carbs_g) || 0) / oldW) : 0;
+      const fatRatio = oldW > 0 ? ((Number(ing.fats_g) || 0) / oldW) : 0;
+      const fiberRatio = oldW > 0 ? ((Number(ing.fiber_g) || 0) / oldW) : 0;
+      const sugarRatio = oldW > 0 ? ((Number(ing.sugar_g) || 0) / oldW) : 0;
+
+      return {
+        ...ing,
+        weight_g: Math.round(newW),
+        calories: Math.round(newW * calPerG),
+        protein_g: Number((newW * protRatio).toFixed(1)),
+        carbs_g: Number((newW * carbRatio).toFixed(1)),
+        fats_g: Number((newW * fatRatio).toFixed(1)),
+        fiber_g: Number((newW * fiberRatio).toFixed(1)),
+        sugar_g: Number((newW * sugarRatio).toFixed(1)),
+      };
+    });
+
+    const sumWeight = updatedIngredients.reduce((acc, cur) => acc + (Number(cur.weight_g) || 0), 0);
+    const sumCals = updatedIngredients.reduce((acc, cur) => acc + (Number(cur.calories) || 0), 0);
+    const sumProt = Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.protein_g) || 0), 0).toFixed(1));
+    const sumCarbs = Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.carbs_g) || 0), 0).toFixed(1));
+    const sumFats = Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.fats_g) || 0), 0).toFixed(1));
+    const sumFiber = Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.fiber_g) || 0), 0).toFixed(1));
+    const sumSugar = Number(updatedIngredients.reduce((acc, cur) => acc + (Number(cur.sugar_g) || 0), 0).toFixed(1));
+
+    const dishCalPerG = sumWeight > 0 ? Number((sumCals / sumWeight).toFixed(2)) : 0;
+    const dishCalPer100g = sumWeight > 0 ? Number(((sumCals / sumWeight) * 100).toFixed(1)) : 0;
+
+    setResult(prev => ({
+      ...prev,
+      serving_weight_g: sumWeight,
+      estimated_calories: sumCals,
+      calories_per_g: dishCalPerG,
+      calories_per_100g: dishCalPer100g,
+      protein_g: sumProt,
+      carbs_g: sumCarbs,
+      fats_g: sumFats,
+      fiber_g: sumFiber,
+      sugar_g: sumSugar,
+      ingredients: updatedIngredients
+    }));
   };
 
   const handleAcceptData = async () => {
@@ -1461,9 +1615,23 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
                         {/* Complete Macro, Portion Weight, Density & Micronutrient Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5">
-                          <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-[#C7F36B] font-black uppercase tracking-widest mb-1">⚖️ WEIGHT</div>
-                            <div className="text-xl font-black text-white">{dishWeight}<span className="text-xs text-[#C7F36B] font-bold ml-0.5">g</span></div>
+                          <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/40 rounded-2xl p-3 flex flex-col justify-between">
+                            <div className="text-[9px] text-[#C7F36B] font-black uppercase tracking-widest mb-1 flex items-center justify-between">
+                              <span>⚖️ TOTAL WEIGHT</span>
+                              <span className="text-[8px] bg-[#C7F36B]/30 text-[#C7F36B] px-1 py-0.5 rounded font-black tracking-normal">EDIT</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="number" 
+                                min="0" 
+                                max="5000"
+                                value={result.serving_weight_g !== undefined ? result.serving_weight_g : dishWeight}
+                                onChange={(e) => handleTotalWeightChange(e.target.value)}
+                                className="w-16 bg-black/70 text-xl font-black text-white px-1.5 py-0.5 rounded border border-[#C7F36B]/50 focus:border-[#C7F36B] outline-none"
+                                title="Edit Total Meal Weight (all ingredients scale proportionally)"
+                              />
+                              <span className="text-xs text-[#C7F36B] font-bold">g</span>
+                            </div>
                           </div>
 
                           <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex flex-col justify-between">
@@ -1593,9 +1761,19 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                                         <span className="text-sm tracking-wide font-black text-white">{ingName}</span>
                                       </div>
                                       <div className="flex flex-wrap items-center gap-1.5">
-                                        <span className="font-mono font-extrabold text-[#C7F36B] bg-[#C7F36B]/15 border border-[#C7F36B]/30 px-2.5 py-1 rounded-md text-[11px]">
-                                          ⚖️ {ingWeight}g
-                                        </span>
+                                        <div className="flex items-center gap-1 bg-[#C7F36B]/15 border border-[#C7F36B]/40 px-2 py-0.5 rounded-md">
+                                          <span className="text-[10px] text-[#C7F36B] font-bold">⚖️</span>
+                                          <input 
+                                            type="number"
+                                            min="0"
+                                            max="3000"
+                                            value={ing.weight_g !== undefined ? ing.weight_g : ingWeight}
+                                            onChange={(e) => handleIngredientWeightChange(i, e.target.value)}
+                                            className="w-14 bg-black/70 font-mono font-black text-white text-[11px] px-1 py-0.5 rounded border border-[#C7F36B]/40 focus:border-[#C7F36B] outline-none text-right"
+                                            title="Edit this ingredient portion weight in grams"
+                                          />
+                                          <span className="text-[10px] text-[#C7F36B] font-bold">g</span>
+                                        </div>
                                         <span className="font-mono font-extrabold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-md text-[11px]">
                                           ⚡ {ingCals} kcal
                                         </span>
@@ -1715,11 +1893,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     )}
 
                     <div className="pt-4 flex flex-wrap gap-3">
-                      <button onClick={handleAcceptData} className="min-h-[48px] btn-lime font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center">
-                        ✓ SAVE TO PROFILE
+                      <button onClick={handleAcceptData} className="min-h-[48px] btn-lime font-extrabold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-1.5">
+                        <span>✓</span> {activeMode === 'food' ? 'SAVE NUTRITION TO ATHLETE LOG' : 'SAVE TO PROFILE'}
                       </button>
-                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] btn-outline font-bold text-base py-3 px-6 rounded-xl flex items-center justify-center">
-                        Scan Again
+                      <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] btn-outline font-bold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-1.5">
+                        <span>📸</span> Scan Camera Again
+                      </button>
+                      <button onClick={() => handleUploadClick(activeMode)} className="min-h-[48px] font-bold text-base py-3 px-6 rounded-xl bg-[#54D8CF]/15 hover:bg-[#54D8CF]/25 text-[#54D8CF] border border-[#54D8CF]/40 flex items-center justify-center gap-1.5">
+                        <span>📁</span> Upload Photo
                       </button>
                       <button onClick={() => { setImgPreview(null); setResult(null); }} className="min-h-[48px] font-bold text-base py-3 px-6 rounded-xl bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 flex items-center justify-center">
                         Discard
@@ -1758,8 +1939,8 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           </div>
 
           {/* Module 2: Auto-Food Logger */}
-          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('food')}>
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('food')}>
               <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600" className="absolute w-full h-full object-cover opacity-40 group-hover:opacity-60 transition" alt="Food" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
               <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
@@ -1767,16 +1948,29 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Auto-Food Logger</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap a picture of your plate. AI detects all ingredients, weight count in grams, total calories, macros, vitamins, and minerals.</p>
-              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
-                OPEN WEBCAM
-              </button>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap or upload a photo of your plate. AI detects all ingredients, gram weights, total calories, macros & vitamins.</p>
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => handleScanClick('food')} 
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span>📸</span> OPEN WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleUploadClick('food')} 
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                >
+                  <span>📁</span> UPLOAD PHOTO
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Module 3: Obesity Count Scanner */}
-          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('physique')}>
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('physique')}>
               <img src="https://wger.de/static/images/muscles/muscular_system_front.svg" className="absolute w-full h-full object-contain filter invert opacity-30 mt-4 transition group-hover:opacity-50" alt="Anatomy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
               <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
@@ -1784,16 +1978,29 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Obesity Count Scanner</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie. AI estimates your exact obesity count and body composition stage by analyzing your silhouette.</p>
-              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
-                OPEN WEBCAM
-              </button>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie or webcam. AI estimates your exact obesity count and body composition stage.</p>
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => handleScanClick('physique')} 
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span>📸</span> OPEN WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleUploadClick('physique')} 
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                >
+                  <span>📁</span> UPLOAD PHOTO
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Module 4: Gym Equipment Scanner */}
-          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('equipment')}>
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('equipment')}>
               <img src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=600" className="absolute w-full h-full object-cover opacity-30 mix-blend-luminosity transition group-hover:opacity-50" alt="Gym" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
               <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
@@ -1801,10 +2008,23 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Equipment Scanner</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Pan your camera around a hotel gym. AI detects all weights and builds a custom plan.</p>
-              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
-                OPEN WEBCAM
-              </button>
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Pan camera or upload gym photo. AI detects all equipment and builds a tailored routine.</p>
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => handleScanClick('equipment')} 
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span>📸</span> OPEN WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleUploadClick('equipment')} 
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                >
+                  <span>📁</span> UPLOAD PHOTO
+                </button>
+              </div>
             </div>
           </div>
         </div>
