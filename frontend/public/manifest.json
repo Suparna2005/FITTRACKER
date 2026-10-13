@@ -1,0 +1,19 @@
+{
+  "name": "IronForge AI - Fitness Tracker",
+  "short_name": "IronForge AI",
+  "description": "AI-Powered Gym Intelligence, Real-Time Biomechanics, and Nutrition Scanner by Brainware University",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1014",
+  "theme_color": "#0B1014",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/brainware_logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

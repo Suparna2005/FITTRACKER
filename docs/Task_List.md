@@ -62,6 +62,13 @@
 - [x] **Brainware University Branding Integration:** Replaced the generic `F` icon in the navigation header (`Brand` component in `theme.jsx`) and authentication panels with the official circular Brainware University seal, styled with a clean circular badge container.
 - [x] **Local & Remote Build Validation:** Verified zero Vite compiler warnings or errors (`npm run build`) and deployed live to production host `30.31.32.136`.
 
+### Mobile Application & PWA Installation
+- [x] **Web App Manifest (`manifest.json`):** Configured standalone PWA manifest featuring the Brainware University seal, portrait-first orientation, and theme color `#0B1014`.
+- [x] **Service Worker Shell (`sw.js`):** Registered production service worker enabling browser PWA installation requirements on Android and iOS.
+- [x] **Apple iOS Standalone Meta Tags:** Added `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, and `apple-touch-icon` for seamless full-screen app execution without Safari address bars.
+- [x] **Dedicated Smartphone Download Hub (`view === 'install'`):** Built full-featured interactive installation page in `App.jsx` with 1-click install banner (`beforeinstallprompt`), step-by-step Android/iOS install guides, and instant camera QR scanner.
+- [x] **Sidebar & Mobile Navigation Access:** Added direct "Download on Phone" buttons to both desktop sidebar and mobile navigation drawer.
+
 ---
 
 

@@ -218,6 +218,40 @@ function App() {
     setView('login');
   }
 
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null)
+  const [appInstalled, setAppInstalled] = useState(false)
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault()
+      setDeferredInstallPrompt(e)
+    }
+    const handleAppInstalled = () => {
+      setAppInstalled(true)
+      setDeferredInstallPrompt(null)
+      showToast('IronForge AI App installed successfully!')
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const triggerInstallPrompt = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt()
+      const { outcome } = await deferredInstallPrompt.userChoice
+      if (outcome === 'accepted') {
+        setDeferredInstallPrompt(null)
+        setAppInstalled(true)
+      }
+    } else {
+      showToast('Follow the steps below to add to your Home Screen!')
+    }
+  }
+
   const handleNav = (v) => {
     setInboxOpen(false);
     if (v !== 'vision') setVisionMode(null);
@@ -1569,6 +1603,146 @@ function App() {
 
             </div>
           </Panel>
+          </div>
+        )}
+
+        {view === 'install' && (
+          <div className="max-w-4xl mx-auto fade-up space-y-6">
+            <Panel 
+              kicker="SMARTPHONE APPLICATION" 
+              title="DOWNLOAD & INSTALL ON YOUR PHONE" 
+              sub="Install IronForge AI directly to your Android or iPhone home screen with one tap. Enjoy full-screen camera coaching, 60 FPS skeletal vision, and standalone app speed."
+            >
+              {/* One-tap PWA Install Banner if supported by current browser */}
+              {deferredInstallPrompt && (
+                <div className="mb-6 p-5 rounded-2xl bg-[#C7F36B]/15 border-2 border-[#C7F36B] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-white p-1 shrink-0 shadow-md">
+                      <img src="/brainware_logo.png" alt="Brainware University" className="w-full h-full object-contain rounded-full" />
+                    </div>
+                    <div>
+                      <div className="text-base font-extrabold text-[#F4F7F8]">Ready to Install on This Device</div>
+                      <div className="text-xs text-[#ACBAC2]">Tap below to add the native app shortcut to your home screen.</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={triggerInstallPrompt}
+                    className="btn-lime py-3 px-6 text-sm font-black whitespace-nowrap shadow-lg active:scale-95 transition-transform"
+                  >
+                    INSTALL APP NOW →
+                  </button>
+                </div>
+              )}
+
+              {appInstalled && (
+                <div className="mb-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-sm flex items-center gap-2">
+                  <span>✓</span> IronForge AI is successfully installed on this device!
+                </div>
+              )}
+
+              {/* Step-by-Step Mobile Instructions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Android Card */}
+                <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-black tracking-widest text-[#54D8CF] uppercase mb-2">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0003 0-.5512.4482-1.0003.9993-1.0003.5512 0 .9993.4491.9993 1.0003 0 .5517-.4481 1.0003-.9993 1.0003m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0003 0-.5512.4482-1.0003.9993-1.0003.5512 0 .9993.4491.9993 1.0003 0 .5517-.4481 1.0003-.9993 1.0003m11.4045-6.02l1.996-3.4572c.1065-.1846.043-.4206-.1416-.5271-.1846-.1065-.4206-.043-.5271.1416l-2.0233 3.5044c-1.3854-.629-2.9328-.979-4.5855-.979-1.6527 0-3.2001.35-4.5855.979L5.5978 5.4787c-.1065-.1846-.3425-.2481-.5271-.1416-.1846.1065-.2481.3425-.1416.5271l1.996 3.4572C3.7844 11.2384 1.636 15.1147 1.3436 19.6465h21.3128c-.2924-4.5318-2.4408-8.4081-4.7739-10.3251" />
+                      </svg>
+                      ANDROID (CHROME & EDGE)
+                    </div>
+                    <h3 className="text-xl font-bold text-[#F4F7F8] mb-3">Install on Android</h3>
+                    <ol className="space-y-3 text-xs text-[#ACBAC2] leading-relaxed">
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">1</span>
+                        <span>Open <strong>Google Chrome</strong> on your phone and go to <code className="text-[#C7F36B] bg-black/40 px-1 py-0.5 rounded">https://30.31.32.136</code></span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">2</span>
+                        <span>Tap the <strong>three dots (⋮)</strong> menu in the top-right corner of Chrome.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">3</span>
+                        <span>Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">4</span>
+                        <span>Tap <strong>Install</strong>. The app icon will appear on your phone home screen and open without browser bars!</span>
+                      </li>
+                    </ol>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-[#304149] text-[11px] text-[#54D8CF]">
+                    ✓ Full 60 FPS MediaPipe camera coaching &amp; background sync supported.
+                  </div>
+                </div>
+
+                {/* iOS Card */}
+                <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-black tracking-widest text-[#54D8CF] uppercase mb-2">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.36c.64-.78 1.08-1.86.96-2.95-1 .04-2.14.67-2.81 1.45-.58.67-1.1 1.77-.96 2.84 1.12.09 2.18-.57 2.81-1.34z" />
+                      </svg>
+                      IPHONE / IPAD (APPLE SAFARI)
+                    </div>
+                    <h3 className="text-xl font-bold text-[#F4F7F8] mb-3">Install on iPhone</h3>
+                    <ol className="space-y-3 text-xs text-[#ACBAC2] leading-relaxed">
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">1</span>
+                        <span>Open <strong>Safari</strong> on your iPhone and visit <code className="text-[#C7F36B] bg-black/40 px-1 py-0.5 rounded">https://30.31.32.136</code></span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">2</span>
+                        <span>Tap the <strong>Share</strong> button (square icon with upward arrow at bottom).</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">3</span>
+                        <span>Scroll down and tap <strong>"Add to Home Screen"</strong> (+ icon).</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-[#172127] border border-[#304149] text-[#C7F36B] font-bold flex items-center justify-center shrink-0">4</span>
+                        <span>Tap <strong>Add</strong>. IronForge AI will appear as a standalone app on your iOS home screen!</span>
+                      </li>
+                    </ol>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-[#304149] text-[11px] text-[#54D8CF]">
+                    ✓ Runs in standalone mode without the Safari address bar or navigation buttons.
+                  </div>
+                </div>
+              </div>
+
+              {/* Instant QR Code Scanner */}
+              <div className="mt-6 p-6 rounded-2xl bg-[#10181D] border border-[#304149] flex flex-col sm:flex-row items-center gap-6">
+                <div className="p-3 bg-[#C7F36B] rounded-2xl shrink-0 shadow-xl">
+                  <img 
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://30.31.32.136&color=10-24-29&bgcolor=c7f36b" 
+                    alt="Scan QR to open app on phone" 
+                    className="w-36 h-36 rounded-lg"
+                  />
+                </div>
+                <div className="space-y-2 text-center sm:text-left">
+                  <div className="text-[11px] font-black text-[#54D8CF] tracking-widest uppercase">INSTANT CAMERA SCAN</div>
+                  <h4 className="text-lg font-bold text-[#F4F7F8]">Scan With Your Phone Camera</h4>
+                  <p className="text-xs text-[#ACBAC2] leading-relaxed">
+                    Point your iPhone or Android camera at the QR code above to instantly open the app URL on your phone. Then follow the 2-step prompt to install it directly to your home screen!
+                  </p>
+                  <div className="pt-2 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                    <span className="font-mono text-xs text-[#C7F36B] bg-black/60 px-3 py-1.5 rounded-lg border border-[#304149]">
+                      https://30.31.32.136
+                    </span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard?.writeText('https://30.31.32.136');
+                        showToast('URL copied to clipboard!');
+                      }}
+                      className="text-xs font-bold text-[#ACBAC2] hover:text-white bg-[#172127] border border-[#304149] px-3 py-1.5 rounded-lg"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Panel>
           </div>
         )}
 

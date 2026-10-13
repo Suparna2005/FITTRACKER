@@ -141,6 +141,17 @@ export function Sidebar({ active, onNav, onLogout, user }) {
 
       <div className="space-y-1.5 pt-6 border-t border-[#304149]">
         <button
+          onClick={() => onNav('install')}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-xs bg-[#54D8CF]/10 text-[#54D8CF] border border-[#54D8CF]/30 hover:bg-[#54D8CF]/20 transition-all cursor-pointer mb-1"
+          title="Download & Install App on Mobile Phone"
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span>Download on Phone</span>
+        </button>
+
+        <button
           onClick={() => onNav('profile')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
             active === 'profile'
@@ -225,6 +236,16 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
 
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
+                onClick={() => { setShowMoreMenu(false); onNav('install'); }}
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#54D8CF] border border-[#54D8CF]/40 bg-[#54D8CF]/10 hover:border-[#54D8CF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
+              >
+                <svg className="w-6 h-6 text-[#54D8CF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span>Download App</span>
+              </button>
+
+              <button
                 onClick={() => { setShowMoreMenu(false); onNav('guide'); }}
                 className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#F4F7F8] hover:border-[#54D8CF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
               >
@@ -250,7 +271,7 @@ export function MobileBottomNav({ active, onNav, onLogout }) {
 
               <button
                 onClick={() => { setShowMoreMenu(false); onLogout && onLogout(); }}
-                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#FF897A] hover:border-[#EF4444] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B]"
+                className="iron-card p-4 flex flex-col items-center gap-2 text-center text-xs font-bold text-[#FF897A] hover:border-[#EF4444] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C7F36B] col-span-2"
               >
                 <NavIcon name="logout" className="w-6 h-6 text-[#FF897A]" />
                 <span>Logout</span>
