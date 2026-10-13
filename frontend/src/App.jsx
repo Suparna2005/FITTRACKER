@@ -609,9 +609,9 @@ function App() {
       const data = await res.json()
       setPlan(data)
       if (data.API_ERROR) {
-        showToast('⚠️ Could not connect to AI. Showing fallback plan.')
+        showToast('Could not connect to AI. Showing fallback plan.')
       } else {
-        showToast('⚡ AI Workout & Nutrition Plan generated successfully!')
+        showToast('AI Workout & Nutrition Plan generated successfully!')
       }
       setTimeout(() => {
         if (planRef.current) {
@@ -937,7 +937,11 @@ function App() {
               return (
                 <div className="bg-[#10181D] border border-[#304149] rounded-xl p-3 mb-3 flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">📧</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#54D8CF]/10 text-[#54D8CF] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
                     <div>
                       <div className="text-xs font-bold text-white flex items-center gap-2">
                         <span>Daily Email Delivery</span>
@@ -1004,7 +1008,9 @@ function App() {
                     className="p-1.5 rounded-lg text-xs font-bold text-[#FF897A] hover:text-[#EF4444] hover:bg-[#EF4444]/10 border border-transparent hover:border-[#EF4444]/30 transition shrink-0"
                     title="Delete notification"
                   >
-                    🗑️
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                   </button>
                 </div>
               ))}
@@ -1109,7 +1115,7 @@ function App() {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#304149] pb-3">
                   <div>
                     <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide flex items-center gap-2">
-                      <span>🧍 OBESITY COUNT &amp; HUMAN BODY COMPOSITION DIAGNOSTIC</span>
+                      <span>OBESITY COUNT &amp; HUMAN BODY COMPOSITION DIAGNOSTIC</span>
                       <span className="text-xs font-black text-[#54D8CF] bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-full px-2.5 py-0.5">
                         HUMAN FIGURE ANATOMY
                       </span>
@@ -1123,7 +1129,7 @@ function App() {
                     onClick={() => launchVisionMode('physique')}
                     className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-2"
                   >
-                    <span>📸 SCAN WITH AI VISION</span>
+                    <span>SCAN WITH AI VISION</span>
                   </button>
                 </div>
 
@@ -1246,10 +1252,10 @@ function App() {
                 <div className="bg-[#172127] border border-[#304149] rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>📧 Receive Daily Workout &amp; Diet Plans via Email</span>
+                      <span>Receive Daily Workout &amp; Diet Plans via Email</span>
                     </div>
                     <p className="text-xs text-[#ACBAC2] max-w-xl">
-                      Turn this <strong>OFF</strong> if you don&apos;t want regular emails filling up your email inbox. When OFF, your daily AI workout plans, meal charts, and reminders will land right in your in-app inbox (tap the notification bell 🔔 anytime).
+                      Turn this <strong>OFF</strong> if you don&apos;t want regular emails filling up your email inbox. When OFF, your daily AI workout plans, meal charts, and reminders will land right in your in-app inbox (tap the notification bell anytime).
                     </p>
                   </div>
 
@@ -1268,8 +1274,8 @@ function App() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#ACBAC2] bg-[#10181D]/80 p-3 rounded-lg border border-white/5">
-                  <span>⏰ Scheduled Plan Time: <strong className="text-white">{profileForm.notification_time || '06:00'}</strong></span>
-                  <span>📱 In-App Notification Inbox: <strong className="text-[#54D8CF]">Always Active (Zero Emails Required)</strong></span>
+                  <span>Scheduled Plan Time: <strong className="text-white">{profileForm.notification_time || '06:00'}</strong></span>
+                  <span>In-App Notification Inbox: <strong className="text-[#54D8CF]">Always Active (Zero Emails Required)</strong></span>
                 </div>
               </div>
 
@@ -1356,7 +1362,7 @@ function App() {
               {/* Diet & Supplement Logging */}
               <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 space-y-4">
                 <h3 className="font-bold text-[#F4F7F8] text-base tracking-wide flex items-center gap-2">
-                  <span className="text-[#FF897A]">🍎</span> NUTRITION &amp; SUPPLEMENT FUEL LOG
+                  <span className="text-[#FF897A] font-black uppercase text-xs tracking-widest bg-[#FF897A]/10 px-2 py-0.5 rounded border border-[#FF897A]/20">DIET</span> NUTRITION &amp; SUPPLEMENT FUEL LOG
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1463,21 +1469,21 @@ function App() {
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Process Diagram
+                    Process Diagram
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">🟢 60 FPS Biomechanics</div>
+                    <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">60 FPS Biomechanics</div>
                     <div className="text-xs text-[#ACBAC2]">Tracks skeletal joints in real-time. Flashes green for posture and red for bad form cues.</div>
                   </div>
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">🖐️ Hand Signal Control</div>
+                    <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">Hand Signal Control</div>
                     <div className="text-xs text-[#ACBAC2]">Hold up <strong>1 finger for Set 1</strong>, <strong>2 fingers for Set 2</strong>, <strong>3 fingers for Set 3</strong> without touching screen!</div>
                   </div>
                   <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">🎤 Voice Recognition</div>
+                    <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">Voice Recognition</div>
                     <div className="text-xs text-[#ACBAC2]">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, or <em>"Go"</em> to change sets hands-free using AI voice!</div>
                   </div>
                 </div>
@@ -1487,7 +1493,7 @@ function App() {
               <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">2</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">🩺 AI Doctor &amp; Sports Trainer (Discomfort Logger)</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Doctor &amp; Sports Trainer (Discomfort Logger)</h3>
                 </div>
 
                 <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
@@ -1497,15 +1503,15 @@ function App() {
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#54D8CF] border border-[#54D8CF]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Medical Protocol
+                    Medical Protocol
                   </div>
                 </div>
 
                 <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
-                  <p><strong className="text-[#54D8CF] text-base">Action: Click "🩺 Recovery" button in sidebar whenever feeling pain.</strong></p>
+                  <p><strong className="text-[#54D8CF] text-base">Action: Click "Recovery" button in sidebar whenever feeling pain.</strong></p>
                   <p>1. Select the exercise (e.g. Squat, Overhead Press) and describe your symptoms or pain severity.</p>
                   <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (giving immediate care RICE instructions) and a <strong>Master Trainer</strong> (giving joint form cues & safe exercise substitutions).</p>
-                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 text-[11px] font-extrabold px-2 py-0.5 rounded">⚡ ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
+                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 text-[11px] font-extrabold px-2 py-0.5 rounded">ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
                 </div>
               </div>
 
@@ -1513,7 +1519,7 @@ function App() {
               <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-xl bg-[#FF897A] text-[#0B1014] flex items-center justify-center font-black text-lg">3</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">🍎 Auto-Food Vision Logger &amp; Macro Analysis</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Auto-Food Vision Logger &amp; Macro Analysis</h3>
                 </div>
 
                 <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
@@ -1523,7 +1529,7 @@ function App() {
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Vision Macro AI
+                    Vision Macro AI
                   </div>
                 </div>
 
@@ -1539,7 +1545,7 @@ function App() {
               <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">4</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">⚡ AI Workout Split Builder &amp; Muscle Guide</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Workout Split Builder &amp; Muscle Guide</h3>
                 </div>
 
                 <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
@@ -1549,7 +1555,7 @@ function App() {
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    ✨ Custom AI Protocols
+                    Custom AI Protocols
                   </div>
                 </div>
 
@@ -1596,10 +1602,10 @@ function App() {
 
                 <div className="flex items-center gap-3 text-xs font-semibold text-[#ACBAC2] flex-wrap">
                   <span className="flex items-center gap-1.5 bg-[#10181D] border border-[#304149] px-3 py-1.5 rounded-xl">
-                    🎯 {user?.goal || 'Build muscle'}
+                    <span className="text-[#C7F36B] font-bold">Goal:</span> {user?.goal || 'Build muscle'}
                   </span>
                   <span className="flex items-center gap-1.5 bg-[#10181D] border border-[#304149] px-3 py-1.5 rounded-xl">
-                    🏋️ {user?.equipment || 'Full gym'}
+                    <span className="text-[#54D8CF] font-bold">Equipment:</span> {user?.equipment || 'Full gym'}
                   </span>
                 </div>
 
@@ -1617,8 +1623,10 @@ function App() {
             {/* 3 Metric Cards Row (Completed Sessions, Days/week, Planned Calorie Target) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="iron-card p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
-                  📅
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-[#ACBAC2]">Completed Sessions</div>
@@ -1636,8 +1644,10 @@ function App() {
               </div>
 
               <div className="iron-card p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] text-xl shrink-0">
-                  📊
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#54D8CF] shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-[#ACBAC2]">Days / week</div>
@@ -1651,8 +1661,10 @@ function App() {
               </div>
 
               <div className="iron-card p-5 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#C7F36B] text-xl shrink-0">
-                  🎯
+                <div className="w-12 h-12 rounded-xl bg-[#10181D] border border-[#304149] flex items-center justify-center text-[#C7F36B] shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-[#ACBAC2]">Planned Calorie Target</div>
@@ -1670,7 +1682,11 @@ function App() {
             <div className="iron-card p-5 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[#54D8CF] text-lg">🔍</span>
+                  <div className="w-6 h-6 rounded-md bg-[#54D8CF]/10 text-[#54D8CF] flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                   <h3 className="text-base font-bold text-[#F4F7F8]">Search Past Workout Logs</h3>
                 </div>
                 <span className="text-xs text-[#ACBAC2]">Filter past activity by date</span>
@@ -1707,7 +1723,11 @@ function App() {
               <div className="lg:col-span-7 iron-card p-6 flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#54D8CF]">🏋️</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#54D8CF]/10 text-[#54D8CF] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
                     <h3 className="text-lg font-bold text-[#F4F7F8]">Training volume</h3>
                   </div>
 
@@ -1735,7 +1755,11 @@ function App() {
                 <div className="h-64 w-full pt-2">
                   {getFilteredChartHistory().length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-[#10181D] rounded-xl border border-[#304149]">
-                      <span className="text-2xl mb-2">📊</span>
+                      <div className="w-10 h-10 rounded-full bg-[#172127] border border-[#304149] flex items-center justify-center text-[#ACBAC2] mb-2">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
                       <p className="text-sm font-bold text-[#F4F7F8]">No workouts logged in this period</p>
                       <p className="text-xs text-[#ACBAC2] mt-1">Log a workout session to see your training volume curve.</p>
                     </div>
@@ -1782,7 +1806,11 @@ function App() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-[#C7F36B]">📄</span>
+                      <div className="w-8 h-8 rounded-lg bg-[#C7F36B]/10 text-[#C7F36B] flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
                       <div>
                         <h3 className="text-lg font-bold text-[#F4F7F8]">Your AI plan</h3>
                         <p className="text-xs text-[#ACBAC2]">Your next workout + meal plan</p>
@@ -1829,7 +1857,11 @@ function App() {
               <div className="iron-card p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[#FF897A]">🔥</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#FF897A]/10 text-[#FF897A] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343a7.975 7.975 0 012.344 5.657c0 2.122-.859 4.072-2.343 5.657z" />
+                      </svg>
+                    </div>
                     <h3 className="text-lg font-bold text-[#F4F7F8]">Energy overview</h3>
                   </div>
 
@@ -1871,7 +1903,12 @@ function App() {
               <div className="iron-card p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[#54D8CF]">📷</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#54D8CF]/10 text-[#54D8CF] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
                     <h3 className="text-lg font-bold text-[#F4F7F8]">AI Vision</h3>
                   </div>
                   <p className="text-xs text-[#ACBAC2] mb-4">Get real-time feedback with AI.</p>
@@ -1906,7 +1943,11 @@ function App() {
               <div className="iron-card p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[#FF897A]">🩺</span>
+                    <div className="w-8 h-8 rounded-lg bg-[#FF897A]/10 text-[#FF897A] flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </div>
                     <h3 className="text-lg font-bold text-[#F4F7F8]">Recovery</h3>
                   </div>
                   <p className="text-xs text-[#ACBAC2] mb-4">Listen to your body.</p>
@@ -1932,7 +1973,7 @@ function App() {
                 <div className="flex items-center justify-between border-b border-[#304149] pb-4 flex-wrap gap-3">
                   <div>
                     <div className="text-[11px] font-extrabold uppercase tracking-widest text-[#54D8CF]">
-                      {plan.is_log ? '📜 HISTORICAL LOG' : '⚡ TODAY\'S GENERATED AI PLAN'}
+                      {plan.is_log ? 'HISTORICAL LOG' : 'TODAY\'S GENERATED AI PLAN'}
                     </div>
                     <h3 className="text-2xl font-black text-[#C7F36B]">
                       {plan.workout_plan?.day || 'Today\'s Training & Nutrition'}
@@ -1948,7 +1989,7 @@ function App() {
                           planTab === 'workout' ? 'bg-[#C7F36B] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
                         }`}
                       >
-                        🏋️ Workout Plan
+                        Workout Plan
                       </button>
                       <button
                         onClick={() => setPlanTab('nutrition')}
@@ -1956,7 +1997,7 @@ function App() {
                           planTab === 'nutrition' ? 'bg-[#54D8CF] text-[#0B1014]' : 'text-[#ACBAC2] hover:text-[#F4F7F8]'
                         }`}
                       >
-                        🥗 Nutrition &amp; Diet
+                        Nutrition &amp; Diet
                       </button>
                     </div>
                   </div>
@@ -1971,7 +2012,7 @@ function App() {
                     </span>
                     {plan.workout_plan?.adapted_for_discomfort && (
                       <span className="bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
-                        ⚡ ADAPTED FOR RECOVERY
+                        ADAPTED FOR RECOVERY
                       </span>
                     )}
                   </div>
@@ -2008,7 +2049,7 @@ function App() {
                           <div>
                             <div className="font-extrabold text-sm text-[#F4F7F8]">{ex.name}</div>
                             <div className="text-xs text-[#ACBAC2] mt-0.5">{ex.sets} sets × {ex.reps} reps</div>
-                            {ex.notes && <div className="text-[11px] text-[#54D8CF] mt-1 font-medium">💡 {ex.notes}</div>}
+                            {ex.notes && <div className="text-[11px] text-[#54D8CF] mt-1 font-medium">{ex.notes}</div>}
                           </div>
                           <span className="text-sm font-black text-[#C7F36B] bg-[#C7F36B]/15 px-3 py-1.5 rounded-xl border border-[#C7F36B]/30">
                             {ex.sets}×{ex.reps}
@@ -2051,12 +2092,12 @@ function App() {
                         <div key={i} className="p-4 rounded-2xl bg-[#10181D] border border-[#304149] space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-extrabold text-[#C7F36B] uppercase">{m.name || `Meal ${i+1}`}</span>
-                            {m.time && <span className="text-[11px] text-[#ACBAC2] font-semibold">🕒 {m.time}</span>}
+                            {m.time && <span className="text-[11px] text-[#ACBAC2] font-semibold">{m.time}</span>}
                           </div>
                           <div className="text-xs font-bold text-[#F4F7F8]">
                             {m.meal || (m.items || []).map(it => it.item || it.name).join(' • ')}
                           </div>
-                          {(m.calories != null || m.kcal != null) && <div className="text-[11px] text-[#54D8CF] font-semibold">🔥 {m.calories != null ? m.calories : m.kcal} kcal</div>}
+                          {(m.calories != null || m.kcal != null) && <div className="text-[11px] text-[#54D8CF] font-semibold">{m.calories != null ? m.calories : m.kcal} kcal</div>}
                         </div>
                       ))}
                     </div>

@@ -105,7 +105,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     tracker.lastRepTime = Date.now();
     workoutStatsRef.current = { sets: tracker.setCount, reps: tracker.repCount };
 
-    setRealtimeWarning(`🎤 ${source} DETECTED! STARTING SET ${tracker.setCount}`);
+    setRealtimeWarning(`${source} DETECTED! STARTING SET ${tracker.setCount}`);
     const repEl = document.getElementById('repCounter');
     if (repEl) {
       repEl.innerText = `SET: ${tracker.setCount} | REPS: ${tracker.repCount}`;
@@ -557,7 +557,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 tracker.readyHoldFrames = 0;
                 tracker.repFormValid = true;
                 playRepSound('success');
-                setRealtimeWarning(`✨ 1 PERFECT ${exerciseLabel.toUpperCase()}! (REPS: ${tracker.repCount})`);
+                setRealtimeWarning(`PERFECT ${exerciseLabel.toUpperCase()}! (REPS: ${tracker.repCount})`);
                 skeletonColor = '#10b981';
               };
 
@@ -565,7 +565,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 tracker.repFormValid = false;
                 tracker.badFormReason = reason;
                 skeletonColor = '#ef4444';
-                setRealtimeWarning(`❌ FORM ISSUE: ${reason}`);
+                setRealtimeWarning(`FORM ISSUE: ${reason}`);
               };
 
               const rejectNoRep = (reason) => {
@@ -574,7 +574,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 tracker.readyHoldFrames = 0;
                 tracker.repFormValid = true;
                 skeletonColor = '#ef4444';
-                setRealtimeWarning(`⚠️ NO REP: ${reason}`);
+                setRealtimeWarning(`NO REP: ${reason}`);
               };
 
               // ── 4. Precision Biomechanical Movement Evaluator ──
@@ -1393,7 +1393,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   onChange={(e) => setSelectedExercise(e.target.value)}
                   className="bg-black/80 backdrop-blur-md text-[#C7F36B] font-bold border border-[#C7F36B]/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
                 >
-                  <option value="Auto-Detect">✨ Auto-Detect Exercise</option>
+                  <option value="Auto-Detect">Auto-Detect Exercise</option>
                   <option value="Squat">Squat</option>
                   <option value="Bicep Curl">Bicep Curl</option>
                   <option value="Deadlift">Deadlift</option>
@@ -1434,7 +1434,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   <span className={`w-2.5 h-2.5 rounded-full ${isVoiceActive ? 'bg-[#C7F36B] animate-ping' : 'bg-amber-400'}`}></span>
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-[#C7F36B] uppercase tracking-widest flex items-center gap-1">
-                      ⚡ Deepgram Nova-3 / AI Voice Active
+                      AI Voice Commander Active
                     </span>
                     <span className="text-[11px] font-extrabold text-white max-w-[280px] truncate">
                       {voiceTranscript || 'Say "Start set 1", "Set 2", "Go"...'}
@@ -1594,20 +1594,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           <div className="flex flex-wrap items-center gap-2">
                             {dishWeight > 0 && (
                               <span className="bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                ⚖️ Weight: {dishWeight}g
+                                Weight: {dishWeight}g
                               </span>
                             )}
                             {dishCals > 0 && (
                               <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                                ⚡ Calories: {dishCals} kcal
+                                Calories: {dishCals} kcal
                               </span>
                             )}
                             <span className="bg-orange-500/20 text-orange-300 border border-orange-500/40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                              🔥 Density: {dishCalPerG} kcal/g ({dishCalPer100g} kcal/100g)
+                              Density: {dishCalPerG} kcal/g ({dishCalPer100g} kcal/100g)
                             </span>
                             {result.confidence && (
                               <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                                🔬 {result.confidence}
+                                {result.confidence}
                               </span>
                             )}
                           </div>
@@ -1617,14 +1617,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5">
                           <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/40 rounded-2xl p-3 flex flex-col justify-between">
                             <div className="text-[9px] text-[#C7F36B] font-black uppercase tracking-widest mb-1 flex items-center justify-between">
-                              <span>⚖️ TOTAL WEIGHT</span>
+                              <span>TOTAL WEIGHT</span>
                               <span className="text-[8px] bg-[#C7F36B]/30 text-[#C7F36B] px-1 py-0.5 rounded font-black tracking-normal">EDIT</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <input 
                                 type="number" 
                                 min="0" 
-                                max="5000"
+                                max="5000" 
                                 value={result.serving_weight_g !== undefined ? result.serving_weight_g : dishWeight}
                                 onChange={(e) => handleTotalWeightChange(e.target.value)}
                                 className="w-16 bg-black/70 text-xl font-black text-white px-1.5 py-0.5 rounded border border-[#C7F36B]/50 focus:border-[#C7F36B] outline-none"
@@ -1635,43 +1635,43 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           </div>
 
                           <div className="bg-amber-500/15 border border-amber-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-amber-300 font-black uppercase tracking-widest mb-1">⚡ CALORIES</div>
+                            <div className="text-[9px] text-amber-300 font-black uppercase tracking-widest mb-1">CALORIES</div>
                             <div className="text-xl font-black text-white">{dishCals}<span className="text-xs text-amber-300 font-bold ml-0.5">kcal</span></div>
                           </div>
 
                           <div className="bg-orange-500/20 border border-orange-500/35 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-orange-300 font-black uppercase tracking-widest mb-1">🔥 CAL / GRAM</div>
+                            <div className="text-[9px] text-orange-300 font-black uppercase tracking-widest mb-1">CAL / GRAM</div>
                             <div className="text-xl font-black text-orange-300">{dishCalPerG}<span className="text-xs font-bold ml-0.5">kcal/g</span></div>
                             <div className="text-[9px] text-zinc-400 font-semibold">{dishCalPer100g} kcal/100g</div>
                           </div>
 
                           <div className="bg-[#54D8CF]/15 border border-[#54D8CF]/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-[#54D8CF] font-black uppercase tracking-widest mb-1">💪 PROTEIN</div>
+                            <div className="text-[9px] text-[#54D8CF] font-black uppercase tracking-widest mb-1">PROTEIN</div>
                             <div className="text-xl font-black text-[#54D8CF]">{result.protein_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-yellow-500/15 border border-yellow-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-yellow-300 font-black uppercase tracking-widest mb-1">🌾 CARBS</div>
+                            <div className="text-[9px] text-yellow-300 font-black uppercase tracking-widest mb-1">CARBS</div>
                             <div className="text-xl font-black text-yellow-300">{result.carbs_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-rose-500/15 border border-rose-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-rose-300 font-black uppercase tracking-widest mb-1">🥑 FATS</div>
+                            <div className="text-[9px] text-rose-300 font-black uppercase tracking-widest mb-1">FATS</div>
                             <div className="text-xl font-black text-rose-300">{result.fats_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-emerald-300 font-black uppercase tracking-widest mb-1">🌿 FIBER</div>
+                            <div className="text-[9px] text-emerald-300 font-black uppercase tracking-widest mb-1">FIBER</div>
                             <div className="text-xl font-black text-emerald-300">{result.fiber_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-purple-500/15 border border-purple-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-purple-300 font-black uppercase tracking-widest mb-1">🍬 SUGAR</div>
+                            <div className="text-[9px] text-purple-300 font-black uppercase tracking-widest mb-1">SUGAR</div>
                             <div className="text-xl font-black text-purple-300">{result.sugar_g || 0}<span className="text-xs font-bold ml-0.5">g</span></div>
                           </div>
 
                           <div className="bg-cyan-500/15 border border-cyan-500/30 rounded-2xl p-3 flex flex-col justify-between">
-                            <div className="text-[9px] text-cyan-300 font-black uppercase tracking-widest mb-1">🩺 HEALTH</div>
+                            <div className="text-[9px] text-cyan-300 font-black uppercase tracking-widest mb-1">HEALTH SCORE</div>
                             <div className="text-xl font-black text-cyan-300">{result.health_score || 90}<span className="text-xs font-bold text-cyan-400">/100</span></div>
                           </div>
                         </div>
@@ -1681,11 +1681,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between border-b border-white/10 pb-2">
                               <span className="text-xs font-extrabold text-[#54D8CF] uppercase tracking-widest flex items-center gap-1.5">
-                                💊 VITAMINS, MINERALS &amp; GLYCEMIC INDEX
+                                VITAMINS, MINERALS &amp; GLYCEMIC INDEX
                               </span>
                               {result.glycemic_index && (
                                 <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                  🟢 GI: {result.glycemic_index}
+                                  GI: {result.glycemic_index}
                                 </span>
                               )}
                             </div>
@@ -1695,12 +1695,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                               {result.vitamins && result.vitamins.length > 0 && (
                                 <div>
                                   <div className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
-                                    <span>✨ DETECTED VITAMINS</span>
+                                    <span>DETECTED VITAMINS</span>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {result.vitamins.map((vit, idx) => (
                                       <span key={idx} className="bg-amber-400/10 border border-amber-400/30 text-amber-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
-                                        ✨ {vit}
+                                        {vit}
                                       </span>
                                     ))}
                                   </div>
@@ -1711,12 +1711,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                               {result.minerals && result.minerals.length > 0 && (
                                 <div>
                                   <div className="text-[10px] font-bold text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
-                                    <span>🪨 ESSENTIAL MINERALS</span>
+                                    <span>ESSENTIAL MINERALS</span>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {result.minerals.map((min, idx) => (
                                       <span key={idx} className="bg-cyan-400/10 border border-cyan-400/30 text-cyan-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
-                                        🪨 {min}
+                                        {min}
                                       </span>
                                     ))}
                                   </div>
@@ -1731,7 +1731,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                           <div className="bg-black/60 border border-white/10 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between border-b border-white/10 pb-2">
                               <span className="text-xs font-extrabold text-[#C7F36B] uppercase tracking-widest flex items-center gap-1.5">
-                                🧪 SCIENTIFIC INGREDIENT &amp; GRAM BREAKDOWN
+                                SCIENTIFIC INGREDIENT &amp; GRAM BREAKDOWN
                               </span>
                               <span className="text-[10px] font-bold text-zinc-400 uppercase">
                                 {result.ingredients_detected_count || result.ingredients.length} DETECTED COMPONENTS
@@ -1762,7 +1762,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                                       </div>
                                       <div className="flex flex-wrap items-center gap-1.5">
                                         <div className="flex items-center gap-1 bg-[#C7F36B]/15 border border-[#C7F36B]/40 px-2 py-0.5 rounded-md">
-                                          <span className="text-[10px] text-[#C7F36B] font-bold">⚖️</span>
+                                          <span className="text-[10px] text-[#C7F36B] font-bold">Portion:</span>
                                           <input 
                                             type="number"
                                             min="0"
@@ -1775,10 +1775,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                                           <span className="text-[10px] text-[#C7F36B] font-bold">g</span>
                                         </div>
                                         <span className="font-mono font-extrabold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-md text-[11px]">
-                                          ⚡ {ingCals} kcal
+                                          {ingCals} kcal
                                         </span>
                                         <span className="font-mono font-extrabold text-orange-300 bg-orange-500/20 border border-orange-500/35 px-2.5 py-1 rounded-md text-[11px]">
-                                          🔥 {ingCalPerG} kcal/g ({ingCalPer100g} kcal/100g)
+                                          {ingCalPerG} kcal/g ({ingCalPer100g} kcal/100g)
                                         </span>
                                       </div>
                                     </div>
@@ -1818,17 +1818,17 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                                     {((ing.vitamins && ing.vitamins.length > 0) || (ing.minerals && ing.minerals.length > 0)) && (
                                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[9px]">
                                         {ing.vitamins && ing.vitamins.map((v, idx) => (
-                                          <span key={idx} className="bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20">✨ {v}</span>
+                                          <span key={idx} className="bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20">{v}</span>
                                         ))}
                                         {ing.minerals && ing.minerals.map((m, idx) => (
-                                          <span key={idx} className="bg-cyan-500/10 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/20">🪨 {m}</span>
+                                          <span key={idx} className="bg-cyan-500/10 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/20">{m}</span>
                                         ))}
                                       </div>
                                     )}
 
                                     {ing.health_benefits && (
-                                      <div className="text-[10px] text-zinc-300 bg-white/5 p-1.5 rounded border border-white/5 flex items-center gap-1">
-                                        <span>💡</span>
+                                      <div className="text-[10px] text-zinc-300 bg-white/5 p-1.5 rounded border border-white/5 flex items-center gap-1.5">
+                                        <span className="text-[#C7F36B] font-bold">Benefit:</span>
                                         <span>{ing.health_benefits}</span>
                                       </div>
                                     )}
@@ -1841,8 +1841,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
                         {/* Scientific Diagnostic Notes */}
                         {result.scientific_notes && (
-                          <div className="bg-[#54D8CF]/20 border border-[#54D8CF]/30 rounded-2xl p-3.5 flex items-start gap-3">
-                            <span className="text-lg">🧬</span>
+                          <div className="bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-2xl p-4 flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#54D8CF]/20 text-[#54D8CF] flex items-center justify-center shrink-0">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
                             <div>
                               <div className="text-[10px] font-black text-[#54D8CF] uppercase tracking-widest mb-0.5">NUTRITIONAL DENSITY DIAGNOSIS</div>
                               <p className="text-xs text-zinc-300 leading-relaxed m-0">{result.scientific_notes}</p>
@@ -1897,10 +1901,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                         <span>✓</span> {activeMode === 'food' ? 'SAVE NUTRITION TO ATHLETE LOG' : 'SAVE TO PROFILE'}
                       </button>
                       <button onClick={() => { setImgPreview(null); setResult(null); handleScanClick(activeMode); }} className="min-h-[48px] btn-outline font-bold text-base py-3 px-6 rounded-xl flex items-center justify-center gap-1.5">
-                        <span>📸</span> Scan Camera Again
+                        Scan Camera Again
                       </button>
                       <button onClick={() => handleUploadClick(activeMode)} className="min-h-[48px] font-bold text-base py-3 px-6 rounded-xl bg-[#54D8CF]/15 hover:bg-[#54D8CF]/25 text-[#54D8CF] border border-[#54D8CF]/40 flex items-center justify-center gap-1.5">
-                        <span>📁</span> Upload Photo
+                        Upload Photo
                       </button>
                       <button onClick={() => { setImgPreview(null); setResult(null); }} className="min-h-[48px] font-bold text-base py-3 px-6 rounded-xl bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 flex items-center justify-center">
                         Discard
@@ -1955,14 +1959,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   onClick={() => handleScanClick('food')} 
                   className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📸</span> OPEN WEBCAM
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('food')} 
                   className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD PHOTO
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>
@@ -1985,14 +1989,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   onClick={() => handleScanClick('physique')} 
                   className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📸</span> OPEN WEBCAM
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('physique')} 
                   className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD PHOTO
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>
@@ -2015,14 +2019,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   onClick={() => handleScanClick('equipment')} 
                   className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📸</span> OPEN WEBCAM
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('equipment')} 
                   className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD PHOTO
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>

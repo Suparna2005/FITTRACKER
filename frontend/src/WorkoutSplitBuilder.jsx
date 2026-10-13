@@ -15,27 +15,27 @@ const MUSCLES = [
 ]
 const FULL = ["chest","back","shoulders","biceps","triceps","legs","abs"]
 const MODES = [
-  { id:"fullbody", icon:"🏋️", name:"Full Body", desc:"Same full-body session every training day. Best for 3-day weeks & beginners." },
-  { id:"single", icon:"💪", name:"One Muscle / Day", desc:"Different body part each day (Bro Split). One muscle, max focus." },
-  { id:"combo", icon:"⚡", name:"Smart Combos", desc:"Synergy pairs: Back+Biceps, Chest+Triceps, Legs+Glutes…" },
-  { id:"custom", icon:"⚙️", name:"Fully Custom", desc:"Blank week — mix singles + combos freely." },
+  { id:"fullbody", name:"Full Body", desc:"Same full-body session every training day. Best for 3-day weeks & beginners." },
+  { id:"single", name:"One Muscle / Day", desc:"Different body part each day (Bro Split). One muscle, max focus." },
+  { id:"combo", name:"Smart Combos", desc:"Synergy pairs: Back+Biceps, Chest+Triceps, Legs+Glutes…" },
+  { id:"custom", name:"Fully Custom", desc:"Blank week — mix singles + combos freely." },
 ]
 const SPLITS = [
-  { id:"fullbody3", mode:"fullbody", label:"Full Body • 3 Days", icon:"🏋️", badge:"Beginner Friendly", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:3,
+  { id:"fullbody3", mode:"fullbody", label:"Full Body • 3 Days", badge:"Beginner Friendly", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:3,
   desc:"Every session = whole body, 3×/week.", schedule:{ Monday:FULL, Tuesday:[], Wednesday:FULL, Thursday:[], Friday:FULL, Saturday:[], Sunday:[] } },
-  { id:"fullbody4", mode:"fullbody", label:"Full Body • 4 Days", icon:"🏋️", badge:"Beginner +", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:4,
+  { id:"fullbody4", mode:"fullbody", label:"Full Body • 4 Days", badge:"Beginner +", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:4,
   desc:"Full-body 4×/week.", schedule:{ Monday:FULL, Tuesday:FULL, Wednesday:[], Thursday:FULL, Friday:FULL, Saturday:[], Sunday:[] } },
-  { id:"bro5", mode:"single", label:"Bro Split • 5 Days", icon:"💪", badge:"One muscle / day", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:5,
+  { id:"bro5", mode:"single", label:"Bro Split • 5 Days", badge:"One muscle / day", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:5,
   desc:"Chest → Back → Shoulders → Legs → Arms.", schedule:{ Monday:["chest"], Tuesday:["back"], Wednesday:["shoulders"], Thursday:["legs"], Friday:["biceps","triceps"], Saturday:[], Sunday:[] } },
-  { id:"bro6", mode:"single", label:"Bro Split • 6 Days", icon:"💪", badge:"Advanced", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:6,
+  { id:"bro6", mode:"single", label:"Bro Split • 6 Days", badge:"Advanced", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:6,
   desc:"One group per day + core/cardio finisher.", schedule:{ Monday:["chest"], Tuesday:["back"], Wednesday:["shoulders"], Thursday:["legs","glutes"], Friday:["biceps","triceps"], Saturday:["abs","cardio"], Sunday:[] } },
-  { id:"ppl", mode:"combo", label:"Push / Pull / Legs", icon:"⚡", badge:"Most Popular", badgeCls:"bg-[#C7F36B] text-[#0B1014]", days:6,
+  { id:"ppl", mode:"combo", label:"Push / Pull / Legs", badge:"Most Popular", badgeCls:"bg-[#C7F36B] text-[#0B1014]", days:6,
   desc:"Push (Chest+Shoulders+Triceps) • Pull (Back+Biceps) • Legs ×2.", schedule:{ Monday:["chest","shoulders","triceps"], Tuesday:["back","biceps"], Wednesday:["legs","glutes"], Thursday:["chest","shoulders","triceps"], Friday:["back","biceps"], Saturday:["legs","glutes"], Sunday:[] } },
-  { id:"upper_lower", mode:"combo", label:"Upper / Lower • 4 Days", icon:"⚡", badge:"Intermediate", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:4,
+  { id:"upper_lower", mode:"combo", label:"Upper / Lower • 4 Days", badge:"Intermediate", badgeCls:"bg-[#54D8CF] text-[#0B1014]", days:4,
   desc:"Alternate upper & lower combos.", schedule:{ Monday:["chest","back","shoulders","biceps","triceps"], Tuesday:["legs","glutes","abs"], Wednesday:[], Thursday:["chest","back","shoulders","biceps","triceps"], Friday:["legs","glutes","abs"], Saturday:[], Sunday:[] } },
-  { id:"arnold", mode:"combo", label:"Arnold Split", icon:"⚡", badge:"Classic Combos", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:6,
+  { id:"arnold", mode:"combo", label:"Arnold Split", badge:"Classic Combos", badgeCls:"bg-[#FF897A] text-[#0B1014]", days:6,
   desc:"Chest+Back • Shoulders+Arms • Legs.", schedule:{ Monday:["chest","back"], Tuesday:["shoulders","biceps","triceps"], Wednesday:["legs","glutes","abs"], Thursday:["chest","back"], Friday:["shoulders","biceps","triceps"], Saturday:["legs","glutes","abs"], Sunday:[] } },
-  { id:"custom", mode:"custom", label:"Build Your Own", icon:"⚙️", badge:"Fully Custom", badgeCls:"bg-[#304149] text-[#F4F7F8]", days:0, desc:"Blank week — you fill every day.", schedule:null },
+  { id:"custom", mode:"custom", label:"Build Your Own", badge:"Fully Custom", badgeCls:"bg-[#304149] text-[#F4F7F8]", days:0, desc:"Blank week — you fill every day.", schedule:null },
 ]
 const COMBOS = [
   { muscles:["back","biceps"], label:"Back + Biceps" },
@@ -138,13 +138,12 @@ export default function WorkoutSplitBuilder({ userId, onClose }) {
             <button key={m.id} onClick={() => setMode(m.id)}
               className={`text-left p-4 rounded-2xl border transition ${
                 mode===m.id
-                  ? 'border-[#C7F36B] bg-[#C7F36B]/10'
+                  ? 'border-[#C7F36B] bg-[#C7F36B]/10 shadow-[0_0_15px_rgba(199,243,107,0.15)]'
                   : 'border-[#304149] bg-[#10181D] hover:border-[#ACBAC2]'
               }`}>
-              <div className="text-2xl">{m.icon}</div>
-              <div className="font-extrabold text-[#F4F7F8] mt-1">{m.name}</div>
-              <div className="text-xs text-[#ACBAC2] mt-1 leading-relaxed">{m.desc}</div>
-              {mode===m.id && <div className="text-xs font-extrabold text-[#C7F36B] mt-2">✓ Selected</div>}
+              <div className="font-extrabold text-[#F4F7F8] text-base">{m.name}</div>
+              <div className="text-xs text-[#ACBAC2] mt-1.5 leading-relaxed">{m.desc}</div>
+              {mode===m.id && <div className="text-xs font-extrabold text-[#C7F36B] mt-2.5">✓ Selected</div>}
             </button>
           ))}
         </div>
@@ -194,8 +193,9 @@ export default function WorkoutSplitBuilder({ userId, onClose }) {
         </div>
 
         {untrained.length > 0 && (
-          <div className="mb-4 p-3 rounded-xl border border-[#FF897A]/30 bg-[#FF897A]/10 text-xs text-[#FF897A]">
-            ⚠️ Missing muscles in split: {untrained.map(m => m.label).join(', ')}
+          <div className="mb-4 p-3 rounded-xl border border-[#FF897A]/30 bg-[#FF897A]/10 text-xs text-[#FF897A] flex items-center gap-2">
+            <span className="font-bold uppercase tracking-wider text-[10px] bg-[#FF897A]/20 px-2 py-0.5 rounded">Notice</span>
+            <span>Missing muscles in split: {untrained.map(m => m.label).join(', ')}</span>
           </div>
         )}
 

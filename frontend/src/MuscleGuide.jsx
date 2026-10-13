@@ -163,7 +163,7 @@ export default function MuscleGuide({ onClose }) {
           <div className="w-full md:w-1/3 flex flex-col items-center min-h-[380px] md:sticky md:top-24">
             <div className="w-full bg-white rounded-2xl p-4 flex flex-col items-center justify-center relative min-h-[340px] select-none overflow-hidden group shadow-lg">
               <div className="absolute top-2.5 left-2.5 bg-[#10181D]/90 text-[#54D8CF] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-[#304149] z-20 pointer-events-none shadow-md">
-                👆 Touch diagram to target
+                Touch diagram to target
               </div>
 
               <img src={active.baseImg} alt="body base" className="absolute h-full max-h-80 object-contain mix-blend-multiply opacity-85 pointer-events-none" />
@@ -241,26 +241,26 @@ export default function MuscleGuide({ onClose }) {
             
             <div className="grid grid-cols-1 gap-3">
               <div className="bg-[#10181D] border border-[#304149] rounded-xl p-4">
-                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">📍 Position</h4>
+                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">Position</h4>
                 <p className="text-sm text-[#F4F7F8] leading-relaxed">{active.position}</p>
               </div>
               <div className="bg-[#10181D] border border-[#304149] rounded-xl p-4">
-                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">⚙️ Mechanics</h4>
+                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">Biomechanics</h4>
                 <p className="text-sm text-[#F4F7F8] leading-relaxed">{active.mechanics}</p>
               </div>
               <div className="bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-xl p-4">
-                <h4 className="text-[11px] font-bold uppercase text-[#54D8CF] mb-1">🛠️ How to Build Properly</h4>
+                <h4 className="text-[11px] font-bold uppercase text-[#54D8CF] mb-1">Training Protocol</h4>
                 <p className="text-sm text-[#F4F7F8] leading-relaxed">{active.training}</p>
               </div>
               <div className="bg-[#10181D] border border-[#304149] rounded-xl p-4">
-                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">🔥 Top Exercises</h4>
+                <h4 className="text-[11px] font-bold uppercase text-[#ACBAC2] mb-1">Primary Exercises</h4>
                 <p className="text-sm font-semibold text-[#C7F36B]">{active.exercises}</p>
               </div>
 
               {active.heads && active.heads.length > 0 && (
                 <div className="bg-[#10181D] border border-[#304149] rounded-xl p-4 mt-2">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-[11px] font-bold uppercase text-[#54D8CF]">🎯 Sub-Muscle Targeting</h4>
+                    <h4 className="text-[11px] font-bold uppercase text-[#54D8CF]">Sub-Muscle Targeting</h4>
                     {selectedHead !== null && (
                       <button 
                         onClick={() => setSelectedHead(null)}
@@ -299,7 +299,7 @@ export default function MuscleGuide({ onClose }) {
                           </div>
                           <div className="text-xs text-[#ACBAC2] mb-1.5 leading-relaxed">{head.desc}</div>
                           <div className="text-xs font-semibold text-[#C7F36B] bg-[#10181D]/60 p-2 rounded-lg border border-[#304149]">
-                            🎯 Target Exercises: {head.target}
+                            Target Exercises: {head.target}
                           </div>
                         </div>
                       );

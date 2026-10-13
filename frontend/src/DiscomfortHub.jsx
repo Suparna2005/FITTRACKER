@@ -96,12 +96,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
   const getSeverityBadge = (sev) => {
     const s = (sev || '').toLowerCase()
     if (s.includes('severe') || s.includes('high')) {
-      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30">🔴 Severe Pain</span>
+      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30"><span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] inline-block mr-1.5"></span>Severe Pain</span>
     }
     if (s.includes('moderate') || s.includes('med')) {
-      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/30">🟠 Moderate Discomfort</span>
+      return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#FF897A]/20 text-[#FF897A] border border-[#FF897A]/30"><span className="w-1.5 h-1.5 rounded-full bg-[#FF897A] inline-block mr-1.5"></span>Moderate Discomfort</span>
     }
-    return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/30">🟢 Mild Strain</span>
+    return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/30"><span className="w-1.5 h-1.5 rounded-full bg-[#54D8CF] inline-block mr-1.5"></span>Mild Strain</span>
   }
 
   const parseRec = (recObj, exercise = '', feeling = '') => {
@@ -131,7 +131,7 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
       {/* Top Banner */}
       <Panel
         kicker="DUAL AI DIAGNOSTICS & RECOVERY"
-        title="WORKOUT DISCOMFORT & INJURY LOGGER 🩺🏋️‍♂️"
+        title="WORKOUT DISCOMFORT & INJURY LOGGER"
         sub="Felt pain, joint clicking or muscle discomfort during your workout? Describe what happened to get instant Doctor & Trainer recommendations."
         action={
           onClose && (
@@ -292,7 +292,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                   {/* Doctor Section */}
                   <div className="rounded-xl border border-[#FF897A]/40 bg-[#FF897A]/10 p-4 space-y-2">
                     <div className="flex items-center gap-2 font-bold text-[#FF897A] text-sm">
-                      <span className="text-base">🩺</span> DOCTOR ANALYSIS &amp; MEDICAL CARE
+                      <div className="w-6 h-6 rounded-md bg-[#FF897A]/20 text-[#FF897A] flex items-center justify-center shrink-0">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                      </div>
+                      DOCTOR ANALYSIS &amp; MEDICAL CARE
                     </div>
                     <div className="text-xs text-[#F4F7F8] leading-relaxed">
                       <strong className="text-[#F4F7F8] block mb-1">Probable Cause:</strong>
@@ -307,7 +312,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                   {/* Trainer Section */}
                   <div className="rounded-xl border border-[#C7F36B]/40 bg-[#C7F36B]/10 p-4 space-y-2">
                     <div className="flex items-center gap-2 font-bold text-[#C7F36B] text-sm">
-                      <span className="text-base">🏋️‍♂️</span> TRAINER BIOMECHANICS &amp; FORM CORRECTION
+                      <div className="w-6 h-6 rounded-md bg-[#C7F36B]/20 text-[#C7F36B] flex items-center justify-center shrink-0">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                      </div>
+                      TRAINER BIOMECHANICS &amp; FORM CORRECTION
                     </div>
                     <div className="text-xs text-[#F4F7F8] leading-relaxed">
                       {rec.trainer_advice}
@@ -318,7 +328,12 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                   {rec.safe_substitutions?.length > 0 && (
                     <div className="rounded-xl border border-[#54D8CF]/40 bg-[#54D8CF]/10 p-4">
                       <div className="flex items-center gap-2 font-bold text-[#54D8CF] text-sm mb-2">
-                        <span className="text-base">🛡️</span> RECOMMENDED SAFE SUBSTITUTIONS
+                        <div className="w-6 h-6 rounded-md bg-[#54D8CF]/20 text-[#54D8CF] flex items-center justify-center shrink-0">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                          </svg>
+                        </div>
+                        RECOMMENDED SAFE SUBSTITUTIONS
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {rec.safe_substitutions.map((sub, i) => (
@@ -342,8 +357,10 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
               )
             })() : (
               <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[320px]">
-                <div className="w-14 h-14 rounded-full bg-[#54D8CF]/10 border border-[#54D8CF]/30 flex items-center justify-center text-2xl mb-3 text-[#54D8CF]">
-                  🩺
+                <div className="w-14 h-14 rounded-full bg-[#54D8CF]/10 border border-[#54D8CF]/30 flex items-center justify-center text-[#54D8CF] mb-3">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
                 </div>
                 <h4 className="font-bold text-[#F4F7F8] text-base mb-1">Awaiting Discomfort Log</h4>
                 <p className="text-xs text-[#ACBAC2] max-w-sm">
@@ -388,14 +405,16 @@ export default function DiscomfortHub({ user, onClose, onPlanGenerated }) {
                     onClick={() => setActiveAnalysis(log)}
                     className="btn-outline text-xs py-1.5 px-3"
                   >
-                    View Report 🔍
+                    View Report
                   </button>
                   <button
                     onClick={() => handleDeleteLog(log.id)}
-                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30"
+                    className="p-2 rounded-lg bg-[#EF4444]/10 hover:bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30 transition"
                     title="Delete log"
                   >
-                    🗑️
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                   </button>
                 </div>
               </div>

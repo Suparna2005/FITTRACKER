@@ -62,6 +62,11 @@ In `VisionHub.jsx`, the user can calibrate portion weights, which dynamically re
 - `profileForm.email_notifications_enabled`: Controls real-time toggle state (`"true"` vs `"false"`). Synchronized optimistically on toggle click via `toggleEmailNotifications(overrideVal)` with automated toast feedback and database persistence.
 - `inboxOpen`: Controls modal visibility for the in-app notification center, featuring a direct one-click toggle button for email delivery preferences.
 
+### 1.5 Professional Design System & Iconography Standards
+- **Vector Primitives Over Unicode Emojis:** All UI components adhere to a strict athletic SaaS aesthetic using sleek SVG stroke icons and styled semantic tags (`<span className="badge">`, `<div className="status-dot">`).
+- **Clean Card Topography:** Cards in `WorkoutSplitBuilder.jsx` display clean typography and active selection borders (`✓ Selected`) without emoji icons.
+- **Micro-Indicators:** Real-time state indicators (camera warnings, severity dots, rep form validation) use high-contrast color codes (`#C7F36B` Volt Lime, `#54D8CF` Electric Teal, `#EF4444` Crimson) rather than cartoon emojis.
+
 ---
 
 ## 2. Backend & Database Persistence (FastAPI & PostgreSQL)
