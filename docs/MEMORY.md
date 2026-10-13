@@ -63,6 +63,7 @@ In `VisionHub.jsx`, the user can calibrate portion weights, which dynamically re
 - `inboxOpen`: Controls modal visibility for the in-app notification center, featuring a direct one-click toggle button for email delivery preferences.
 
 ### 1.5 Professional Design System & Iconography Standards
+- **Brainware University Branding:** The application's top navigation and authentication hero components utilize the official high-resolution circular Brainware University seal, housed in a rounded circular container with subtle gold/white borders, seamlessly uniting academic research credibility with the high-tech IronForge athletic visual identity.
 - **Vector Primitives Over Unicode Emojis:** All UI components adhere to a strict athletic SaaS aesthetic using sleek SVG stroke icons and styled semantic tags (`<span className="badge">`, `<div className="status-dot">`).
 - **Clean Card Topography:** Cards in `WorkoutSplitBuilder.jsx` display clean typography and active selection borders (`✓ Selected`) without emoji icons.
 - **Micro-Indicators:** Real-time state indicators (camera warnings, severity dots, rep form validation) use high-contrast color codes (`#C7F36B` Volt Lime, `#54D8CF` Electric Teal, `#EF4444` Crimson) rather than cartoon emojis.

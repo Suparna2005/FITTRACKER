@@ -1,4 +1,5 @@
 import React from 'react';
+import brainwareLogo from './assets/brainware_logo.png';
 
 // Shared IRONFORGE visual tokens and UI primitives
 
@@ -15,11 +16,13 @@ export const LOGIN_IMG =
 export function Brand({ compact = false }) {
   return (
     <div className="flex items-center gap-3">
-      {/* Icon logo - Stylized F in shield/triangle container */}
-      <div className="w-10 h-10 rounded-xl bg-[#C7F36B] flex items-center justify-center shrink-0 shadow-md">
-        <svg className="w-6 h-6 text-[#0B1014]" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M4 4h16v3.5H8.5V11H18v3.5H8.5V20H4V4z" />
-        </svg>
+      {/* Brainware University Logo */}
+      <div className={`${compact ? 'w-9 h-9' : 'w-10 h-10'} rounded-full bg-white p-0.5 flex items-center justify-center shrink-0 shadow-md border border-amber-300/40 overflow-hidden`}>
+        <img 
+          src={brainwareLogo} 
+          alt="Brainware University" 
+          className="w-full h-full object-contain rounded-full" 
+        />
       </div>
       <div>
         <div className={`font-black tracking-tight text-[#F4F7F8] leading-none ${compact ? 'text-lg' : 'text-xl'}`}>
