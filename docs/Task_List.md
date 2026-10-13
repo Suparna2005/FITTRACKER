@@ -30,6 +30,15 @@
 - [x] **Cryptographic Token Verification:** Built backend `POST /google_login/` endpoint verifying Google JWT tokens against `oauth2.googleapis.com/tokeninfo`.
 - [x] **Removed Email Bypass Vulnerability:** Blocked arbitrary email login attempts; enforced cryptographic credentials.
 - [x] **Cleaned Authentication UI:** Removed debug `.env` textboxes and technical warning boxes for a production-grade interface.
+- [x] **In-App Password Reset (`POST /reset_password/`):** Built self-service password recovery flow allowing users to reset credentials securely.
+- [x] **Seamless Password Migration for OAuth Accounts:** Allowed Google-authenticated accounts to set custom passwords and log in via email & password without being locked out.
+- [x] **Duplicate Registration Validation:** Replaced raw database 500 crashes with user-friendly 400 error responses and guidance.
+
+### Nutritional Density & Calorie Engine
+- [x] **Calories Per Gram ($\text{kcal/g}$) & per 100g Calculation:** Built backend normalizer computing energy density for total dishes and each itemized component.
+- [x] **9-Card Macro & Density Frontend Grid:** Displayed portion weight, calories, energy density, protein, carbs, fats, fiber, sugars, and health score in VisionHub.
+- [x] **Itemized Component Calorie Density Badges:** Attached individual weight, calorie, and $\text{kcal/g}$ badges plus macro pills to every detected ingredient.
+- [x] **Nginx 50MB Image Upload Support:** Configured `client_max_body_size 50M` and extended proxy timeouts to eliminate HTTP 413 errors on high-resolution smartphone camera food pictures.
 
 ### Precision Biomechanical Engine & Anti-Jitter Overhaul
 - [x] **Eradicate False Repetition Counting:** Eliminated false triggers from sitting down, typing, shifting posture, or camera noise.

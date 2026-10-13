@@ -41,10 +41,12 @@ Unlike traditional fitness apps that demand tedious manual logging, IronForge AI
 - **Acoustic Feedback:** Web Audio API triggers melodic harmonic chimes on perfect reps and warning tones on form violations.
 - **Debounced Hand Gesture Controls:** Hold up fingers for $\ge 10$ steady frames (~350ms) to unlock sets hands-free (1 finger for Set 1, 2 for Set 2, etc.). Isolated from rep counts.
 
-### 2. 📸 Scientific Auto-Food Logger (Grams & Ingredient Breakdown)
-- **Gram-Level Portion Weight:** Snapping a photo of a meal estimates total mass in **grams (`g`)** and calories (`kcal`).
-- **Itemized Ingredient Breakdown:** Identifies every component on the plate, detailing individual weight (`g`), calories, and macronutrient splits (Protein, Carbs, Fats) with proportional mass-share bars.
-- **Nutritional Density & Bio-Diagnostics:** Generates glycemic diagnostics, micronutrient estimates, and fiber profiles saved directly to your daily diet ledger.
+### 2. 📸 Scientific Auto-Food Logger (Grams, Calories/Gram & Density Breakdown)
+- **Gram-Level Portion Weight & Calorie Density:** Snapping a photo of a meal estimates total mass in **grams (`g`)**, total calories (`kcal`), **calories per gram (`kcal/g`)**, and energy density per 100g (`kcal/100g`).
+- **Itemized Ingredient Breakdown:** Identifies every component on the plate, detailing individual weight (`g`), calories, and energy density (`kcal/g` & `kcal/100g`).
+- **Complete Macro & Micronutrient Profile:** Delivers granular breakdown of Protein, Carbohydrates, Fats, Dietary Fiber, and Sugars with mass-share proportion bars.
+- **Nutritional Density & Bio-Diagnostics:** Generates glycemic index (GI) diagnostics, vitamin & mineral profiles, and clinical nutritional density notes saved directly to your daily diet ledger.
+- **High-Resolution Payload Support:** Nginx configured with `client_max_body_size 50M` and extended proxy timeouts to handle high-resolution 4K smartphone food photos without 413 entity errors.
 
 ### 3. 🧬 Physique & Obesity Estimator
 - Upload a photo or stand before the camera; AI estimates body fat percentage, muscularity index, and obesity classification by analyzing physical silhouettes.
@@ -56,10 +58,13 @@ Unlike traditional fitness apps that demand tedious manual logging, IronForge AI
 - Athletes can log pain or discomfort with timing and severity.
 - Intelligent adaptation engine rewrites workout splits, substituting non-injurious alternatives for aggravating movements.
 
-### 6. 🔐 Hardened Google OAuth 2.0 & Enterprise Security
-- One-click Google sign-in powered by Google Identity Services.
-- Cryptographic JWT verification on the backend (`POST /google_login/` against Google tokeninfo endpoint).
-- Strict email bypass protection and clean, production-grade login UI.
+### 6. 🔐 Hardened Dual-Mode Authentication & Credential Management
+- **One-Click Google OAuth 2.0:** Powered by Google Identity Services with client ID configuration loaded dynamically from backend environment.
+- **Cryptographic Server-Side Verification:** Strict token validation on `POST /google_login/` against Google's tokeninfo API.
+- **Native Email & Password Support:** Fast local sign-in and sign-up with unique email and phone number validation.
+- **Seamless Password Linking:** Google OAuth accounts can set or update custom passwords during sign-up or login without getting locked out.
+- **Self-Service Password Reset (`POST /reset_password/`):** Full recovery flow via "Forgot Password?" allowing users to reset their password with verified credentials.
+- **Graceful Error Handling:** Replaces unhandled database integrity crashes with actionable error messages.
 
 ---
 

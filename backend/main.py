@@ -107,9 +107,68 @@ class ManualLog(BaseModel):
     fats: Optional[int] = None
     exercises: List[ExerciseLog] = []
 
+class ResetPasswordRequest(BaseModel):
+    identifier: str
+    new_password: str
+
+@app.post("/reset_password/")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    clean_id = req.identifier.strip().lower()
+    from sqlalchemy import func
+    db_user = db.query(models.User).filter(
+        (func.lower(models.User.email) == clean_id) | (models.User.phone_number == req.identifier.strip())
+    ).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="No account found with this email or phone number.")
+    
+    if not req.new_password or len(req.new_password.strip()) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters long.")
+
+    db_user.password = req.new_password.strip()
+    db.commit()
+    db.refresh(db_user)
+    return {"status": "success", "message": "Password updated successfully. You can now log in!"}
+
 @app.post("/users/")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = models.User(**user.dict())
+    clean_email = user.email.strip().lower()
+    clean_phone = user.phone_number.strip()
+    from sqlalchemy import func
+
+    # Check if a user with this email already exists
+    existing_by_email = db.query(models.User).filter(func.lower(models.User.email) == clean_email).first()
+    if existing_by_email:
+        # If this account was previously initialized via Google OAuth or missing a custom password,
+        # seamlessly update their password and name so they can sign in with their chosen credentials!
+        if existing_by_email.password == "google_oauth_authenticated" or not existing_by_email.password:
+            existing_by_email.password = user.password
+            if user.name:
+                existing_by_email.name = user.name
+            if clean_phone and not existing_by_email.phone_number.startswith("+"):
+                phone_taken = db.query(models.User).filter(models.User.phone_number == clean_phone).first()
+                if not phone_taken:
+                    existing_by_email.phone_number = clean_phone
+            db.commit()
+            db.refresh(existing_by_email)
+            return existing_by_email
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="An account with this email already exists. Please log in, or use 'Forgot Password?' to reset your password."
+            )
+
+    # Check if a user with this phone number already exists
+    existing_by_phone = db.query(models.User).filter(models.User.phone_number == clean_phone).first()
+    if existing_by_phone:
+        raise HTTPException(
+            status_code=400,
+            detail="An account with this phone number already exists. Please log in with your phone number."
+        )
+
+    user_dict = user.dict()
+    user_dict["email"] = clean_email
+    user_dict["phone_number"] = clean_phone
+    db_user = models.User(**user_dict)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -137,11 +196,19 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         (func.lower(models.User.email) == clean_id) | (models.User.phone_number == user.identifier.strip())
     ).first()
     if not db_user:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
-    if db_user.password == "google_oauth_authenticated" and user.password != "google_oauth_authenticated":
-        raise HTTPException(status_code=400, detail="This account was created with Google. Please click 'CONTINUE WITH GOOGLE' to sign in instantly.")
+        raise HTTPException(status_code=401, detail="Invalid email or password. Please check your credentials or create a new account.")
+    
+    # If account was registered via Google OAuth:
+    if db_user.password == "google_oauth_authenticated":
+        # If user supplied a password when logging in, link this password directly to the account so they are never locked out!
+        if user.password and user.password != "google_oauth_authenticated":
+            db_user.password = user.password
+            db.commit()
+            db.refresh(db_user)
+            return db_user
+
     if db_user.password != user.password:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        raise HTTPException(status_code=401, detail="Invalid password. Click 'Forgot Password?' below if you need to reset it.")
     return db_user
 
 class GoogleLoginRequest(BaseModel):

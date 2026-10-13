@@ -85,15 +85,17 @@ Every counted repetition must satisfy:
 The backend provides high-performance, asynchronous RESTful API services:
 - **FastAPI Core:** Non-blocking async endpoints utilizing ASGI Uvicorn workers.
 - **Database Abstraction:** SQLAlchemy ORM configured with connection pooling. Supports PostgreSQL 15 in production and SQLite in development.
-- **Security & Google OAuth 2.0:**
-  - Endpoint `POST /google_login/` receives Google JWT tokens (`credential: str`).
-  - Verifies signatures cryptographically against `https://oauth2.googleapis.com/tokeninfo`.
-  - Automatically provisions athlete profiles. Rejects arbitrary email bypass requests.
+- **Security, Dual-Mode Auth & Credential Management:**
+  - Endpoint `POST /google_login/` receives Google JWT tokens (`credential: str`), verified cryptographically against `https://oauth2.googleapis.com/tokeninfo`.
+  - Native `POST /login/` supports email and phone number authentication with automatic password linking for OAuth accounts.
+  - Endpoint `POST /users/` provisions athlete profiles with duplicate prevention and clean 400 error handling.
+  - Endpoint `POST /reset_password/` handles credential recovery and password reset.
 - **Cloud Vision Service (`ai_service.py`):**
   - Accepts compressed Base64 images from frontend.
-  - Injects structured JSON schemas into Groq system prompts.
-  - Implements multi-model fallback (`llama-3.2-11b-vision` $\to$ `qwen-2.5-vl`).
-  - Extracts gram portion weights, itemized ingredients, macros, and diagnostics.
+  - Injects structured JSON schemas into Groq system prompts (`qwen/qwen3.8-27b` / `llama-3.2-11b-vision`).
+  - Implements multi-model fallback and transient error retry logic with exponential backoff.
+  - Computes complete energy density: calories per gram ($\text{kcal/g}$) and per 100g ($\text{kcal/100g}$) for the whole dish and each itemized ingredient.
+  - Normalizes full macro and micronutrient arrays (Protein, Carbs, Fats, Dietary Fiber, Sugars, Vitamins, Minerals, Glycemic Index).
 
 ---
 
@@ -102,5 +104,6 @@ The backend provides high-performance, asynchronous RESTful API services:
 Nginx handles edge traffic on the host:
 - Terminates SSL/TLS on port 443 with self-signed or CA-issued certificates.
 - Redirects HTTP port 80 traffic to HTTPS port 443.
+- Enforces `client_max_body_size 50M` and 120s proxy timeouts to accommodate large 4K smartphone camera vision payloads without 413 entity errors.
 - Serves pre-built Vite production assets (`/usr/share/nginx/html`).
 - Proxies `/api/`, `/docs`, `/openapi.json`, and auth routes to `http://backend:8000`.

@@ -461,7 +461,8 @@ function App() {
       const data = await res.json()
       setUser(data)
       try { localStorage.setItem('fitnessUserId', String(data.id)) } catch {}
-      setView('profile')
+      showToast(`Welcome ${data.name || 'Athlete'}! Account created successfully.`)
+      setView(data.weight && data.age ? 'dashboard' : 'profile')
     } catch (err) { showToast(err.message) }
     setLoading(false)
   }
@@ -772,10 +773,10 @@ function App() {
         </div>
 
         <form onSubmit={handleSignup} className="flex flex-col gap-3.5">
-          <input type="text" placeholder="Full Name" onChange={e => setSignupForm({ ...signupForm, name: e.target.value })} className="field-dark" required />
-          <input type="email" placeholder="Email Address" onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="field-dark" required />
-          <input type="text" placeholder="Phone Number" onChange={e => setSignupForm({ ...signupForm, phone_number: e.target.value })} className="field-dark" required />
-          <input type="password" placeholder="Secure Password" onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="field-dark" required />
+          <input type="text" placeholder="Full Name" value={signupForm.name} onChange={e => setSignupForm({ ...signupForm, name: e.target.value })} className="field-dark" required />
+          <input type="email" placeholder="Email Address" value={signupForm.email} onChange={e => setSignupForm({ ...signupForm, email: e.target.value })} className="field-dark" required />
+          <input type="text" placeholder="Phone Number" value={signupForm.phone_number} onChange={e => setSignupForm({ ...signupForm, phone_number: e.target.value })} className="field-dark" required />
+          <input type="password" placeholder="Secure Password" value={signupForm.password} onChange={e => setSignupForm({ ...signupForm, password: e.target.value })} className="field-dark" required />
           <button type="submit" disabled={loading} className="btn-lime w-full text-base py-4 mt-1">START TRAINING →</button>
         </form>
         <p className="mt-6 text-sm text-[#ACBAC2] text-center cursor-pointer hover:text-[#C7F36B] font-bold" onClick={() => setView('login')}>← Back to Login</p>

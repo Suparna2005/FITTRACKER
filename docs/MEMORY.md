@@ -52,9 +52,9 @@ Critical for running zero-latency computer vision and biomechanics without trigg
 
 The backend operates as an asynchronous, stateless service where each request provides complete context. Persistent state is maintained within PostgreSQL 15 (production) or SQLite (development):
 
-- **User Accounts (`users`):** Stores identity credentials, Google OAuth profile identifiers (`sub`), physiological parameters, and dietary preferences.
+- **User Accounts (`users`):** Stores identity credentials, Google OAuth profile identifiers (`sub`), hashed/custom passwords, physiological parameters, and dietary preferences. Supports password recovery and linking for OAuth-originated accounts.
 - **Workout Logs (`daily_workouts.workout_data`):** Records exercise names, sets, reps, form scores, and critique notes.
-- **Diet Logs (`daily_workouts.diet_data`):** Stores complete nutritional ledgers, including total portion mass in grams (`serving_weight_g`), calories, macronutrient splits, itemized ingredient breakdowns with individual weights, and bio-diagnostic summaries.
+- **Diet Logs (`daily_workouts.diet_data`):** Stores complete nutritional ledgers, including total portion mass in grams (`serving_weight_g`), calories, energy density metrics (`calories_per_g`, `calories_per_100g`), macronutrient splits (protein, carbs, fats, fiber, sugar), itemized ingredient breakdowns with individual weights and densities, and bio-diagnostic summaries.
 - **Discomfort Logs (`discomfort_logs`):** Retains athlete pain reports, severity ratings, and AI Doctor/Physical Trainer adaptation recommendations.
 - **Training Splits (`workout_plans`):** Stores weekly muscle allocations and custom training schedules.
 - **Notifications (`notifications`):** In-app notification center logs.
