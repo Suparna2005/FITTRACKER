@@ -204,6 +204,7 @@ function App() {
   const [signupForm, setSignupForm] = useState({ name: '', email: '', phone_number: '', password: '' })
   const [resetForm, setResetForm] = useState({ identifier: '', new_password: '' })
   const [toast, setToast] = useState(null)
+  const [registeredUserModal, setRegisteredUserModal] = useState(null)
   const [visionMode, setVisionMode] = useState(null)
 
   const showToast = (message) => {
@@ -459,10 +460,23 @@ function App() {
         throw new Error(errorData.detail || 'Failed to sign up.')
       }
       const data = await res.json()
-      setUser(data)
-      try { localStorage.setItem('fitnessUserId', String(data.id)) } catch {}
-      showToast(`Welcome ${data.name || 'Athlete'}! Account created successfully.`)
-      setView(data.weight && data.age ? 'dashboard' : 'profile')
+      
+      // Do NOT directly log the user into the app.
+      // Prefill login identifier with their registered email/phone:
+      setLoginForm({
+        identifier: signupForm.email || signupForm.phone_number || '',
+        password: ''
+      })
+      
+      // Reset signup form
+      setSignupForm({ name: '', email: '', phone_number: '', password: '' })
+      
+      // Open the registration success modal
+      setRegisteredUserModal({
+        name: data.name || 'Athlete',
+        email: data.email,
+        phone_number: data.phone_number
+      })
     } catch (err) { showToast(err.message) }
     setLoading(false)
   }
@@ -667,11 +681,79 @@ function App() {
     )
   }
 
+  const renderRegisterSuccessModal = () => {
+    if (!registeredUserModal) return null
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md fade-up">
+        <div className="relative w-full max-w-md bg-[#10181D] border border-[#C7F36B]/40 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(199,243,107,0.25)] text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setRegisteredUserModal(null)
+              setView('login')
+            }}
+            className="absolute top-4 right-4 text-[#ACBAC2] hover:text-[#F4F7F8] text-sm font-bold bg-[#172127] rounded-xl border border-[#304149] w-9 h-9 flex items-center justify-center transition-colors"
+          >
+            ✕
+          </button>
+
+          <div className="mx-auto w-20 h-20 rounded-full bg-[#C7F36B]/15 border-2 border-[#C7F36B] flex items-center justify-center shadow-[0_0_25px_rgba(199,243,107,0.3)] mb-5">
+            <svg className="w-10 h-10 text-[#C7F36B]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-[#C7F36B] mb-1.5">
+            REGISTRATION SUCCESSFUL
+          </div>
+          <h3 className="text-2xl md:text-3xl font-extrabold text-[#F4F7F8] tracking-wide mb-2">
+            WELCOME, {registeredUserModal.name.toUpperCase()}!
+          </h3>
+          <p className="text-xs md:text-sm text-[#ACBAC2] leading-relaxed mb-6">
+            Your athlete account has been registered successfully. Please log in with your email &amp; password to enter the training command center.
+          </p>
+
+          <div className="bg-[#172127] border border-[#304149] rounded-2xl p-4 text-left space-y-2 mb-6">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-[#ACBAC2]">Registered Email:</span>
+              <span className="font-mono font-bold text-white truncate max-w-[200px]">{registeredUserModal.email}</span>
+            </div>
+            {registeredUserModal.phone_number && !registeredUserModal.phone_number.startsWith('google_') && (
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[#ACBAC2]">Phone Number:</span>
+                <span className="font-mono font-bold text-white">{registeredUserModal.phone_number}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-xs pt-1 border-t border-[#304149]">
+              <span className="text-[#ACBAC2]">Account Status:</span>
+              <span className="text-xs font-black text-[#C7F36B] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse"></span>
+                ACTIVE &amp; READY FOR LOGIN
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setRegisteredUserModal(null)
+              setView('login')
+            }}
+            className="btn-lime w-full text-base py-4 shadow-lg font-black tracking-wider flex items-center justify-center gap-2"
+          >
+            PROCEED TO LOGIN →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // --- VIEWS ---
 
   if (view === 'login') {
     return (
       <>
+        {renderRegisterSuccessModal()}
         {renderGoogleModal()}
         <AuthShell image={LOGIN_IMG} eyebrow="AI Gym Intelligence" title="TRAIN LIKE" highlight="A MACHINE."
           sub="Doctor-reviewed AI builds your workout + diet daily from your vitals, history and custom split. Log in to enter the forge.">
@@ -746,6 +828,7 @@ function App() {
   if (view === 'signup') {
     return (
       <>
+        {renderRegisterSuccessModal()}
         {renderGoogleModal()}
         <AuthShell image={IRON_IMG} eyebrow="Join 48,000+ athletes" title="FORGE YOUR" highlight="ACCOUNT."
           sub="One account for training splits, nutrition, recovery and AI progression. Takes 20 seconds.">
