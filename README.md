@@ -68,7 +68,13 @@ Unlike traditional fitness apps that demand tedious manual logging, IronForge AI
 - **Self-Service Password Reset (`POST /reset_password/`):** Full recovery flow via "Forgot Password?" allowing users to reset their password with verified credentials.
 - **Graceful Error Handling:** Replaces unhandled database integrity crashes with actionable error messages.
 
+### 7. 📬 Flexible Daily Delivery & In-App Notification Center
+- **Email Delivery On/Off Toggle:** Athletes can switch off recurring daily emails if they prefer viewing workouts and meal plans exclusively inside the app.
+- **Always-Available In-App Feed:** Disabling email delivery never silences notifications; all AI-generated routines and daily splits are continuously deposited into the user's interactive notification inbox (accessible via the bell icon).
+- **Dual-Control Convenience:** Toggle your preferences in Section IV of the Profile dashboard or via the 1-click quick-toggle button inside the Notification Inbox modal.
+
 ---
+
 
 ## 🏗️ Technical Stack
 

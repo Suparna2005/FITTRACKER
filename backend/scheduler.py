@@ -93,26 +93,30 @@ def process_due_workouts():
                 except Exception as e:
                     print(f"Scheduler SMS failed: {e}")
 
-            # 3) Email too (mock-prints when SMTP is missing)
-            if getattr(user, "email", None):
-                try:
-                    html_body = "<pre style='font-family:sans-serif;white-space:pre-wrap'>" + sms_text.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
-                    email_service.send_email(user.email, f"Your IronForge AI Plan — {datetime.datetime.now().strftime('%A')}", html_body, html=True)
-                    sent_successfully = True
-                except Exception as e:
-                    print(f"Scheduler Email failed: {e}")
+            # 3) Email delivery (respects user toggle: "true" = email on, "false" = in-app only)
+            allow_email = getattr(user, "email_notifications_enabled", "true")
+            if str(allow_email).lower() not in ("false", "0", "off", "no"):
+                if getattr(user, "email", None):
+                    try:
+                        html_body = "<pre style='font-family:sans-serif;white-space:pre-wrap'>" + sms_text.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
+                        email_service.send_email(user.email, f"Your IronForge AI Plan — {datetime.datetime.now().strftime('%A')}", html_body, html=True)
+                        sent_successfully = True
+                    except Exception as e:
+                        print(f"Scheduler Email failed: {e}")
+            else:
+                print(f"Scheduler: user #{user.id} ({getattr(user, 'email', '')}) has regular email delivery turned OFF (checking in-app only).")
 
-            # 1) Zero-key inbox — Only save if sent successfully or if user has no contact methods
-            if sent_successfully or (not user.phone_number and not getattr(user, "email", None)):
-                try:
-                    db.add(models.Notification(
-                        user_id=user.id,
-                        title=f"Today's AI Plan — {datetime.datetime.now().strftime('%A')}",
-                        body=sms_text,
-                        channel="auto"))
-                    db.commit()
-                except Exception as e:
-                    print(f"inbox write skipped: {e}")
+            # 1) In-App Inbox — ALWAYS delivered so user can check it anytime in the app!
+            try:
+                title_suffix = " (In-App Only)" if str(allow_email).lower() in ("false", "0", "off", "no") else ""
+                db.add(models.Notification(
+                    user_id=user.id,
+                    title=f"Today's AI Plan — {datetime.datetime.now().strftime('%A')}{title_suffix}",
+                    body=sms_text,
+                    channel="app"))
+                db.commit()
+            except Exception as e:
+                print(f"inbox write skipped: {e}")
             
     except Exception as e:
         print(f"Scheduler Error: {e}")

@@ -73,7 +73,7 @@ export default function Notify({ onClose }) {
 ))}
   {users.length === 0 && <option>No users found</option>}
   </select>
-  {selected && (<p className="text-[11px] text-zinc-500 mt-1.5">Goal: {selected.goal || '—'} • Reminder at: {selected.notification_time || '—'}</p>
+  {selected && (<p className="text-[11px] text-zinc-500 mt-1.5">Goal: {selected.goal || '—'} • Reminder: {selected.notification_time || '06:00'} • Email Delivery: {String(selected.email_notifications_enabled).toLowerCase() === 'false' ? '🔴 OFF (In-App Only)' : '🟢 ON'}</p>
 )}
   </div>
   <div>

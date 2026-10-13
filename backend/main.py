@@ -76,6 +76,7 @@ class UserCreate(BaseModel):
     diet_cuisine: Optional[str] = "Generic Indian"
     diet_type: Optional[str] = "No Preference"
     body_fat: Optional[str] = None
+    email_notifications_enabled: Optional[str] = "true"
 
 class WorkoutImport(BaseModel):
     user_id: int
@@ -187,6 +188,20 @@ def update_user(user_id: int, user_update: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+class NotificationPrefUpdate(BaseModel):
+    email_notifications_enabled: str
+
+@app.put("/users/{user_id}/notification_preferences")
+def update_notification_preferences(user_id: int, pref: NotificationPrefUpdate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    val = "false" if str(pref.email_notifications_enabled).lower() in ("false", "0", "off", "no") else "true"
+    db_user.email_notifications_enabled = val
+    db.commit()
+    db.refresh(db_user)
+    return {"status": "success", "email_notifications_enabled": val, "user": db_user}
 
 @app.post("/login/")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
@@ -548,29 +563,31 @@ def generate_user_plan(user_id: int, plan_type: str = "1-day", use_split: bool =
             except Exception as e:
                 print(f"auto SMS skipped: {e}")
                 
-        # 2. Email
-        if getattr(user, "email", None):
-            try:
-                import email_service
-                html_body = "<pre style='font-family:sans-serif;white-space:pre-wrap'>" + auto_msg.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
-                email_service.send_email(user.email, f"Today's AI Plan — {target_day}", html_body, html=True)
-                sent_channels.append("Email")
-            except Exception as e:
-                print(f"auto Email skipped: {e}")
-                
-        # 3. Inbox
-        if sent_channels:
-            sms_note = f"sent via {' & '.join(sent_channels)}"
-            try:
-                _inbox(db, user.id, f"Today's AI Plan — {target_day} ({sms_note})", auto_msg, channel="auto")
-            except Exception as e:
-                print(f"inbox write skipped: {e}")
+        # 2. Email (respects user toggle: "true" = email on, "false" = in-app only)
+        allow_email = getattr(user, "email_notifications_enabled", "true")
+        if str(allow_email).lower() not in ("false", "0", "off", "no"):
+            if getattr(user, "email", None):
+                try:
+                    import email_service
+                    html_body = "<pre style='font-family:sans-serif;white-space:pre-wrap'>" + auto_msg.replace("&", "&amp;").replace("<", "&lt;") + "</pre>"
+                    email_service.send_email(user.email, f"Today's AI Plan — {target_day}", html_body, html=True)
+                    sent_channels.append("Email")
+                except Exception as e:
+                    print(f"auto Email skipped: {e}")
         else:
-            sms_note = "no valid contact methods or failed"
-            try:
-                _inbox(db, user.id, f"Today's AI Plan — {target_day} ({sms_note})", auto_msg, channel="auto")
-            except Exception as e:
-                print(f"inbox write skipped: {e}")
+            print(f"Auto-delivery Email skipped: user #{user.id} turned OFF regular emails (checking in-app only).")
+
+        # 3. Always deliver to in-app Inbox
+        if str(allow_email).lower() in ("false", "0", "off", "no"):
+            inbox_note = "in-app only (emails turned off)"
+        elif sent_channels:
+            inbox_note = f"sent via {' & '.join(sent_channels)}"
+        else:
+            inbox_note = "in-app"
+        try:
+            _inbox(db, user.id, f"Today's AI Plan — {target_day} ({inbox_note})", auto_msg, channel="auto")
+        except Exception as e:
+            print(f"inbox write skipped: {e}")
                 
     except Exception as e:
         print(f"auto-delivery skipped: {e}")

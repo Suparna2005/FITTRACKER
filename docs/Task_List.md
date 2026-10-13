@@ -50,9 +50,13 @@
 - [x] **Rep Tempo Verification ($\ge 1.0\text{ s}$):** Minimum 1000ms duration check filters camera jitter and rapid twitches.
 - [x] **Instant Form Disqualification:** Form breaks (rounded spine, flared elbows, collapsed chest, valgus knees) invalidate reps as `❌ NO REP` without incrementing the counter.
 - [x] **Web Audio API Acoustic Feedback:** Synthesized harmonic chimes (587Hz $\to$ 880Hz) on verified reps and warning tones on form violations.
-- [x] **10-Frame Hand Gesture Debounce:** Enforced ~350ms sustained hand gesture holding to prevent accidental set starts.
+### Notification & Delivery Preferences
+- [x] **Email Notification On/Off Toggle & In-App-Only Delivery:** Implemented user preference toggle `email_notifications_enabled` allowing users who prefer checking workout and nutrition plans via the app to turn daily emails ON or OFF.
+- [x] **In-App Notification Feed Preservation:** The automated daily scheduler (`backend/scheduler.py`) and instant delivery endpoints check `email_notifications_enabled` before sending emails, but **always** deliver records to the in-app notification ledger (`models.Notification`), ensuring athletes never miss their daily guidance.
+- [x] **Dual-Location Toggle Controls:** Built Section IV ("DAILY DELIVERY & NOTIFICATION PREFERENCES") in the Profile screen with an animated toggle switch, and added a 1-click quick-toggle banner at the top of the Notifications Inbox modal (`inboxOpen`).
 
 ---
+
 
 ## 🔮 Future Roadmap (Optional Enhancements)
 - [ ] Export workout logs to Apple Health / Google Health Connect.

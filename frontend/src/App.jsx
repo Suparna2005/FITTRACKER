@@ -251,6 +251,7 @@ function App() {
     email: '', phone_number: '',
     goal: 'Build Muscle', target_timeframe: '12 weeks', experience_level: 'Beginner', equipment: 'Full Gym',
     notification_time: '06:00',
+    email_notifications_enabled: 'true',
     age: '', gender: 'Male', weight: '', weight_unit: 'kg', height: '', height_unit: 'cm',
     blood_pressure: '', blood_group: 'O+', medical_conditions: '',
     diet_cuisine: 'Generic Indian', diet_type: 'No Preference', body_fat: ''
@@ -271,6 +272,7 @@ function App() {
     if (user) {
       fetchHistory()
       fetchSplit()
+      const isEmailOff = user.email_notifications_enabled && ['false', '0', 'off', 'no'].includes(String(user.email_notifications_enabled).toLowerCase());
       setProfileForm(prev => ({
         ...prev,
         email: user.email || '',
@@ -279,6 +281,8 @@ function App() {
         target_timeframe: user.target_timeframe || '',
         experience_level: user.experience_level || 'Beginner',
         equipment: user.equipment || 'Full Gym',
+        notification_time: user.notification_time || '06:00',
+        email_notifications_enabled: isEmailOff ? 'false' : 'true',
         age: user.age || '',
         gender: user.gender || 'Male',
         blood_pressure: user.blood_pressure || '',
@@ -505,6 +509,32 @@ function App() {
       showToast('Health Profile Updated Successfully!')
     } catch (err) { showToast(err.message) }
     setLoading(false)
+  }
+
+  const toggleEmailNotifications = async () => {
+    if (!user) return
+    const isCurrentlyOn = profileForm.email_notifications_enabled === 'true' && (!user.email_notifications_enabled || !['false', '0', 'off', 'no'].includes(String(user.email_notifications_enabled).toLowerCase()))
+    const newVal = isCurrentlyOn ? 'false' : 'true'
+
+    // Optimistic UI update
+    setProfileForm(prev => ({ ...prev, email_notifications_enabled: newVal }))
+    setUser(prev => ({ ...prev, email_notifications_enabled: newVal }))
+
+    try {
+      const res = await fetch(`${API_URL}/users/${user.id}/notification_preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_notifications_enabled: newVal })
+      })
+      if (!res.ok) throw new Error('Failed to update preference')
+      const data = await res.json()
+      if (data.user) setUser(data.user)
+      showToast(newVal === 'true'
+        ? '✓ Email delivery turned ON! You will receive daily plan emails.'
+        : '✓ Email delivery turned OFF. Your daily plans will stay in this app inbox!')
+    } catch (e) {
+      showToast('Error saving notification preference')
+    }
   }
 
   const handleLogData = async (e) => {
@@ -900,6 +930,40 @@ function App() {
               </h3>
               <button onClick={() => setInboxOpen(false)} className="text-xs text-[#ACBAC2] hover:text-[#F4F7F8] bg-[#10181D] px-2.5 py-1 rounded-lg border border-[#304149] min-w-[44px] min-h-[44px] flex items-center justify-center">✕ Close</button>
             </div>
+
+            {/* Quick Email Delivery Toggle */}
+            {(() => {
+              const isEmailOn = profileForm.email_notifications_enabled === 'true' && (!user?.email_notifications_enabled || !['false', '0', 'off', 'no'].includes(String(user?.email_notifications_enabled).toLowerCase()));
+              return (
+                <div className="bg-[#10181D] border border-[#304149] rounded-xl p-3 mb-3 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">📧</span>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>Daily Email Delivery</span>
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${isEmailOn ? 'bg-[#C7F36B]/20 text-[#C7F36B] border border-[#C7F36B]/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>
+                          {isEmailOn ? '● ON (Receiving Mails)' : '○ OFF (In-App Only)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#ACBAC2] mt-0.5">
+                        {isEmailOn 
+                          ? 'You receive daily plans by email and here in the app.' 
+                          : 'Emails are turned off. Check your daily plans directly here inside this app inbox anytime!'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleEmailNotifications}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all border ${isEmailOn 
+                      ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30' 
+                      : 'bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border-[#C7F36B]/40'}`}
+                  >
+                    {isEmailOn ? 'Turn OFF Emails' : 'Turn ON Emails'}
+                  </button>
+                </div>
+              );
+            })()}
             <div className="flex flex-wrap gap-2 mb-3">
               <input
                 type="text"
@@ -1164,6 +1228,48 @@ function App() {
                       {DIET_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Section IV: Daily Delivery & Email Notification Preferences */}
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide">
+                    Ⅳ — DAILY DELIVERY &amp; NOTIFICATION PREFERENCES
+                  </h3>
+                  <span className={`text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border ${profileForm.email_notifications_enabled === 'true' ? 'bg-[#C7F36B]/20 text-[#C7F36B] border-[#C7F36B]/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                    {profileForm.email_notifications_enabled === 'true' ? '● REGULAR EMAILS ON' : '○ IN-APP ONLY (EMAILS OFF)'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#ACBAC2] mb-4">Choose whether you want regular email delivery or prefer checking everything inside the app.</p>
+
+                <div className="bg-[#172127] border border-[#304149] rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>📧 Receive Daily Workout &amp; Diet Plans via Email</span>
+                    </div>
+                    <p className="text-xs text-[#ACBAC2] max-w-xl">
+                      Turn this <strong>OFF</strong> if you don&apos;t want regular emails filling up your email inbox. When OFF, your daily AI workout plans, meal charts, and reminders will land right in your in-app inbox (tap the notification bell 🔔 anytime).
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input 
+                      type="checkbox"
+                      checked={profileForm.email_notifications_enabled === 'true'}
+                      onChange={e => setProfileForm({ ...profileForm, email_notifications_enabled: e.target.checked ? 'true' : 'false' })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-14 h-7 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#C7F36B]"></div>
+                    <span className="ml-3 text-xs font-black uppercase text-white">
+                      {profileForm.email_notifications_enabled === 'true' ? 'ON' : 'OFF'}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#ACBAC2] bg-[#10181D]/80 p-3 rounded-lg border border-white/5">
+                  <span>⏰ Scheduled Plan Time: <strong className="text-white">{profileForm.notification_time || '06:00'}</strong></span>
+                  <span>📱 In-App Notification Inbox: <strong className="text-[#54D8CF]">Always Active (Zero Emails Required)</strong></span>
                 </div>
               </div>
 

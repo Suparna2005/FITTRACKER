@@ -30,6 +30,9 @@ class User(Base):
     diet_type = Column(String, nullable=True, default="No Preference")
     body_fat = Column(String, nullable=True)
 
+    # Email notifications toggle ("true" = receive regular emails, "false" = check via app inbox only)
+    email_notifications_enabled = Column(String, nullable=True, default="true")
+
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class DailyWorkout(Base):

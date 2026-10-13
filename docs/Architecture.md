@@ -89,8 +89,12 @@ The backend provides high-performance, asynchronous RESTful API services:
   - Endpoint `POST /google_login/` receives Google JWT tokens (`credential: str`), verified cryptographically against `https://oauth2.googleapis.com/tokeninfo`.
   - Native `POST /login/` supports email and phone number authentication with automatic password linking for OAuth accounts.
   - Endpoint `POST /users/` provisions athlete profiles with duplicate prevention and clean 400 error handling.
-  - Endpoint `POST /reset_password/` handles credential recovery and password reset.
-- **Cloud Vision Service (`ai_service.py`):**
+- **Notification & Delivery Preferences Engine (`scheduler.py` & `main.py`):**
+  - Schema includes `email_notifications_enabled` (`"true"` vs `"false"`), auto-migrated via SQL table inspection.
+  - Endpoint `PUT /users/{user_id}/notification_preferences` allows immediate toggling without full profile mutation.
+  - Background cron scheduler checks `user.email_notifications_enabled != "false"` before initiating SMTP connections via `email_service.send_email`.
+  - In-app notification records (`models.Notification`) are **always committed** to the database ledger (`channel="app"`), guaranteeing that athletes who prefer checking their routines within the app have uninterrupted access via the in-app notification center.
+
   - Accepts compressed Base64 images from frontend webcam or file uploads.
   - Injects structured JSON schemas into Groq system prompts (`qwen/qwen3.8-27b` / `llama-3.2-11b-vision`).
   - Implements multi-model fallback and transient error retry logic with exponential backoff.
