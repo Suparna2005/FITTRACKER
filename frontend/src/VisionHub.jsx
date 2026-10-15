@@ -334,75 +334,81 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         try { await videoRef.current.play(); } catch(e){}
         
         // Start real-time skeleton tracking for form mode
-        if (mode === 'form' && window.Pose) {
-          poseRef.current = new window.Pose({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-          });
-          poseRef.current.setOptions({
-            modelComplexity: 1,
-            smoothLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-          });
-
-          if (window.Hands) {
-            handsRef.current = new window.Hands({
-              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        if (mode === 'form') {
+          let waitPose = 0;
+          while (!window.Pose && waitPose < 25) {
+            await new Promise(r => setTimeout(r, 100));
+            waitPose++;
+          }
+          if (window.Pose) {
+            poseRef.current = new window.Pose({
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
             });
-            handsRef.current.setOptions({
-              maxNumHands: 1,
+            poseRef.current.setOptions({
               modelComplexity: 1,
+              smoothLandmarks: true,
               minDetectionConfidence: 0.5,
               minTrackingConfidence: 0.5
             });
-            
-            handsRef.current.onResults((results) => {
-               const tracker = liveTrackerRef.current;
-               if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                 const landmarks = results.multiHandLandmarks[0];
-                 let count = 0;
-                 
-                 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-                 
-                 // A finger is raised if its tip is further from the wrist (0) than its PIP joint is
-                 if (dist(landmarks[8], landmarks[0]) > dist(landmarks[6], landmarks[0])) count++; // Index
-                 if (dist(landmarks[12], landmarks[0]) > dist(landmarks[10], landmarks[0])) count++; // Middle
-                 if (dist(landmarks[16], landmarks[0]) > dist(landmarks[14], landmarks[0])) count++; // Ring
-                 if (dist(landmarks[20], landmarks[0]) > dist(landmarks[18], landmarks[0])) count++; // Pinky
-                 if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++; // Thumb
-                 
-                 if (tracker.waitingForSignal > 0) {
-                   if (count === tracker.waitingForSignal) {
-                     tracker.consecutiveSignalFrames = (tracker.consecutiveSignalFrames || 0) + 1;
-                     if (tracker.consecutiveSignalFrames >= 10) {
+
+            if (window.Hands) {
+              handsRef.current = new window.Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+              });
+              handsRef.current.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+              });
+              
+              handsRef.current.onResults((results) => {
+                 const tracker = liveTrackerRef.current;
+                 if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                   const landmarks = results.multiHandLandmarks[0];
+                   let count = 0;
+                   
+                   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+                   
+                   // A finger is raised if its tip is further from the wrist (0) than its PIP joint is
+                   if (dist(landmarks[8], landmarks[0]) > dist(landmarks[6], landmarks[0])) count++; // Index
+                   if (dist(landmarks[12], landmarks[0]) > dist(landmarks[10], landmarks[0])) count++; // Middle
+                   if (dist(landmarks[16], landmarks[0]) > dist(landmarks[14], landmarks[0])) count++; // Ring
+                   if (dist(landmarks[20], landmarks[0]) > dist(landmarks[18], landmarks[0])) count++; // Pinky
+                   if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++; // Thumb
+                   
+                   if (tracker.waitingForSignal > 0) {
+                     if (count === tracker.waitingForSignal) {
+                       tracker.consecutiveSignalFrames = (tracker.consecutiveSignalFrames || 0) + 1;
+                       if (tracker.consecutiveSignalFrames >= 3) {
+                         tracker.consecutiveSignalFrames = 0;
+                         startSet(tracker.waitingForSignal, 'HAND SIGNAL');
+                       }
+                     } else {
                        tracker.consecutiveSignalFrames = 0;
-                       startSet(tracker.waitingForSignal, 'HAND SIGNAL');
                      }
+                     const repEl = document.getElementById('repCounter');
+                     if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
                    } else {
                      tracker.consecutiveSignalFrames = 0;
                    }
-                   const repEl = document.getElementById('repCounter');
-                   if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
+                   
+                   // Draw the hand landmarks so user can see it's working
+                   const canvas = canvasOverlayRef.current;
+                   if (canvas && window.drawConnectors && window.drawLandmarks && window.HAND_CONNECTIONS) {
+                       const ctx = canvas.getContext('2d');
+                       window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#3b82f6', lineWidth: 4});
+                       window.drawLandmarks(ctx, landmarks, {color: '#60a5fa', lineWidth: 1, radius: 2});
+                   }
                  } else {
                    tracker.consecutiveSignalFrames = 0;
+                   if (tracker.waitingForSignal > 0) {
+                       const repEl = document.getElementById('repCounter');
+                       if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
+                   }
                  }
-                 
-                 // Draw the hand landmarks so user can see it's working
-                 const canvas = canvasOverlayRef.current;
-                 if (canvas && window.drawConnectors && window.drawLandmarks && window.HAND_CONNECTIONS) {
-                     const ctx = canvas.getContext('2d');
-                     window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#3b82f6', lineWidth: 4});
-                     window.drawLandmarks(ctx, landmarks, {color: '#60a5fa', lineWidth: 1, radius: 2});
-                 }
-               } else {
-                 tracker.consecutiveSignalFrames = 0;
-                 if (tracker.waitingForSignal > 0) {
-                     const repEl = document.getElementById('repCounter');
-                     if (repEl) repEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
-                 }
-               }
-            });
-          }
+              });
+            }
 
           // Voice recognition setup for hands-free voice controls
           startVoiceRecognition();
@@ -433,11 +439,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             }
             
             const lm = results.poseLandmarks;
-            if (lm && lm.length >= 33 && window.drawConnectors && window.drawLandmarks) {
-              let skeletonColor = '#10b981'; // Green default
+            if (lm && lm.length >= 25) {
+              let skeletonColor = '#10b981'; // Green default for aligned posture
 
               // ── 1. Confidence & Visibility Helpers ──
-              const isPtVisible = (pt) => pt && (pt.visibility === undefined || pt.visibility > 0.60);
+              const isPtVisible = (pt) => pt && (pt.visibility === undefined || pt.visibility > 0.25 || (pt.x >= 0 && pt.x <= 1 && pt.y >= 0 && pt.y <= 1));
               const smoothAngle = (key, rawAngle, alpha = 0.35) => {
                 if (!tracker.smoothedAngles[key]) {
                   tracker.smoothedAngles[key] = rawAngle;
@@ -447,7 +453,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 return tracker.smoothedAngles[key];
               };
 
-              // ── 2. Automatic Exercise Classifier ──
+              // ── 2. Automatic Exercise & Posture Classifier ──
               const classifyCurrentPose = () => {
                 const lShoulder = lm[11], rShoulder = lm[12];
                 const lElbow = lm[13], rElbow = lm[14];
@@ -458,16 +464,14 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const nose = lm[0];
 
                 const upperVis = (isPtVisible(lShoulder) || isPtVisible(rShoulder)) &&
-                                 (isPtVisible(lElbow) || isPtVisible(rElbow)) &&
-                                 (isPtVisible(lWrist) || isPtVisible(rWrist));
+                                 (isPtVisible(lElbow) || isPtVisible(rElbow));
                 const lowerVis = (isPtVisible(lHip) || isPtVisible(rHip)) &&
-                                 (isPtVisible(lKnee) || isPtVisible(rKnee)) &&
-                                 (isPtVisible(lAnkle) || isPtVisible(rAnkle));
+                                 (isPtVisible(lKnee) || isPtVisible(rKnee));
 
                 // A. Overhead Press check: wrists above head or significantly above shoulders
-                if (upperVis && lWrist && rWrist && lShoulder && rShoulder) {
-                  const avgWristY = (lWrist.y + rWrist.y) / 2;
-                  const avgShoulderY = (lShoulder.y + rShoulder.y) / 2;
+                if (upperVis && (lWrist || rWrist) && (lShoulder || rShoulder)) {
+                  const avgWristY = ((lWrist?.y || rWrist?.y) + (rWrist?.y || lWrist?.y)) / 2;
+                  const avgShoulderY = ((lShoulder?.y || rShoulder?.y) + (rShoulder?.y || lShoulder?.y)) / 2;
                   const headTop = nose ? nose.y : avgShoulderY - 0.2;
                   if (avgWristY < headTop || avgWristY < avgShoulderY - 0.10) {
                     return 'overhead press';
@@ -475,20 +479,21 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 }
 
                 // B. Lower body checks
-                if (lowerVis && lHip && rHip && lKnee && rKnee && lAnkle && rAnkle) {
-                  const leftKneeAngle = calculateAngle(lHip, lKnee, lAnkle);
-                  const rightKneeAngle = calculateAngle(rHip, rKnee, rAnkle);
-                  const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+                if (lowerVis && (lHip || rHip) && (lKnee || rKnee)) {
+                  const leftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
+                  const rightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
+                  const avgKneeAngle = Math.min(leftKneeAngle, rightKneeAngle);
 
                   const leftHipAngle = calculateAngle(lShoulder || lHip, lHip, lKnee);
                   const rightHipAngle = calculateAngle(rShoulder || rHip, rHip, rKnee);
                   const avgHipAngle = (leftHipAngle + rightHipAngle) / 2;
 
                   // Lunge: large discrepancy between knees
-                  const kneeYDiff = Math.abs(lKnee.y - rKnee.y);
-                  const ankleXDiff = Math.abs(lAnkle.x - rAnkle.x);
-                  if (kneeYDiff > 0.12 && ankleXDiff > 0.14) {
-                    return 'lunges';
+                  if (lKnee && rKnee) {
+                    const kneeYDiff = Math.abs(lKnee.y - rKnee.y);
+                    if (kneeYDiff > 0.12) {
+                      return 'lunges';
+                    }
                   }
 
                   // Deadlift: Hip hinge with softer knees
@@ -502,16 +507,19 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
                 }
 
-                // C. Bicep Curl: Upper body active while standing upright
-                if (upperVis && lShoulder && lElbow && lWrist && lHip) {
-                  const elbowAngle = calculateAngle(lShoulder, lElbow, lWrist);
-                  const upperArmAngle = calculateAngle(lHip, lShoulder, lElbow);
-                  if (upperArmAngle < 40 && elbowAngle < 135) {
+                // C. Bicep Curl: Upper body active with elbow flexed
+                if (upperVis && (lShoulder || rShoulder) && (lElbow || rElbow) && (lWrist || rWrist)) {
+                  const shoulder = lShoulder || rShoulder;
+                  const elbow = lElbow || rElbow;
+                  const wrist = lWrist || rWrist;
+                  const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+                  if (elbowAngle < 130) {
                     return 'bicep curl';
                   }
                 }
 
-                return null;
+                // D. Standing / Neutral Posture Diagnostic
+                return 'posture';
               };
 
               // Select active exercise: explicit user pick or automatic classification
@@ -528,12 +536,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   const counts = {};
                   tracker.exerciseHistory.forEach(ex => { counts[ex] = (counts[ex] || 0) + 1; });
                   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                  if (sorted.length > 0 && sorted[0][1] >= 6) {
+                  if (sorted.length > 0 && sorted[0][1] >= 4) {
                     tracker.activeExercise = sorted[0][0];
                   }
                 }
-                targetExercise = tracker.activeExercise || 'squat';
-                setDetectedExerciseDisplay(targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1));
+                targetExercise = tracker.activeExercise || 'posture';
+                setDetectedExerciseDisplay(targetExercise === 'posture' ? 'Posture Alignment' : targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1));
               } else {
                 targetExercise = selectorVal;
                 setDetectedExerciseDisplay(targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1));
@@ -565,7 +573,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 tracker.repFormValid = false;
                 tracker.badFormReason = reason;
                 skeletonColor = '#ef4444';
-                setRealtimeWarning(`FORM ISSUE: ${reason}`);
+                setRealtimeWarning(`BAD FORM: ${reason}`);
               };
 
               const rejectNoRep = (reason) => {
@@ -586,9 +594,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const ankle = lm[27] || lm[28];
                 const shoulder = lm[11] || lm[12];
 
-                if (isPtVisible(hip) && isPtVisible(knee) && isPtVisible(ankle) && isPtVisible(shoulder)) {
-                  const rawKneeAngle = calculateAngle(hip, knee, ankle);
-                  const rawTorsoAngle = calculateAngle(shoulder, hip, knee);
+                if (hip && knee) {
+                  const rawKneeAngle = calculateAngle(hip, knee, ankle || { x: knee.x, y: knee.y + 0.3 });
+                  const rawTorsoAngle = shoulder ? calculateAngle(shoulder, hip, knee) : 90;
                   const kneeAngle = smoothAngle('squat_knee', rawKneeAngle);
                   const torsoAngle = smoothAngle('squat_torso', rawTorsoAngle);
 
@@ -597,30 +605,30 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     invalidateRep("KEEP CHEST UP & SPINE TALL!");
                   }
 
-                  // FSM Progression with Strict Starting Calibration Gate
                   if (tracker.repStage === 'IDLE') {
-                    if (kneeAngle > 160 && torsoAngle >= 70) {
+                    if (kneeAngle > 155 && torsoAngle >= 68) {
                       tracker.readyHoldFrames = (tracker.readyHoldFrames || 0) + 1;
-                      skeletonColor = '#10b981';
-                      if (tracker.readyHoldFrames >= 4) {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      if (tracker.readyHoldFrames >= 3) {
                         tracker.repStage = 'READY';
                         setRealtimeWarning("READY: SQUAT DOWN WITH CONTROL");
                       } else {
-                        setRealtimeWarning("HOLD START POSITION (LOCKOUT)");
+                        setRealtimeWarning("GOOD POSTURE: LOCKOUT POSITION");
                       }
                     } else {
                       tracker.readyHoldFrames = 0;
-                      setRealtimeWarning("STAND TALL WITH LEGS STRAIGHT TO CALIBRATE");
-                      skeletonColor = '#f59e0b';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("STAND TALL WITH LEGS STRAIGHT");
                     }
                   } else if (tracker.repStage === 'READY') {
                     if (kneeAngle < 140) {
                       tracker.repStage = 'ECCENTRIC';
                       tracker.repStartTime = now;
                       tracker.repFormValid = true;
-                      setRealtimeWarning("DESCENDING: SINK INTO HIPS");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: SINKING INTO HIPS");
+                      skeletonColor = '#10b981';
                     } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                       setRealtimeWarning("READY: SQUAT DOWN WITH CONTROL");
                     }
                   } else if (tracker.repStage === 'ECCENTRIC') {
@@ -632,32 +640,32 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     } else if (kneeAngle > 155) {
                       rejectNoRep("HIT PARALLEL DEPTH (KNEES <= 100°)");
                     } else {
-                      skeletonColor = '#f59e0b';
-                      setRealtimeWarning("SQUAT DEEPER (HIT PARALLEL)");
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      setRealtimeWarning("GOOD POSTURE: SQUAT DEEPER (HIT PARALLEL)");
                     }
                   } else if (tracker.repStage === 'INFLECTION') {
                     if (kneeAngle > 125) {
                       tracker.repStage = 'CONCENTRIC';
-                      setRealtimeWarning("DRIVE THROUGH HEELS");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: DRIVE THROUGH HEELS");
+                      skeletonColor = '#10b981';
                     }
                   } else if (tracker.repStage === 'CONCENTRIC') {
-                    if (kneeAngle >= 158) {
+                    if (kneeAngle >= 155) {
                       const repDuration = now - tracker.repStartTime;
-                      if (repDuration >= 1000 && tracker.repFormValid) {
+                      if (repDuration >= 900 && tracker.repFormValid) {
                         registerPerfectRep("SQUAT");
                       } else if (!tracker.repFormValid) {
                         rejectNoRep(tracker.badFormReason || "COMPROMISED FORM");
                       } else {
-                        rejectNoRep("TOO FAST! MAINTAIN CONTROLLED TEMPO (>= 1.0s)");
+                        rejectNoRep("TOO FAST! MAINTAIN CONTROLLED TEMPO");
                       }
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   }
                 } else {
-                  setRealtimeWarning("ALIGN LEGS & TORSO IN CAMERA");
-                  skeletonColor = '#f59e0b';
-                  tracker.readyHoldFrames = 0;
-                  if (tracker.repStage !== 'IDLE') tracker.repStage = 'IDLE';
+                  setRealtimeWarning("STEP BACK TO ALIGN LEGS IN CAMERA");
+                  skeletonColor = '#10b981';
                 }
 
               } else if (targetExercise.includes('deadlift')) {
@@ -667,9 +675,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const knee = lm[25] || lm[26];
                 const ear = lm[7] || lm[8];
 
-                if (isPtVisible(shoulder) && isPtVisible(hip) && isPtVisible(knee)) {
+                if (shoulder && hip && knee) {
                   const rawHipAngle = calculateAngle(shoulder, hip, knee);
-                  const rawSpineAngle = ear && isPtVisible(ear) ? calculateAngle(ear, shoulder, hip) : 180;
+                  const rawSpineAngle = ear ? calculateAngle(ear, shoulder, hip) : 180;
                   const hipAngle = smoothAngle('deadlift_hip', rawHipAngle);
                   const spineAngle = smoothAngle('deadlift_spine', rawSpineAngle);
 
@@ -678,62 +686,66 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
 
                   if (tracker.repStage === 'IDLE') {
-                    if (hipAngle > 165) {
+                    if (hipAngle > 160) {
                       tracker.readyHoldFrames = (tracker.readyHoldFrames || 0) + 1;
-                      skeletonColor = '#10b981';
-                      if (tracker.readyHoldFrames >= 4) {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      if (tracker.readyHoldFrames >= 3) {
                         tracker.repStage = 'READY';
                         setRealtimeWarning("READY: HINGE AT HIPS");
                       } else {
-                        setRealtimeWarning("HOLD LOCKOUT TO CALIBRATE");
+                        setRealtimeWarning("GOOD POSTURE: STANDING LOCKOUT");
                       }
                     } else {
                       tracker.readyHoldFrames = 0;
+                      skeletonColor = '#10b981';
                       setRealtimeWarning("STAND FULLY ERECT TO START DEADLIFT");
-                      skeletonColor = '#f59e0b';
                     }
                   } else if (tracker.repStage === 'READY') {
                     if (hipAngle < 145) {
                       tracker.repStage = 'ECCENTRIC';
                       tracker.repStartTime = now;
                       tracker.repFormValid = true;
-                      setRealtimeWarning("HINGING DOWN: KEEP BACK FLAT");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: KEEP BACK FLAT");
+                      skeletonColor = '#10b981';
                     } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                       setRealtimeWarning("READY: HINGE AT HIPS");
                     }
                   } else if (tracker.repStage === 'ECCENTRIC') {
-                    if (hipAngle <= 108) {
+                    if (hipAngle <= 112) {
                       tracker.repStage = 'INFLECTION';
                       tracker.inflectionStartTime = now;
-                      setRealtimeWarning("FULL HINGE: SQUEEZE GLUTES & STAND");
+                      setRealtimeWarning("PERFECT HINGE! SQUEEZE GLUTES & STAND");
                       skeletonColor = '#10b981';
                     } else if (hipAngle > 160) {
                       rejectNoRep("INSUFFICIENT HINGE DEPTH");
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      setRealtimeWarning("GOOD POSTURE: HINGING AT HIPS");
                     }
                   } else if (tracker.repStage === 'INFLECTION') {
                     if (hipAngle > 135) {
                       tracker.repStage = 'CONCENTRIC';
-                      setRealtimeWarning("STAND TALL");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: STAND TALL");
+                      skeletonColor = '#10b981';
                     }
                   } else if (tracker.repStage === 'CONCENTRIC') {
-                    if (hipAngle >= 165) {
+                    if (hipAngle >= 162) {
                       const repDuration = now - tracker.repStartTime;
-                      if (repDuration >= 1000 && tracker.repFormValid) {
+                      if (repDuration >= 900 && tracker.repFormValid) {
                         registerPerfectRep("DEADLIFT");
                       } else if (!tracker.repFormValid) {
                         rejectNoRep(tracker.badFormReason || "COMPROMISED FORM");
                       } else {
-                        rejectNoRep("TOO FAST! CONTROL THE TEMPO (>= 1.0s)");
+                        rejectNoRep("TOO FAST! CONTROL THE TEMPO");
                       }
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   }
                 } else {
                   setRealtimeWarning("ALIGN FULL BODY FOR DEADLIFT");
-                  skeletonColor = '#f59e0b';
-                  tracker.readyHoldFrames = 0;
-                  if (tracker.repStage !== 'IDLE') tracker.repStage = 'IDLE';
+                  skeletonColor = '#10b981';
                 }
 
               } else if (targetExercise.includes('press') || targetExercise.includes('overhead')) {
@@ -744,9 +756,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const hip = lm[23] || lm[24];
                 const ear = lm[7] || lm[8];
 
-                if (isPtVisible(shoulder) && isPtVisible(elbow) && isPtVisible(wrist)) {
+                if (shoulder && elbow && wrist) {
                   const rawElbowAngle = calculateAngle(shoulder, elbow, wrist);
-                  const rawSpineAngle = ear && isPtVisible(ear) && isPtVisible(hip) ? calculateAngle(ear, shoulder, hip) : 180;
+                  const rawSpineAngle = ear && hip ? calculateAngle(ear, shoulder, hip) : 180;
                   const elbowAngle = smoothAngle('press_elbow', rawElbowAngle);
                   const spineAngle = smoothAngle('press_spine', rawSpineAngle);
 
@@ -755,61 +767,64 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
 
                   if (tracker.repStage === 'IDLE') {
-                    if (elbowAngle < 85 && wrist.y >= shoulder.y - 0.08) {
+                    if (elbowAngle < 88 && wrist.y >= shoulder.y - 0.08) {
                       tracker.readyHoldFrames = (tracker.readyHoldFrames || 0) + 1;
-                      skeletonColor = '#10b981';
-                      if (tracker.readyHoldFrames >= 4) {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      if (tracker.readyHoldFrames >= 3) {
                         tracker.repStage = 'READY';
                         setRealtimeWarning("READY: PRESS OVERHEAD");
                       } else {
-                        setRealtimeWarning("HOLD RACK POSITION TO CALIBRATE");
+                        setRealtimeWarning("GOOD POSTURE: RACK POSITION");
                       }
                     } else {
                       tracker.readyHoldFrames = 0;
+                      skeletonColor = '#10b981';
                       setRealtimeWarning("BRING HANDS TO SHOULDERS (RACK POSITION)");
-                      skeletonColor = '#f59e0b';
                     }
                   } else if (tracker.repStage === 'READY') {
-                    if (elbowAngle > 110 && wrist.y < shoulder.y - 0.06) {
+                    if (elbowAngle > 105 && wrist.y < shoulder.y - 0.06) {
                       tracker.repStage = 'CONCENTRIC';
                       tracker.repStartTime = now;
                       tracker.repFormValid = true;
-                      setRealtimeWarning("PRESSING UP");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: PRESSING UP");
+                      skeletonColor = '#10b981';
                     } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                       setRealtimeWarning("READY: PRESS OVERHEAD");
                     }
                   } else if (tracker.repStage === 'CONCENTRIC') {
-                    if (elbowAngle >= 158 && wrist.y < shoulder.y - 0.15) {
+                    if (elbowAngle >= 155 && wrist.y < shoulder.y - 0.15) {
                       tracker.repStage = 'INFLECTION';
                       setRealtimeWarning("PERFECT LOCKOUT: LOWER UNDER CONTROL");
                       skeletonColor = '#10b981';
                     } else if (elbowAngle < 85) {
                       rejectNoRep("INCOMPLETE PRESS LOCKOUT");
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   } else if (tracker.repStage === 'INFLECTION') {
                     if (elbowAngle < 130) {
                       tracker.repStage = 'ECCENTRIC';
-                      setRealtimeWarning("LOWERING TO SHOULDERS");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: LOWERING TO SHOULDERS");
+                      skeletonColor = '#10b981';
                     }
                   } else if (tracker.repStage === 'ECCENTRIC') {
-                    if (elbowAngle <= 85) {
+                    if (elbowAngle <= 88) {
                       const repDuration = now - tracker.repStartTime;
-                      if (repDuration >= 1000 && tracker.repFormValid) {
+                      if (repDuration >= 900 && tracker.repFormValid) {
                         registerPerfectRep("OVERHEAD PRESS");
                       } else if (!tracker.repFormValid) {
                         rejectNoRep(tracker.badFormReason || "COMPROMISED FORM");
                       } else {
-                        rejectNoRep("TOO FAST! LOWER UNDER CONTROL (>= 1.0s)");
+                        rejectNoRep("TOO FAST! LOWER UNDER CONTROL");
                       }
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   }
                 } else {
                   setRealtimeWarning("ALIGN UPPER BODY FOR PRESS");
-                  skeletonColor = '#f59e0b';
-                  tracker.readyHoldFrames = 0;
-                  if (tracker.repStage !== 'IDLE') tracker.repStage = 'IDLE';
+                  skeletonColor = '#10b981';
                 }
 
               } else if (targetExercise.includes('lunge')) {
@@ -818,7 +833,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const knee = lm[25] || lm[26];
                 const ankle = lm[27] || lm[28];
 
-                if (isPtVisible(hip) && isPtVisible(knee) && isPtVisible(ankle)) {
+                if (hip && knee && ankle) {
                   const rawKneeAngle = calculateAngle(hip, knee, ankle);
                   const kneeAngle = smoothAngle('lunge_knee', rawKneeAngle);
                   const kneeOverAnkleDiff = Math.abs(knee.x - ankle.x);
@@ -828,138 +843,176 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
 
                   if (tracker.repStage === 'IDLE') {
-                    if (kneeAngle > 160) {
+                    if (kneeAngle > 155) {
                       tracker.readyHoldFrames = (tracker.readyHoldFrames || 0) + 1;
-                      skeletonColor = '#10b981';
-                      if (tracker.readyHoldFrames >= 4) {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      if (tracker.readyHoldFrames >= 3) {
                         tracker.repStage = 'READY';
                         setRealtimeWarning("READY: STEP INTO LUNGE");
                       } else {
-                        setRealtimeWarning("STAND TALL TO CALIBRATE");
+                        setRealtimeWarning("GOOD POSTURE: STANDING POSITION");
                       }
                     } else {
                       tracker.readyHoldFrames = 0;
+                      skeletonColor = '#10b981';
                       setRealtimeWarning("STAND UPRIGHT TO START LUNGES");
-                      skeletonColor = '#f59e0b';
                     }
                   } else if (tracker.repStage === 'READY') {
                     if (kneeAngle < 135) {
                       tracker.repStage = 'ECCENTRIC';
                       tracker.repStartTime = now;
                       tracker.repFormValid = true;
-                      setRealtimeWarning("LOWERING INTO LUNGE");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: LOWERING INTO LUNGE");
+                      skeletonColor = '#10b981';
                     } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                       setRealtimeWarning("READY: STEP INTO LUNGE");
                     }
                   } else if (tracker.repStage === 'ECCENTRIC') {
-                    if (kneeAngle <= 98) {
+                    if (kneeAngle <= 100) {
                       tracker.repStage = 'INFLECTION';
-                      setRealtimeWarning("FULL LUNGE DEPTH: DRIVE UP");
+                      setRealtimeWarning("PERFECT LUNGE DEPTH: DRIVE UP");
                       skeletonColor = '#10b981';
                     } else if (kneeAngle > 155) {
-                      rejectNoRep("HIT FULL 90° LUNGE DEPTH");
+                      rejectNoRep("INSUFFICIENT LUNGE DEPTH");
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      setRealtimeWarning("GOOD FORM: KEEP TORSO UPRIGHT");
                     }
                   } else if (tracker.repStage === 'INFLECTION') {
-                    if (kneeAngle > 125) {
+                    if (kneeAngle > 130) {
                       tracker.repStage = 'CONCENTRIC';
-                      setRealtimeWarning("PUSHING UP");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: DRIVE THROUGH FRONT HEEL");
+                      skeletonColor = '#10b981';
                     }
                   } else if (tracker.repStage === 'CONCENTRIC') {
-                    if (kneeAngle >= 158) {
+                    if (kneeAngle >= 155) {
                       const repDuration = now - tracker.repStartTime;
-                      if (repDuration >= 1000 && tracker.repFormValid) {
-                        registerPerfectRep("LUNGE");
+                      if (repDuration >= 900 && tracker.repFormValid) {
+                        registerPerfectRep("LUNGES");
                       } else if (!tracker.repFormValid) {
                         rejectNoRep(tracker.badFormReason || "COMPROMISED FORM");
                       } else {
-                        rejectNoRep("TOO FAST! MAINTAIN TEMPO (>= 1.0s)");
+                        rejectNoRep("TOO FAST! MAINTAIN CONTROL");
                       }
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   }
                 } else {
-                  setRealtimeWarning("ALIGN LEGS FOR LUNGES");
-                  skeletonColor = '#f59e0b';
-                  tracker.readyHoldFrames = 0;
-                  if (tracker.repStage !== 'IDLE') tracker.repStage = 'IDLE';
+                  setRealtimeWarning("ALIGN LEGS IN CAMERA FOR LUNGES");
+                  skeletonColor = '#10b981';
                 }
 
-              } else {
-                // BICEP CURLS: Elbow Pinning & Full ROM
+              } else if (targetExercise.includes('curl') || targetExercise.includes('bicep')) {
+                // BICEP CURL: Elbow Pinning & Controlled Movement
                 const shoulder = lm[11] || lm[12];
                 const elbow = lm[13] || lm[14];
                 const wrist = lm[15] || lm[16];
                 const hip = lm[23] || lm[24];
 
-                if (isPtVisible(shoulder) && isPtVisible(elbow) && isPtVisible(wrist) && isPtVisible(hip)) {
+                if (shoulder && elbow && wrist) {
                   const rawElbowAngle = calculateAngle(shoulder, elbow, wrist);
-                  const rawUpperArmAngle = calculateAngle(hip, shoulder, elbow);
+                  const rawUpperArmAngle = hip && isPtVisible(hip) ? calculateAngle(hip, shoulder, elbow) : 15;
                   const elbowAngle = smoothAngle('curl_elbow', rawElbowAngle);
-                  const upperArmAngle = smoothAngle('curl_upperarm', rawUpperArmAngle);
+                  const upperArmAngle = smoothAngle('curl_upper_arm', rawUpperArmAngle);
 
                   // Strict Form: Upper arm must stay close to torso (< 35°)
                   if (upperArmAngle > 35) {
-                    invalidateRep("KEEP ELBOW PINNED TO RIBS!");
+                    invalidateRep("KEEP ELBOWS PINNED TO RIBS!");
                   }
 
                   if (tracker.repStage === 'IDLE') {
-                    // Arm MUST be fully extended downward (lockout) with elbow pinned
-                    if (elbowAngle > 148 && upperArmAngle <= 30) {
+                    if (elbowAngle > 145 && upperArmAngle <= 32) {
                       tracker.readyHoldFrames = (tracker.readyHoldFrames || 0) + 1;
-                      skeletonColor = '#10b981';
-                      if (tracker.readyHoldFrames >= 4) {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      if (tracker.readyHoldFrames >= 3) {
                         tracker.repStage = 'READY';
                         setRealtimeWarning("READY: INITIATE CURL WITH CONTROL");
                       } else {
-                        setRealtimeWarning("HOLD ARM FULLY EXTENDED TO CALIBRATE");
+                        setRealtimeWarning("GOOD POSTURE: ARMS EXTENDED");
                       }
                     } else {
                       tracker.readyHoldFrames = 0;
-                      setRealtimeWarning("EXTEND ARM DOWNWARD & PIN ELBOW TO CALIBRATE");
-                      skeletonColor = '#f59e0b';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("EXTEND ARM DOWNWARD & PIN ELBOW");
                     }
                   } else if (tracker.repStage === 'READY') {
                     if (elbowAngle < 125) {
                       tracker.repStage = 'CONCENTRIC';
                       tracker.repStartTime = now;
                       tracker.repFormValid = true;
-                      setRealtimeWarning("CURLING UP - SQUEEZE BICEP");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: CURLING UP & SQUEEZING");
+                      skeletonColor = '#10b981';
                     } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                       setRealtimeWarning("READY: INITIATE CURL WITH CONTROL");
                     }
                   } else if (tracker.repStage === 'CONCENTRIC') {
-                    if (elbowAngle <= 56) {
+                    if (elbowAngle <= 60) {
                       tracker.repStage = 'INFLECTION';
-                      setRealtimeWarning("PEAK CONTRACTION: LOWER SLOWLY");
+                      setRealtimeWarning("PERFECT PEAK CONTRACTION! LOWER SLOWLY");
                       skeletonColor = '#10b981';
                     } else if (elbowAngle > 145) {
-                      rejectNoRep("INCOMPLETE CURL - SQUEEZE TO TOP (< 56°)");
+                      rejectNoRep("INCOMPLETE CURL - SQUEEZE TO TOP (< 60°)");
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   } else if (tracker.repStage === 'INFLECTION') {
                     if (elbowAngle > 85) {
                       tracker.repStage = 'ECCENTRIC';
-                      setRealtimeWarning("CONTROL THE DESCENT");
-                      skeletonColor = '#f59e0b';
+                      setRealtimeWarning("GOOD FORM: CONTROL THE DESCENT");
+                      skeletonColor = '#10b981';
                     }
                   } else if (tracker.repStage === 'ECCENTRIC') {
-                    if (elbowAngle >= 148) {
+                    if (elbowAngle >= 145) {
                       const repDuration = now - tracker.repStartTime;
-                      if (repDuration >= 1000 && tracker.repFormValid) {
+                      if (repDuration >= 900 && tracker.repFormValid) {
                         registerPerfectRep("BICEP CURL");
                       } else if (!tracker.repFormValid) {
                         rejectNoRep(tracker.badFormReason || "ELBOW FLARED");
                       } else {
-                        rejectNoRep("TOO FAST! CONTROL THE TEMPO (>= 1.0s)");
+                        rejectNoRep("TOO FAST! CONTROL THE TEMPO");
                       }
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
                     }
                   }
                 } else {
                   setRealtimeWarning("ALIGN ARM & TORSO IN CAMERA");
-                  skeletonColor = '#f59e0b';
-                  tracker.readyHoldFrames = 0;
-                  if (tracker.repStage !== 'IDLE') tracker.repStage = 'IDLE';
+                  skeletonColor = '#10b981';
+                }
+
+              } else {
+                // Standing Posture Alignment & Biomechanical Diagnostic
+                const shoulder = lm[11] || lm[12];
+                const hip = lm[23] || lm[24];
+                const ear = lm[7] || lm[8];
+                const lShoulder = lm[11], rShoulder = lm[12];
+
+                if (shoulder && hip) {
+                  const rawSpineAngle = ear ? calculateAngle(ear, shoulder, hip) : 180;
+                  const spineAngle = smoothAngle('posture_spine', rawSpineAngle);
+                  
+                  let shoulderLevel = true;
+                  if (lShoulder && rShoulder && isPtVisible(lShoulder) && isPtVisible(rShoulder)) {
+                    const tilt = Math.abs(lShoulder.y - rShoulder.y);
+                    if (tilt > 0.065) shoulderLevel = false;
+                  }
+
+                  if (spineAngle < 140) {
+                    skeletonColor = '#ef4444'; // RED SIGNAL
+                    setRealtimeWarning("BAD POSTURE: SLOUCHING DETECTED! PULL SHOULDERS BACK");
+                  } else if (!shoulderLevel) {
+                    skeletonColor = '#ef4444'; // RED SIGNAL
+                    setRealtimeWarning("BAD POSTURE: UNEVEN SHOULDERS! LEVEL YOUR STANCE");
+                  } else {
+                    skeletonColor = '#10b981'; // GREEN SIGNAL
+                    setRealtimeWarning("PERFECT POSTURE: SPINE & CHEST ALIGNED");
+                  }
+                } else {
+                  skeletonColor = '#10b981';
+                  setRealtimeWarning("FETCHING POSTURE: STAND IN CAMERA VIEW");
                 }
               }
 
@@ -987,8 +1040,42 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 }
               }
 
-              window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, {color: skeletonColor, lineWidth: 5});
-              window.drawLandmarks(ctx, results.poseLandmarks, {color: 'white', lineWidth: 2, radius: 3});
+              // ── Dynamic Posture Skeleton Rendering (Green for Good, Red for Bad) ──
+              if (window.drawConnectors && window.drawLandmarks && window.POSE_CONNECTIONS) {
+                window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: skeletonColor, lineWidth: 5 });
+                window.drawLandmarks(ctx, results.poseLandmarks, { 
+                  color: skeletonColor === '#ef4444' ? '#ef4444' : '#10b981', 
+                  lineWidth: 2, 
+                  radius: 4 
+                });
+              } else {
+                // High-performance canvas fallback
+                const POSE_CONNECTIONS = [
+                  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+                  [11, 23], [12, 24], [23, 24],
+                  [23, 25], [24, 26], [25, 27], [26, 28]
+                ];
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = skeletonColor;
+                ctx.fillStyle = skeletonColor;
+                POSE_CONNECTIONS.forEach(([i, j]) => {
+                  const p1 = lm[i];
+                  const p2 = lm[j];
+                  if (p1 && p2 && isPtVisible(p1) && isPtVisible(p2)) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+                    ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+                    ctx.stroke();
+                  }
+                });
+                lm.forEach((pt) => {
+                  if (pt && isPtVisible(pt)) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                  }
+                });
+              }
             }
           });
           
@@ -998,7 +1085,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) { requestAnimationFrame(processFrame); return; }
               try { 
                 await poseRef.current.send({image: videoRef.current}); 
-                if (handsRef.current) {
+                if (handsRef.current && liveTrackerRef.current.waitingForSignal > 0) {
                    await handsRef.current.send({image: videoRef.current});
                 }
               } catch(e){
@@ -1020,6 +1107,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 startLoop();
              }
           }, 50);
+          }
         }
       }
     } catch (err) {
@@ -1393,7 +1481,8 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   onChange={(e) => setSelectedExercise(e.target.value)}
                   className="bg-black/80 backdrop-blur-md text-[#C7F36B] font-bold border border-[#C7F36B]/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
                 >
-                  <option value="Auto-Detect">Auto-Detect Exercise</option>
+                  <option value="Auto-Detect">✨ Auto-Detect Exercise</option>
+                  <option value="Posture Diagnostic">🧍 Posture Diagnostic (Spine Alignment)</option>
                   <option value="Squat">Squat</option>
                   <option value="Bicep Curl">Bicep Curl</option>
                   <option value="Deadlift">Deadlift</option>
@@ -1457,7 +1546,12 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               <button onClick={() => { setShowCamera(false); stopCamera(); }} className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-white transition-colors hover:bg-white/10">
                 Cancel ✕
               </button>
-              <div id="repCounter" className="bg-black/80 backdrop-blur-xl border-2 border-[#C7F36B] text-[#C7F36B] font-display font-black text-3xl px-6 py-2 rounded-xl ">
+              <div 
+                id="repCounter" 
+                onClick={() => startSet(liveTrackerRef.current.waitingForSignal || 1, 'TAP / CLICK')}
+                title="Click or tap to start set immediately"
+                className="bg-black/80 backdrop-blur-xl border-2 border-[#C7F36B] text-[#C7F36B] font-display font-black text-2xl md:text-3xl px-6 py-2 rounded-xl cursor-pointer hover:border-white transition-all shadow-xl active:scale-95 text-center"
+              >
                 [WAITING FOR 1 FINGER OR SAY 'START' FOR SET 1]
               </div>
               <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border-2 border-[#54D8CF] text-[#54D8CF] font-display font-black text-xl px-6 py-2 rounded-xl  animate-pulse">
@@ -1501,11 +1595,21 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             
             {/* DYNAMIC HUD OVERLAYS */}
             {activeMode === 'form' && (
-              <div className={`absolute top-[10%] px-4 py-2 rounded-full border backdrop-blur-sm shadow-xl transition-colors duration-300 z-30 
-                ${realtimeWarning.includes('PERFECT') ? 'bg-[#C7F36B]/20 border-[#C7F36B] text-[#C7F36B]' 
-                : realtimeWarning.includes('STANDING') ? 'bg-[#54D8CF]/20 border-[#54D8CF] text-[#54D8CF]' 
-                : 'bg-red-500/20 border-red-500 text-red-400'}`}>
-                <span className="text-[10px] font-black tracking-widest uppercase">{realtimeWarning}</span>
+              <div className={`absolute top-[10%] px-5 py-2.5 rounded-full border backdrop-blur-md shadow-2xl transition-all duration-200 z-30 flex items-center gap-2.5 ${
+                (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
+                  ? 'bg-rose-500/25 border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(244,63,94,0.5)]' 
+                  : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('DETECTED'))
+                  ? 'bg-emerald-500/25 border-emerald-500 text-[#C7F36B] shadow-[0_0_25px_rgba(16,185,129,0.5)]'
+                  : 'bg-amber-500/25 border-amber-500 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
+              }`}>
+                <span className={`w-3 h-3 rounded-full shrink-0 ${
+                  (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
+                    ? 'bg-rose-500 shadow-[0_0_12px_#ef4444] animate-ping'
+                    : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT'))
+                    ? 'bg-[#C7F36B] shadow-[0_0_12px_#C7F36B] animate-pulse'
+                    : 'bg-amber-400'
+                }`}></span>
+                <span className="text-[11px] font-black tracking-widest uppercase">{realtimeWarning}</span>
               </div>
             )}
 
