@@ -24,7 +24,7 @@ GROQ_API_KEY=gsk_your_groq_api_key_here
 GROQ_MODEL=llama-3.2-11b-vision
 
 # Google OAuth 2.0 Security
-GOOGLE_CLIENT_ID=125158095092-9j9s3ld9bre5l7uqscv5ui6kb45l78u7.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=125158095092-f3lq0t79bh98glf7hlq7td2scee0m34f.apps.googleusercontent.com
 
 # PostgreSQL Database (Production)
 DATABASE_URL=postgresql://postgres:SuparnaPassword2026@postgres:5432/fitness_tracker
