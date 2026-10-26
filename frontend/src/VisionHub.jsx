@@ -30,6 +30,13 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const cameraFacingRef = useRef('user');
   const animFrameRef = useRef(null);
 
+  const [detectedFingers, setDetectedFingers] = useState(0);
+  const [handGestureText, setHandGestureText] = useState('');
+  const [liveAnglesText, setLiveAnglesText] = useState('');
+  const latestHandLandmarksRef = useRef(null);
+  const detectedFingersRef = useRef(0);
+  const lastAngleUpdateTimeRef = useRef(0);
+
   const toggleCameraFacing = async () => {
     const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
     setCameraFacing(nextFacing);
@@ -287,6 +294,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
       try { handsRef.current.close(); } catch(e){}
       handsRef.current = null;
     }
+    latestHandLandmarksRef.current = null;
+    detectedFingersRef.current = 0;
+    setDetectedFingers(0);
+    setHandGestureText('');
+    setLiveAnglesText('');
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch(e){}
       recognitionRef.current = null;
@@ -422,13 +434,30 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               minTrackingConfidence: 0.5
             });
 
-            if (!isMobile && window.Hands) {
+            if (!window.Hands) {
+              console.warn("Hands not detected on window, dynamically injecting script...");
+              await new Promise((res) => {
+                const sc = document.createElement('script');
+                sc.src = "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js";
+                sc.crossOrigin = "anonymous";
+                sc.onload = () => res(true);
+                sc.onerror = () => res(false);
+                document.head.appendChild(sc);
+              });
+              let wH = 0;
+              while (!window.Hands && wH < 30) {
+                await new Promise(r => setTimeout(r, 100));
+                wH++;
+              }
+            }
+
+            if (window.Hands) {
               handsRef.current = new window.Hands({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
               });
               handsRef.current.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 0,
+                maxNumHands: 2,
+                modelComplexity: 0, // Lite model for smooth mobile & desktop performance
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
               });
@@ -436,9 +465,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               handsRef.current.onResults((results) => {
                  const tracker = liveTrackerRef.current;
                  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                   latestHandLandmarksRef.current = results.multiHandLandmarks;
                    const landmarks = results.multiHandLandmarks[0];
                    let count = 0;
-                   
                    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
                    
                    // A finger is raised if its tip is further from the wrist (0) than its PIP joint is
@@ -448,6 +477,16 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                    if (dist(landmarks[20], landmarks[0]) > dist(landmarks[18], landmarks[0])) count++; // Pinky
                    if (dist(landmarks[4], landmarks[17]) > dist(landmarks[3], landmarks[17])) count++; // Thumb
                    
+                   detectedFingersRef.current = count;
+                   setDetectedFingers(count);
+                   setHandGestureText(
+                     count === 0 ? 'Fist ✊' :
+                     count === 1 ? '1 Finger ☝️' :
+                     count === 2 ? '2 Fingers ✌️' :
+                     count === 3 ? '3 Fingers 🤟' :
+                     count === 4 ? '4 Fingers 🖖' : 'Open Hand 🖐️'
+                   );
+
                    if (tracker.waitingForSignal > 0) {
                      if (count === tracker.waitingForSignal) {
                        tracker.consecutiveSignalFrames = (tracker.consecutiveSignalFrames || 0) + 1;
@@ -463,15 +502,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                    } else {
                      tracker.consecutiveSignalFrames = 0;
                    }
-                   
-                   // Draw the hand landmarks so user can see it's working
-                   const canvas = canvasOverlayRef.current;
-                   if (canvas && window.drawConnectors && window.drawLandmarks && window.HAND_CONNECTIONS) {
-                       const ctx = canvas.getContext('2d');
-                       window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#3b82f6', lineWidth: 4});
-                       window.drawLandmarks(ctx, landmarks, {color: '#60a5fa', lineWidth: 1, radius: 2});
-                   }
                  } else {
+                   latestHandLandmarksRef.current = null;
+                   detectedFingersRef.current = 0;
                    tracker.consecutiveSignalFrames = 0;
                    if (tracker.waitingForSignal > 0) {
                        const repEl = document.getElementById('repCounter');
@@ -527,16 +560,45 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 return tracker.smoothedAngles[key];
               };
 
+              // Key Biomechanical Landmarks
+              const lShoulder = lm[11], rShoulder = lm[12];
+              const lElbow = lm[13], rElbow = lm[14];
+              const lWrist = lm[15], rWrist = lm[16];
+              const lHip = lm[23], rHip = lm[24];
+              const lKnee = lm[25], rKnee = lm[26];
+              const lAnkle = lm[27], rAnkle = lm[28];
+              const nose = lm[0];
+              const ear = lm[7] || lm[8];
+
+              // Live Joint Angles Computation
+              const rawLeftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
+              const rawRightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
+              const leftKneeAngle = smoothAngle('knee_l', rawLeftKneeAngle);
+              const rightKneeAngle = smoothAngle('knee_r', rawRightKneeAngle);
+              const avgKneeAngle = Math.min(leftKneeAngle, rightKneeAngle);
+
+              const rawLeftElbowAngle = (lShoulder && lElbow && lWrist) ? calculateAngle(lShoulder, lElbow, lWrist) : 180;
+              const rawRightElbowAngle = (rShoulder && rElbow && rWrist) ? calculateAngle(rShoulder, rElbow, rWrist) : 180;
+              const leftElbowAngle = smoothAngle('elbow_l', rawLeftElbowAngle);
+              const rightElbowAngle = smoothAngle('elbow_r', rawRightElbowAngle);
+              const avgElbowAngle = (leftElbowAngle + rightElbowAngle) / 2;
+
+              const rawLeftHipAngle = (lShoulder && lHip && lKnee) ? calculateAngle(lShoulder, lHip, lKnee) : 180;
+              const rawRightHipAngle = (rShoulder && rHip && rKnee) ? calculateAngle(rShoulder, rHip, rKnee) : 180;
+              const leftHipAngle = smoothAngle('hip_l', rawLeftHipAngle);
+              const rightHipAngle = smoothAngle('hip_r', rawRightHipAngle);
+              const avgHipAngle = (leftHipAngle + rightHipAngle) / 2;
+
+              const rawSpineAngle = (ear && (lShoulder || rShoulder) && (lHip || rHip)) ? calculateAngle(ear, lShoulder || rShoulder, lHip || rHip) : 180;
+              const spineAngle = smoothAngle('spine', rawSpineAngle);
+
+              if (now - lastAngleUpdateTimeRef.current > 120) {
+                lastAngleUpdateTimeRef.current = now;
+                setLiveAnglesText(`KNEE: ${Math.round(avgKneeAngle)}° • ELBOW: ${Math.round(avgElbowAngle)}° • HIP: ${Math.round(avgHipAngle)}° • SPINE: ${Math.round(spineAngle)}°`);
+              }
+
               // ── 2. Automatic Exercise & Posture Classifier ──
               const classifyCurrentPose = () => {
-                const lShoulder = lm[11], rShoulder = lm[12];
-                const lElbow = lm[13], rElbow = lm[14];
-                const lWrist = lm[15], rWrist = lm[16];
-                const lHip = lm[23], rHip = lm[24];
-                const lKnee = lm[25], rKnee = lm[26];
-                const lAnkle = lm[27], rAnkle = lm[28];
-                const nose = lm[0];
-
                 const upperVis = (isPtVisible(lShoulder) || isPtVisible(rShoulder)) &&
                                  (isPtVisible(lElbow) || isPtVisible(rElbow));
                 const lowerVis = (isPtVisible(lHip) || isPtVisible(rHip)) &&
@@ -548,14 +610,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const avgHipX = ((lHip?.x || 0) + (rHip?.x || 0)) / 2;
                 const torsoHeightDiff = Math.abs(avgShoulderY - avgHipY);
                 const torsoWidthDiff = Math.abs(avgShoulderX - avgHipX);
-
-                const leftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
-                const rightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
-                const avgKneeAngle = Math.min(leftKneeAngle, rightKneeAngle);
-
-                const leftHipAngle = calculateAngle(lShoulder || lHip, lHip, lKnee);
-                const rightHipAngle = calculateAngle(rShoulder || rHip, rHip, rKnee);
-                const avgHipAngle = (leftHipAngle + rightHipAngle) / 2;
 
                 // ── A. FLOOR & ABS WORKOUT DETECTION ──
                 // Check if user is lying down, inclined, or in plank position on floor
@@ -1322,7 +1376,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 }
               }
 
-              // ── Dynamic Posture Skeleton Rendering (Green for Good, Red for Bad) ──
+              // ── 1. Dynamic Posture Skeleton Rendering (Green for Good, Red for Bad) ──
               if (window.drawConnectors && window.drawLandmarks && window.POSE_CONNECTIONS) {
                 window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: skeletonColor, lineWidth: 5 });
                 window.drawLandmarks(ctx, results.poseLandmarks, { 
@@ -1358,6 +1412,197 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
                 });
               }
+
+              // ── 2. Dedicated Yellow Biomechanical Signals & Angle Indicators on Key Joints ──
+              const drawRoundedBox = (c, x, y, w, h, r = 5) => {
+                c.beginPath();
+                if (c.roundRect) {
+                  c.roundRect(x, y, w, h, r);
+                } else {
+                  c.rect(x, y, w, h);
+                }
+              };
+
+              const drawYellowAngleSignal = (pA, pVertex, pC, angleVal, jointName) => {
+                if (!pA || !pVertex || !pC || !isPtVisible(pVertex)) return;
+                const vx = pVertex.x * canvas.width;
+                const vy = pVertex.y * canvas.height;
+                const ax = pA.x * canvas.width;
+                const ay = pA.y * canvas.height;
+                const cx = pC.x * canvas.width;
+                const cy = pC.y * canvas.height;
+
+                const a1 = Math.atan2(ay - vy, ax - vx);
+                const a2 = Math.atan2(cy - vy, cx - vx);
+
+                ctx.save();
+                // A. Glowing Yellow Joint Vertex
+                ctx.beginPath();
+                ctx.arc(vx, vy, 8, 0, 2 * Math.PI);
+                ctx.fillStyle = '#facc15'; // Bright Neon Yellow
+                ctx.shadowColor = '#facc15';
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // B. Yellow Arc between connecting bones
+                ctx.beginPath();
+                let diff = a2 - a1;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                ctx.arc(vx, vy, 24, a1, a1 + diff, diff < 0);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#facc15';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+
+                // C. Yellow Angle Degree Badge
+                ctx.shadowBlur = 0;
+                const degText = `${Math.round(angleVal)}°`;
+                ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+                const textW = ctx.measureText(degText).width;
+                const bx = vx + 16;
+                const by = vy - 10;
+
+                ctx.fillStyle = 'rgba(10, 15, 20, 0.9)';
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 1.5;
+                drawRoundedBox(ctx, bx - 4, by - 12, textW + 10, 18, 5);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#fde047'; // Bright Yellow text
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(degText, bx + 1, by - 3);
+                ctx.restore();
+              };
+
+              // Draw Yellow Signals on Visible Joints (Knees, Elbows, Hips)
+              if (lHip && lKnee && lAnkle && isPtVisible(lKnee)) {
+                drawYellowAngleSignal(lHip, lKnee, lAnkle, leftKneeAngle, 'Knee');
+              }
+              if (rHip && rKnee && rAnkle && isPtVisible(rKnee)) {
+                drawYellowAngleSignal(rHip, rKnee, rAnkle, rightKneeAngle, 'Knee');
+              }
+              if (lShoulder && lElbow && lWrist && isPtVisible(lElbow)) {
+                drawYellowAngleSignal(lShoulder, lElbow, lWrist, leftElbowAngle, 'Elbow');
+              }
+              if (rShoulder && rElbow && rWrist && isPtVisible(rElbow)) {
+                drawYellowAngleSignal(rShoulder, rElbow, rWrist, rightElbowAngle, 'Elbow');
+              }
+              if (lShoulder && lHip && lKnee && isPtVisible(lHip)) {
+                drawYellowAngleSignal(lShoulder, lHip, lKnee, leftHipAngle, 'Hip');
+              }
+              if (rShoulder && rHip && rKnee && isPtVisible(rHip)) {
+                drawYellowAngleSignal(rShoulder, rHip, rKnee, rightHipAngle, 'Hip');
+              }
+
+              // ── 3. Hand & Finger Posture Tracking (Bones, Fingertips & Finger Count) ──
+              const handList = latestHandLandmarksRef.current;
+              if (handList && handList.length > 0) {
+                const HAND_CONNECTIONS = window.HAND_CONNECTIONS || [
+                  [0, 1], [1, 2], [2, 3], [3, 4],
+                  [0, 5], [5, 6], [6, 7], [7, 8],
+                  [5, 9], [9, 10], [10, 11], [11, 12],
+                  [9, 13], [13, 14], [14, 15], [15, 16],
+                  [13, 17], [17, 18], [18, 19], [19, 20],
+                  [0, 17]
+                ];
+
+                handList.forEach((hLm) => {
+                  // Draw finger bones in glowing cyan
+                  ctx.lineWidth = 3.5;
+                  ctx.strokeStyle = '#38bdf8';
+                  HAND_CONNECTIONS.forEach(([i, j]) => {
+                    const p1 = hLm[i];
+                    const p2 = hLm[j];
+                    if (p1 && p2) {
+                      ctx.beginPath();
+                      ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+                      ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+                      ctx.stroke();
+                    }
+                  });
+
+                  // Draw joints and yellow fingertip signals
+                  hLm.forEach((pt, idx) => {
+                    const isTip = [4, 8, 12, 16, 20].includes(idx);
+                    ctx.beginPath();
+                    ctx.arc(pt.x * canvas.width, pt.y * canvas.height, isTip ? 6.5 : 3.5, 0, 2 * Math.PI);
+                    ctx.fillStyle = isTip ? '#facc15' : '#e0f2fe'; // Yellow fingertips!
+                    ctx.shadowColor = isTip ? '#facc15' : 'transparent';
+                    ctx.shadowBlur = isTip ? 10 : 0;
+                    ctx.fill();
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = isTip ? '#ffffff' : '#0284c7';
+                    ctx.stroke();
+                  });
+
+                  // Draw floating finger posture badge above hand
+                  const middleTip = hLm[12] || hLm[0];
+                  const labelX = middleTip.x * canvas.width;
+                  const labelY = Math.max(30, (middleTip.y * canvas.height) - 22);
+                  const fingerCount = detectedFingersRef.current;
+                  const labelText = fingerCount === 0 ? 'FIST ✊' :
+                                    fingerCount === 1 ? '1 FINGER ☝️' :
+                                    fingerCount === 2 ? '2 FINGERS ✌️' :
+                                    fingerCount === 3 ? '3 FINGERS 🤟' :
+                                    fingerCount === 4 ? '4 FINGERS 🖖' : 'OPEN HAND 🖐️';
+
+                  ctx.save();
+                  ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+                  const textWidth = ctx.measureText(labelText).width;
+                  ctx.fillStyle = 'rgba(10, 15, 20, 0.9)';
+                  ctx.strokeStyle = '#38bdf8';
+                  ctx.lineWidth = 1.5;
+                  drawRoundedBox(ctx, labelX - textWidth / 2 - 8, labelY - 14, textWidth + 16, 22, 6);
+                  ctx.fill();
+                  ctx.stroke();
+
+                  ctx.fillStyle = '#38bdf8';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(labelText, labelX, labelY - 3);
+                  ctx.restore();
+                });
+              } else if (lm) {
+                // Hand tracking fallback directly from Pose wrist & finger points
+                const hands = [
+                  { wrist: lm[15], pinky: lm[17], index: lm[19], thumb: lm[21] },
+                  { wrist: lm[16], pinky: lm[18], index: lm[20], thumb: lm[22] }
+                ];
+                hands.forEach(({ wrist, pinky, index, thumb }) => {
+                  if (wrist && isPtVisible(wrist)) {
+                    [pinky, index, thumb].forEach((f) => {
+                      if (f && isPtVisible(f)) {
+                        ctx.beginPath();
+                        ctx.moveTo(wrist.x * canvas.width, wrist.y * canvas.height);
+                        ctx.lineTo(f.x * canvas.width, f.y * canvas.height);
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(f.x * canvas.width, f.y * canvas.height, 5.5, 0, 2 * Math.PI);
+                        ctx.fillStyle = '#facc15'; // yellow fingertip highlights
+                        ctx.shadowColor = '#facc15';
+                        ctx.shadowBlur = 8;
+                        ctx.fill();
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.stroke();
+                      }
+                    });
+                    ctx.beginPath();
+                    ctx.arc(wrist.x * canvas.width, wrist.y * canvas.height, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fill();
+                  }
+                });
+              }
             } else {
               setRealtimeWarning("STEP BACK INTO VIEW TO CALIBRATE");
             }
@@ -1365,6 +1610,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           
           // Resilient High-Performance Render Loop
           let isSendingFrame = false;
+          let frameIndex = 0;
 
           const processFrame = async () => {
             if (!videoRef.current || !poseRef.current || !streamRef.current) {
@@ -1375,13 +1621,17 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             if (vid.readyState >= 2 && vid.videoWidth > 0 && vid.videoHeight > 0) {
               if (!isSendingFrame) {
                 isSendingFrame = true;
+                frameIndex++;
                 try {
                   await poseRef.current.send({ image: vid });
-                  if (!isMobile && handsRef.current && liveTrackerRef.current.waitingForSignal > 0) {
-                    await handsRef.current.send({ image: vid });
+                  if (handsRef.current) {
+                    // Send to hands: on mobile run every 2nd frame for 60fps balance, on desktop every frame
+                    if (!isMobile || frameIndex % 2 === 0) {
+                      await handsRef.current.send({ image: vid });
+                    }
                   }
                 } catch (e) {
-                  console.warn("Pose estimation frame error:", e);
+                  console.warn("Detection frame error:", e);
                 } finally {
                   isSendingFrame = false;
                 }
@@ -1925,6 +2175,26 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-20" />
           <canvas ref={canvasRef} className="hidden" />
+
+          {/* LIVE BIOMECHANICAL ANGLES (YELLOW SIGNALS) & FINGER POSTURES HUD */}
+          {activeMode === 'form' && (
+            <div className="absolute bottom-4 left-4 right-4 z-30 flex items-center justify-between gap-2 flex-wrap pointer-events-none">
+              <div className="bg-black/90 backdrop-blur-xl border border-yellow-400/70 px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-[0_0_20px_rgba(250,204,21,0.25)] pointer-events-auto">
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse shrink-0"></span>
+                <span className="text-[11px] sm:text-xs font-black text-yellow-300 tracking-wider uppercase font-mono">
+                  📐 {liveAnglesText || 'CALIBRATING JOINT ANGLES...'}
+                </span>
+              </div>
+              {detectedFingers > 0 && (
+                <div className="bg-black/90 backdrop-blur-xl border border-sky-400/80 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-[0_0_20px_rgba(56,189,248,0.3)] pointer-events-auto animate-pulse">
+                  <span className="text-sm">🖐️</span>
+                  <span className="text-[11px] sm:text-xs font-black text-sky-300 tracking-wider uppercase font-mono">
+                    {handGestureText || `${detectedFingers} FINGERS ACTIVE`}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* SUBTLE MESH & OVERLAYS */}
           <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center overflow-hidden">
