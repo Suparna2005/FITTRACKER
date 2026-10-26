@@ -1680,23 +1680,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         </button>
       </div>
 
-      {!showCamera && !imgPreview && (
-        <div className="relative p-6 md:p-8 rounded-3xl overflow-hidden border border-white/10 shadow-2xl mb-8"
-          style={{ backgroundImage: 'linear-gradient(135deg, rgba(9,9,11,1) 0%, rgba(9,9,11,0.8) 100%), url("https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?q=80&w=1000")', backgroundSize: 'cover' }}>
-          <div className="absolute inset-0 bg-[#54D8CF]/10 mix-blend-overlay"></div>
-          <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.25em] uppercase text-[#54D8CF] bg-[#54D8CF]/10 border border-[#54D8CF]/30 rounded-full px-3.5 py-1.5 mb-4">
-              <span className="w-2 h-2 rounded-full bg-[#54D8CF] animate-pulse" /> Live Camera Modules
-            </div>
-            <h3 className="font-display text-4xl font-bold text-white leading-tight mb-2">
-              COMPUTER VISION <span className="text-[#54D8CF]">MODELS</span>
-            </h3>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-0">
-              Select a module below to activate your webcam.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* LIVE CAMERA INTERFACE */}
       {showCamera && (
