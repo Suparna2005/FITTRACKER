@@ -26,6 +26,17 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const defaultExercise = todaysExercises.length > 0 ? todaysExercises[0].name : 'Auto-Detect';
   const [selectedExercise, setSelectedExercise] = useState(defaultExercise);
   const [isExpandedCamera, setIsExpandedCamera] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('user');
+  const cameraFacingRef = useRef('user');
+  const animFrameRef = useRef(null);
+
+  const toggleCameraFacing = async () => {
+    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    setCameraFacing(nextFacing);
+    cameraFacingRef.current = nextFacing;
+    stopCamera();
+    await handleScanClick(activeModeRef.current || 'form', nextFacing);
+  };
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -260,16 +271,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   };
 
   const stopCamera = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     if (poseRef.current) {
-      poseRef.current.close();
+      try { poseRef.current.close(); } catch(e){}
       poseRef.current = null;
     }
     if (handsRef.current) {
-      handsRef.current.close();
+      try { handsRef.current.close(); } catch(e){}
       handsRef.current = null;
     }
     if (recognitionRef.current) {
@@ -303,7 +318,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     }
   };
 
-  const handleScanClick = async (mode) => {
+  const handleScanClick = async (mode, facingOverride = null) => {
     setActiveMode(mode);
     activeModeRef.current = mode;
     setImgPreview(null);
@@ -312,28 +327,54 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     await new Promise(r => setTimeout(r, 100));
     
     try {
+      const isMobile = typeof navigator !== 'undefined' && (
+        /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+        window.innerWidth < 768
+      );
+      const targetFacing = facingOverride || cameraFacingRef.current || (mode === 'form' ? 'user' : 'environment');
+
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: mode === 'form' ? 'user' : 'environment' },
-          audio: mode === 'form'
+          video: {
+            facingMode: targetFacing,
+            width: { ideal: isMobile ? 640 : 1280 },
+            height: { ideal: isMobile ? 480 : 720 },
+            frameRate: { ideal: 30, max: 30 }
+          },
+          audio: false
         });
-      } catch(e) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: mode === 'form' ? 'user' : 'environment' }
-        });
+      } catch(err1) {
+        console.warn("Primary camera constraint failed, attempting fallback:", err1);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: targetFacing },
+            audio: false
+          });
+        } catch(err2) {
+          console.warn("FacingMode constraint failed, using default video:", err2);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        }
       }
       streamRef.current = stream;
       
       let attempts = 0;
-      while (!videoRef.current && attempts < 20) {
+      while (!videoRef.current && attempts < 25) {
          await new Promise(r => setTimeout(r, 50));
          attempts++;
       }
       
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        try { await videoRef.current.play(); } catch(e){}
+        const vid = videoRef.current;
+        vid.setAttribute('playsinline', 'true');
+        vid.setAttribute('webkit-playsinline', 'true');
+        vid.setAttribute('muted', 'true');
+        vid.muted = true;
+        vid.srcObject = stream;
+        try { await vid.play(); } catch(e){}
         
         // Start real-time skeleton tracking for form mode
         if (mode === 'form') {
@@ -344,29 +385,50 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           liveTrackerRef.current.repStage = 'IDLE';
           liveTrackerRef.current.exerciseHistory = [];
           liveTrackerRef.current.plankStart = 0;
+
+          setRealtimeWarning("Loading AI Biomechanics...");
           let waitPose = 0;
-          while (!window.Pose && waitPose < 25) {
+          while (!window.Pose && waitPose < 120) {
             await new Promise(r => setTimeout(r, 100));
             waitPose++;
           }
+
+          if (!window.Pose) {
+            console.warn("Pose not detected on window, dynamically injecting script...");
+            await new Promise((res) => {
+              const sc = document.createElement('script');
+              sc.src = "https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js";
+              sc.crossOrigin = "anonymous";
+              sc.onload = () => res(true);
+              sc.onerror = () => res(false);
+              document.head.appendChild(sc);
+            });
+            let wait2 = 0;
+            while (!window.Pose && wait2 < 30) {
+              await new Promise(r => setTimeout(r, 100));
+              wait2++;
+            }
+          }
+
           if (window.Pose) {
+            setRealtimeWarning("STEP BACK INTO VIEW TO CALIBRATE");
             poseRef.current = new window.Pose({
-              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
             });
             poseRef.current.setOptions({
-              modelComplexity: 1,
+              modelComplexity: isMobile ? 0 : 1, // MediaPipe Lite for mobile (smooth 60fps), Full for desktop
               smoothLandmarks: true,
               minDetectionConfidence: 0.5,
               minTrackingConfidence: 0.5
             });
 
-            if (window.Hands) {
+            if (!isMobile && window.Hands) {
               handsRef.current = new window.Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
               });
               handsRef.current.setOptions({
                 maxNumHands: 1,
-                modelComplexity: 1,
+                modelComplexity: 0,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
               });
@@ -426,8 +488,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             const canvas = canvasOverlayRef.current;
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+            const vid = videoRef.current;
+            if (vid && vid.videoWidth > 0 && vid.videoHeight > 0) {
+              if (canvas.width !== vid.videoWidth) canvas.width = vid.videoWidth;
+              if (canvas.height !== vid.videoHeight) canvas.height = vid.videoHeight;
+            }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const now = Date.now();
@@ -448,7 +513,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             }
             
             const lm = results.poseLandmarks;
-            if (lm && lm.length >= 25) {
+            if (lm && lm.length >= 17) {
               let skeletonColor = '#10b981'; // Green default for aligned posture
 
               // ── 1. Confidence & Visibility Helpers ──
@@ -1293,37 +1358,52 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   }
                 });
               }
+            } else {
+              setRealtimeWarning("STEP BACK INTO VIEW TO CALIBRATE");
             }
           });
           
-          // Render Loop
+          // Resilient High-Performance Render Loop
+          let isSendingFrame = false;
+
           const processFrame = async () => {
-            if (videoRef.current && poseRef.current && streamRef.current) {
-              if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) { requestAnimationFrame(processFrame); return; }
-              try { 
-                await poseRef.current.send({image: videoRef.current}); 
-                if (handsRef.current && liveTrackerRef.current.waitingForSignal > 0) {
-                   await handsRef.current.send({image: videoRef.current});
+            if (!videoRef.current || !poseRef.current || !streamRef.current) {
+              return;
+            }
+
+            const vid = videoRef.current;
+            if (vid.readyState >= 2 && vid.videoWidth > 0 && vid.videoHeight > 0) {
+              if (!isSendingFrame) {
+                isSendingFrame = true;
+                try {
+                  await poseRef.current.send({ image: vid });
+                  if (!isMobile && handsRef.current && liveTrackerRef.current.waitingForSignal > 0) {
+                    await handsRef.current.send({ image: vid });
+                  }
+                } catch (e) {
+                  console.warn("Pose estimation frame error:", e);
+                } finally {
+                  isSendingFrame = false;
                 }
-              } catch(e){
-                console.error("MediaPipe Error:", e);
               }
-              requestAnimationFrame(processFrame);
+            }
+
+            if (streamRef.current) {
+              animFrameRef.current = requestAnimationFrame(processFrame);
             }
           };
-          let loopStarted = false;
+
           const startLoop = () => {
-             if (loopStarted) return;
-             loopStarted = true;
-             processFrame();
+            if (animFrameRef.current) return;
+            processFrame();
           };
-          
-          const checkReady = setInterval(() => {
-             if (videoRef.current && videoRef.current.videoWidth > 0) {
-                clearInterval(checkReady);
-                startLoop();
-             }
-          }, 50);
+
+          if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+            startLoop();
+          } else {
+            videoRef.current.onloadeddata = () => startLoop();
+            videoRef.current.onplaying = () => startLoop();
+          }
           }
         }
       }
@@ -1651,7 +1731,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
       realtimeWarning.includes('SLOUCH') || 
       realtimeWarning.includes('SLOUCHING') || 
       realtimeWarning.includes('UNEVEN') || 
-      realtimeWarning.includes('DO NOT')
+      realtimeWarning.includes('DO NOT') ||
+      realtimeWarning.includes('STRAIN') ||
+      realtimeWarning.includes('FLARED')
     )
   );
 
@@ -1665,7 +1747,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
       realtimeWarning.includes('LOCKOUT') || 
       realtimeWarning.includes('ACTIVE') || 
       realtimeWarning.includes('DETECTED') ||
-      realtimeWarning.includes('DEPTH')
+      realtimeWarning.includes('DEPTH') ||
+      realtimeWarning.includes('SQUEEZE') ||
+      realtimeWarning.includes('HOLD') ||
+      realtimeWarning.includes('CONTROL')
     )
   );
 
@@ -1779,6 +1864,17 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 </>
               )}
 
+              {/* Camera Flip (Front/Back) */}
+              <button 
+                type="button"
+                onClick={toggleCameraFacing} 
+                className="bg-black/75 backdrop-blur-xl px-2.5 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:text-[#C7F36B] transition-colors flex items-center gap-1 active:scale-95"
+                title={`Switch to ${cameraFacing === 'user' ? 'Rear' : 'Front'} Camera`}
+              >
+                <span>🔄</span>
+                <span className="hidden md:inline">{cameraFacing === 'user' ? 'Front' : 'Back'}</span>
+              </button>
+
               <button 
                 type="button"
                 onClick={() => setIsExpandedCamera(!isExpandedCamera)} 
@@ -1801,13 +1897,13 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
           {/* PROMINENT DYNAMIC GREEN / RED POSTURE SIGNAL */}
           {activeMode === 'form' && (
-            <div className="absolute top-16 left-0 right-0 z-30 flex justify-center pointer-events-none px-4">
-              <div className={`px-5 py-2 rounded-full border-2 backdrop-blur-xl shadow-2xl transition-all duration-200 flex items-center gap-3 pointer-events-auto ${
+            <div className="absolute top-16 left-0 right-0 z-30 flex justify-center pointer-events-none px-3 sm:px-4">
+              <div className={`px-4 sm:px-5 py-2 rounded-full border-2 backdrop-blur-xl shadow-2xl transition-all duration-200 flex items-center gap-2.5 sm:gap-3 pointer-events-auto max-w-[95%] sm:max-w-none ${
                 isBadPosture
-                  ? 'bg-rose-950/85 border-rose-500 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.7)] animate-pulse'
+                  ? 'bg-rose-950/90 border-rose-500 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.7)] animate-pulse'
                   : isGoodPosture
-                  ? 'bg-emerald-950/85 border-[#10b981] text-[#C7F36B] shadow-[0_0_30px_rgba(16,185,129,0.6)]'
-                  : 'bg-black/80 border-amber-400/60 text-amber-200'
+                  ? 'bg-emerald-950/90 border-[#10b981] text-[#C7F36B] shadow-[0_0_30px_rgba(16,185,129,0.6)]'
+                  : 'bg-black/85 border-amber-400/60 text-amber-200'
               }`}>
                 <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
                   isBadPosture 
@@ -1816,10 +1912,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     ? 'bg-[#10b981] shadow-[0_0_15px_#10b981] animate-pulse' 
                     : 'bg-amber-400'
                 }`} />
-                <span className="text-xs md:text-sm font-black tracking-wider uppercase">
+                <span className="text-xs sm:text-sm font-black tracking-wider uppercase whitespace-nowrap">
                   {isBadPosture ? '🔴 WRONG POSTURE' : isGoodPosture ? '🟢 RIGHT POSTURE' : '⚪ CALIBRATING FORM'}
                 </span>
-                <span className="text-xs font-semibold text-zinc-300 hidden sm:inline border-l border-white/20 pl-2.5">
+                <span className="text-[11px] sm:text-xs font-semibold text-zinc-300 border-l border-white/20 pl-2 sm:pl-2.5 truncate max-w-[150px] sm:max-w-[320px]">
                   {realtimeWarning}
                 </span>
               </div>
