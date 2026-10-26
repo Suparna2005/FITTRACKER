@@ -83,6 +83,7 @@ function App() {
   const [rawHistory, setRawHistory] = useState(null)
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState(null)
+  const [showGoogleModal, setShowGoogleModal] = useState(false)
   const DEFAULT_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '125158095092-f3lq0t79bh98glf7hlq7td2scee0m34f.apps.googleusercontent.com'
   const [googleConfig, setGoogleConfig] = useState({ client_id: DEFAULT_GOOGLE_CLIENT_ID, configured: Boolean(DEFAULT_GOOGLE_CLIENT_ID) })
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' })
