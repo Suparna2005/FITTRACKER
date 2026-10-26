@@ -83,8 +83,8 @@ function App() {
   const [rawHistory, setRawHistory] = useState(null)
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState(null)
-  const [showGoogleModal, setShowGoogleModal] = useState(false)
-  const [googleConfig, setGoogleConfig] = useState({ client_id: '', configured: false })
+  const DEFAULT_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '125158095092-f3lq0t79bh98glf7hlq7td2scee0m34f.apps.googleusercontent.com'
+  const [googleConfig, setGoogleConfig] = useState({ client_id: DEFAULT_GOOGLE_CLIENT_ID, configured: Boolean(DEFAULT_GOOGLE_CLIENT_ID) })
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' })
   const [useSplit, setUseSplit] = useState(true)
   const [mySplit, setMySplit] = useState(null)
@@ -113,7 +113,7 @@ function App() {
     return () => clearInterval(t)
   }, [user])
 
-  // Fetch Google OAuth Client ID loaded from backend .env
+  // Fetch Google OAuth Client ID loaded from backend .env as override
   useEffect(() => {
     fetch(`${API_URL}/auth/google_client_id`)
       .then(res => res.json())
@@ -125,29 +125,51 @@ function App() {
       .catch(() => {})
   }, [])
 
-  // Initialize Google Identity Services when Client ID from .env is ready
-  useEffect(() => {
-    if (!googleConfig.configured || !window.google?.accounts?.id) return
+  const initGoogleIdentity = (clientId = googleConfig.client_id) => {
+    if (!clientId || !window.google?.accounts?.id) return false
     try {
       window.google.accounts.id.initialize({
-        client_id: googleConfig.client_id,
+        client_id: clientId,
         callback: (resp) => {
           if (resp && resp.credential) {
             submitGoogleAuth(resp.credential)
           }
         }
       })
+      return true
     } catch (e) {
-      console.warn("Google OAuth init:", e)
+      console.warn("Google OAuth init error:", e)
+      return false
     }
-  }, [googleConfig])
+  }
+
+  // Initialize Google Identity Services when Client ID or SDK is ready
+  useEffect(() => {
+    if (!googleConfig.client_id) return
+    if (window.google?.accounts?.id) {
+      initGoogleIdentity(googleConfig.client_id)
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          initGoogleIdentity(googleConfig.client_id)
+          clearInterval(interval)
+        }
+      }, 150)
+      const timer = setTimeout(() => clearInterval(interval), 8000)
+      return () => {
+        clearInterval(interval)
+        clearTimeout(timer)
+      }
+    }
+  }, [googleConfig.client_id])
 
   // Render official Google button into slot when modal is visible
   useEffect(() => {
-    if (showGoogleModal && googleConfig.configured && window.google?.accounts?.id) {
-      const timer = setTimeout(() => {
+    if (showGoogleModal && googleConfig.client_id) {
+      const renderBtn = () => {
         const el = document.getElementById('google-btn-slot')
-        if (el) {
+        if (el && window.google?.accounts?.id) {
+          initGoogleIdentity(googleConfig.client_id)
           el.innerHTML = ''
           try {
             window.google.accounts.id.renderButton(el, {
@@ -157,14 +179,25 @@ function App() {
               width: 300,
               text: 'continue_with'
             })
+            return true
           } catch (e) {
             console.warn("Google renderButton:", e)
           }
         }
-      }, 150)
+        return false
+      }
+
+      const timer = setTimeout(() => {
+        if (!renderBtn()) {
+          const poll = setInterval(() => {
+            if (renderBtn()) clearInterval(poll)
+          }, 150)
+          setTimeout(() => clearInterval(poll), 4000)
+        }
+      }, 50)
       return () => clearTimeout(timer)
     }
-  }, [showGoogleModal, googleConfig])
+  }, [showGoogleModal, googleConfig.client_id])
 
   const markRead = async (id) => {
     try { await fetch(`${API_URL}/notifications/${id}/read`, { method: 'POST' }) } catch {}
@@ -418,7 +451,8 @@ function App() {
   })()
 
   const handleGoogleLogin = () => {
-    if (googleConfig.configured && window.google?.accounts?.id) {
+    const ready = initGoogleIdentity(googleConfig.client_id)
+    if (ready && window.google?.accounts?.id) {
       try {
         window.google.accounts.id.prompt((notification) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
