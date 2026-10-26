@@ -1425,6 +1425,32 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     }
     setLoading(false);
   };
+  const isBadPosture = Boolean(
+    realtimeWarning && (
+      realtimeWarning.includes('BAD') || 
+      realtimeWarning.includes('ISSUE') || 
+      realtimeWarning.includes('NO REP') || 
+      realtimeWarning.includes('ALERT') || 
+      realtimeWarning.includes('SLOUCH') || 
+      realtimeWarning.includes('SLOUCHING') || 
+      realtimeWarning.includes('UNEVEN') || 
+      realtimeWarning.includes('DO NOT')
+    )
+  );
+
+  const isGoodPosture = Boolean(
+    realtimeWarning && !isBadPosture && (
+      realtimeWarning.includes('PERFECT') || 
+      realtimeWarning.includes('GOOD') || 
+      realtimeWarning.includes('ALIGNED') || 
+      realtimeWarning.includes('READY') || 
+      realtimeWarning.includes('STANDING') || 
+      realtimeWarning.includes('LOCKOUT') || 
+      realtimeWarning.includes('ACTIVE') || 
+      realtimeWarning.includes('DETECTED') ||
+      realtimeWarning.includes('DEPTH')
+    )
+  );
 
   return (
     <div className="fade-up relative w-full mb-8">
@@ -1457,7 +1483,15 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
       {/* LIVE CAMERA INTERFACE */}
       {showCamera && (
-        <div className={`mb-8 rounded-3xl overflow-hidden border border-[#C7F36B]/40 relative fade-up bg-black shadow-2xl transition-all duration-300 ${isExpandedCamera ? 'h-[88vh] min-h-[680px]' : 'h-[75vh] md:h-[82vh] min-h-[560px] max-h-[860px]'}`}>
+        <div className={`mb-8 rounded-3xl overflow-hidden relative fade-up bg-black shadow-2xl transition-all duration-300 ${
+          isExpandedCamera ? 'h-[88vh] min-h-[680px]' : 'h-[75vh] md:h-[82vh] min-h-[560px] max-h-[860px]'
+        } ${
+          isBadPosture
+            ? 'border-2 border-rose-500 shadow-[0_0_35px_rgba(244,63,94,0.5),inset_0_0_25px_rgba(244,63,94,0.25)]'
+            : isGoodPosture
+            ? 'border-2 border-[#10b981] shadow-[0_0_30px_rgba(16,185,129,0.35),inset_0_0_20px_rgba(16,185,129,0.15)]'
+            : 'border border-[#C7F36B]/40'
+        }`}>
           <style>{`
             @keyframes scanline {
               0% { top: 0%; opacity: 0; }
@@ -1561,32 +1595,37 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               </button>
             </div>
           </div>
+
+          {/* PROMINENT DYNAMIC GREEN / RED POSTURE SIGNAL */}
+          {activeMode === 'form' && (
+            <div className="absolute top-16 left-0 right-0 z-30 flex justify-center pointer-events-none px-4">
+              <div className={`px-5 py-2 rounded-full border-2 backdrop-blur-xl shadow-2xl transition-all duration-200 flex items-center gap-3 pointer-events-auto ${
+                isBadPosture
+                  ? 'bg-rose-950/85 border-rose-500 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.7)] animate-pulse'
+                  : isGoodPosture
+                  ? 'bg-emerald-950/85 border-[#10b981] text-[#C7F36B] shadow-[0_0_30px_rgba(16,185,129,0.6)]'
+                  : 'bg-black/80 border-amber-400/60 text-amber-200'
+              }`}>
+                <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                  isBadPosture 
+                    ? 'bg-rose-500 shadow-[0_0_15px_#ef4444] animate-ping' 
+                    : isGoodPosture 
+                    ? 'bg-[#10b981] shadow-[0_0_15px_#10b981] animate-pulse' 
+                    : 'bg-amber-400'
+                }`} />
+                <span className="text-xs md:text-sm font-black tracking-wider uppercase">
+                  {isBadPosture ? '🔴 WRONG POSTURE' : isGoodPosture ? '🟢 RIGHT POSTURE' : '⚪ CALIBRATING FORM'}
+                </span>
+                <span className="text-xs font-semibold text-zinc-300 hidden sm:inline border-l border-white/20 pl-2.5">
+                  {realtimeWarning}
+                </span>
+              </div>
+            </div>
+          )}
           
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-20" />
           <canvas ref={canvasRef} className="hidden" />
-
-          {/* DYNAMIC POSTURE / FORM WARNING (CLEAN FLOATING PILL AT BOTTOM CENTER) */}
-          {activeMode === 'form' && realtimeWarning && (
-            <div className="absolute bottom-28 left-0 right-0 z-30 flex justify-center pointer-events-none px-4">
-              <div className={`px-4 py-2 rounded-full border backdrop-blur-xl shadow-2xl transition-all duration-200 flex items-center gap-2 max-w-[90%] pointer-events-auto ${
-                (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
-                  ? 'bg-rose-500/25 border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(244,63,94,0.5)]' 
-                  : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('DETECTED') || realtimeWarning.includes('ACTIVE'))
-                  ? 'bg-emerald-500/25 border-emerald-500 text-[#C7F36B] shadow-[0_0_25px_rgba(16,185,129,0.5)]'
-                  : 'bg-amber-500/25 border-amber-500 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
-              }`}>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${
-                  (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
-                    ? 'bg-rose-500 shadow-[0_0_12px_#ef4444] animate-ping'
-                    : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('ACTIVE'))
-                    ? 'bg-[#C7F36B] shadow-[0_0_12px_#C7F36B] animate-pulse'
-                    : 'bg-amber-400'
-                }`}></span>
-                <span className="text-[11px] font-black tracking-wider uppercase truncate">{realtimeWarning}</span>
-              </div>
-            </div>
-          )}
 
           {/* SUBTLE MESH & OVERLAYS */}
           <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center overflow-hidden">
