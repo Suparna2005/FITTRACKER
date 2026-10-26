@@ -42,7 +42,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const liveTrackerRef = useRef({
     setCount: 1,
     repCount: 0,
-    waitingForSignal: 1,
+    waitingForSignal: 0, // Immediately armed for Set 1
     isResting: false,
     restStartTime: 0,
     lastRepTime: Date.now(),
@@ -56,7 +56,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     exerciseHistory: [],
     activeExercise: 'Squat',
     consecutiveSignalFrames: 0,
-    readyHoldFrames: 0
+    readyHoldFrames: 0,
+    plankStart: 0,
+    plankSeconds: 0
   });
 
   const playRepSound = (type = 'success') => {
@@ -335,6 +337,13 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         
         // Start real-time skeleton tracking for form mode
         if (mode === 'form') {
+          liveTrackerRef.current.waitingForSignal = 0;
+          liveTrackerRef.current.repCount = 0;
+          liveTrackerRef.current.setCount = 1;
+          liveTrackerRef.current.isResting = false;
+          liveTrackerRef.current.repStage = 'IDLE';
+          liveTrackerRef.current.exerciseHistory = [];
+          liveTrackerRef.current.plankStart = 0;
           let waitPose = 0;
           while (!window.Pose && waitPose < 25) {
             await new Promise(r => setTimeout(r, 100));
@@ -468,26 +477,69 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const lowerVis = (isPtVisible(lHip) || isPtVisible(rHip)) &&
                                  (isPtVisible(lKnee) || isPtVisible(rKnee));
 
-                // A. Overhead Press check: wrists above head or significantly above shoulders
+                const avgShoulderY = ((lShoulder?.y || 0) + (rShoulder?.y || 0)) / 2;
+                const avgHipY = ((lHip?.y || 0) + (rHip?.y || 0)) / 2;
+                const avgShoulderX = ((lShoulder?.x || 0) + (rShoulder?.x || 0)) / 2;
+                const avgHipX = ((lHip?.x || 0) + (rHip?.x || 0)) / 2;
+                const torsoHeightDiff = Math.abs(avgShoulderY - avgHipY);
+                const torsoWidthDiff = Math.abs(avgShoulderX - avgHipX);
+
+                const leftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
+                const rightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
+                const avgKneeAngle = Math.min(leftKneeAngle, rightKneeAngle);
+
+                const leftHipAngle = calculateAngle(lShoulder || lHip, lHip, lKnee);
+                const rightHipAngle = calculateAngle(rShoulder || rHip, rHip, rKnee);
+                const avgHipAngle = (leftHipAngle + rightHipAngle) / 2;
+
+                // ── A. FLOOR & ABS WORKOUT DETECTION ──
+                // Check if user is lying down, inclined, or in plank position on floor
+                const isHorizontal = (torsoHeightDiff < 0.25 && torsoWidthDiff > 0.12) || 
+                                     (avgShoulderY > 0.42 && avgHipY > 0.42 && torsoHeightDiff < 0.28);
+                if (isHorizontal) {
+                  // Plank check: Prone (face down or nose level with shoulders) with straight legs and body line
+                  const isProne = nose && (nose.y >= avgShoulderY - 0.05);
+                  if (isProne && avgKneeAngle > 140 && avgHipAngle > 140) {
+                    return 'plank';
+                  }
+
+                  // Leg Raises: Lying on back with knees relatively straight and hips flexing
+                  if (avgKneeAngle > 130 && avgHipAngle < 135) {
+                    return 'leg raises';
+                  }
+
+                  // Crunches / Sit-ups: Lying down or inclined on mat, bending torso towards knees
+                  return 'crunches';
+                }
+
+                // Seated Abs (e.g. V-ups or Incline floor crunches)
+                if (avgHipY > 0.50 && avgHipAngle < 115 && torsoHeightDiff < 0.35) {
+                  return 'crunches';
+                }
+
+                // ── B. STANDING WORKOUT DETECTION ──
+                // Overhead Press check: wrists above head or significantly above shoulders
                 if (upperVis && (lWrist || rWrist) && (lShoulder || rShoulder)) {
                   const avgWristY = ((lWrist?.y || rWrist?.y) + (rWrist?.y || lWrist?.y)) / 2;
-                  const avgShoulderY = ((lShoulder?.y || rShoulder?.y) + (rShoulder?.y || lShoulder?.y)) / 2;
-                  const headTop = nose ? nose.y : avgShoulderY - 0.2;
+                  const headTop = nose ? nose.y : avgShoulderY - 0.18;
                   if (avgWristY < headTop || avgWristY < avgShoulderY - 0.10) {
                     return 'overhead press';
                   }
                 }
 
-                // B. Lower body checks
+                // Bicep Curl check: Upper body active with elbow flexed and wrists below head
+                if (upperVis && (lShoulder || rShoulder) && (lElbow || rElbow) && (lWrist || rWrist)) {
+                  const shoulder = lShoulder || rShoulder;
+                  const elbow = lElbow || rElbow;
+                  const wrist = lWrist || rWrist;
+                  const elbowAngle = calculateAngle(shoulder, elbow, wrist);
+                  if (elbowAngle < 125) {
+                    return 'bicep curl';
+                  }
+                }
+
+                // Lower body checks
                 if (lowerVis && (lHip || rHip) && (lKnee || rKnee)) {
-                  const leftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
-                  const rightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
-                  const avgKneeAngle = Math.min(leftKneeAngle, rightKneeAngle);
-
-                  const leftHipAngle = calculateAngle(lShoulder || lHip, lHip, lKnee);
-                  const rightHipAngle = calculateAngle(rShoulder || rHip, rHip, rKnee);
-                  const avgHipAngle = (leftHipAngle + rightHipAngle) / 2;
-
                   // Lunge: large discrepancy between knees
                   if (lKnee && rKnee) {
                     const kneeYDiff = Math.abs(lKnee.y - rKnee.y);
@@ -496,29 +548,18 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     }
                   }
 
-                  // Deadlift: Hip hinge with softer knees
-                  if (avgHipAngle < 135 && avgKneeAngle > 120) {
-                    return 'deadlift';
-                  }
-
                   // Squat: Both knees flex deeply
                   if (avgKneeAngle < 140) {
                     return 'squat';
                   }
-                }
 
-                // C. Bicep Curl: Upper body active with elbow flexed
-                if (upperVis && (lShoulder || rShoulder) && (lElbow || rElbow) && (lWrist || rWrist)) {
-                  const shoulder = lShoulder || rShoulder;
-                  const elbow = lElbow || rElbow;
-                  const wrist = lWrist || rWrist;
-                  const elbowAngle = calculateAngle(shoulder, elbow, wrist);
-                  if (elbowAngle < 130) {
-                    return 'bicep curl';
+                  // Deadlift: Hip hinge with softer knees
+                  if (avgHipAngle < 135 && avgKneeAngle > 120) {
+                    return 'deadlift';
                   }
                 }
 
-                // D. Standing / Neutral Posture Diagnostic
+                // Default Standing Neutral Posture
                 return 'posture';
               };
 
@@ -530,28 +571,44 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 const detected = classifyCurrentPose();
                 if (detected) {
                   tracker.exerciseHistory.push(detected);
-                  if (tracker.exerciseHistory.length > 15) tracker.exerciseHistory.shift();
+                  if (tracker.exerciseHistory.length > 10) tracker.exerciseHistory.shift();
 
-                  // Find most frequent exercise in rolling window
-                  const counts = {};
-                  tracker.exerciseHistory.forEach(ex => { counts[ex] = (counts[ex] || 0) + 1; });
-                  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                  if (sorted.length > 0 && sorted[0][1] >= 4) {
-                    tracker.activeExercise = sorted[0][0];
+                  // Immediate fast detection:
+                  // If any dynamic workout appears 2+ times in recent 5 frames, switch immediately!
+                  const recent = tracker.exerciseHistory.slice(-5);
+                  const dynamicExs = recent.filter(ex => ex !== 'posture');
+                  if (dynamicExs.length >= 2) {
+                    tracker.activeExercise = dynamicExs[dynamicExs.length - 1];
+                  } else if (tracker.exerciseHistory.filter(ex => ex === 'posture').length >= 6) {
+                    tracker.activeExercise = 'posture';
                   }
                 }
                 targetExercise = tracker.activeExercise || 'posture';
-                setDetectedExerciseDisplay(targetExercise === 'posture' ? 'Posture Alignment' : targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1));
+                setDetectedExerciseDisplay(
+                  targetExercise === 'posture' ? 'Posture Alignment' :
+                  targetExercise === 'crunches' ? 'Crunches / Abs' :
+                  targetExercise === 'plank' ? 'Plank (Core Hold)' :
+                  targetExercise === 'leg raises' ? 'Leg Raises' :
+                  targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1)
+                );
               } else {
                 targetExercise = selectorVal;
-                setDetectedExerciseDisplay(targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1));
+                setDetectedExerciseDisplay(
+                  targetExercise.includes('crunch') ? 'Crunches / Abs' :
+                  targetExercise.includes('plank') ? 'Plank (Core Hold)' :
+                  targetExercise.includes('leg raise') ? 'Leg Raises' :
+                  targetExercise.charAt(0).toUpperCase() + targetExercise.slice(1)
+                );
               }
 
               // ── 3. Helper to Register 1 Perfect Rep ──
               const registerPerfectRep = (exerciseLabel) => {
-                if (tracker.waitingForSignal > 0) return;
-                // Anti-bounce: require at least 1.2s since last counted rep
-                if (now - tracker.lastCountedRepTimestamp < 1200) return;
+                if (tracker.waitingForSignal > 0) {
+                  tracker.waitingForSignal = 0;
+                  tracker.setCount = 1;
+                }
+                // Anti-bounce: require at least 650ms since last counted rep
+                if (now - tracker.lastCountedRepTimestamp < 650) return;
 
                 if (tracker.isResting) {
                   tracker.setCount++;
@@ -587,7 +644,167 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
               // ── 4. Precision Biomechanical Movement Evaluator ──
 
-              if (targetExercise.includes('squat')) {
+              if (targetExercise.includes('crunch') || targetExercise.includes('abs') || targetExercise.includes('situp')) {
+                // CRUNCHES & SIT-UPS: Abdominal flexion & controlled tempo
+                const shoulder = lm[11] || lm[12];
+                const hip = lm[23] || lm[24];
+                const knee = lm[25] || lm[26];
+                const ear = lm[7] || lm[8];
+
+                if (shoulder && hip) {
+                  const rawHipAngle = knee ? calculateAngle(shoulder, hip, knee) : 130;
+                  const hipAngle = smoothAngle('crunch_hip', rawHipAngle);
+
+                  // Ear to shoulder neck-strain check: if chin jammed into chest or hands yanking
+                  const rawNeckAngle = ear ? calculateAngle(ear, shoulder, hip) : 180;
+                  const neckAngle = smoothAngle('crunch_neck', rawNeckAngle);
+
+                  let isYankingNeck = false;
+                  if (neckAngle < 95) {
+                    isYankingNeck = true;
+                    invalidateRep("DO NOT YANK ON NECK! CURL FROM CORE");
+                  }
+
+                  if (tracker.repStage === 'IDLE' || tracker.repStage === 'READY') {
+                    if (hipAngle > 115) {
+                      tracker.repStage = 'READY';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("GOOD POSTURE: READY TO CRUNCH");
+                    } else if (hipAngle <= 102) {
+                      tracker.repStage = 'CONCENTRIC';
+                      tracker.repStartTime = now;
+                      tracker.repFormValid = !isYankingNeck;
+                    }
+                  } else if (tracker.repStage === 'READY') {
+                    if (hipAngle < 108) {
+                      tracker.repStage = 'CONCENTRIC';
+                      tracker.repStartTime = now;
+                      tracker.repFormValid = !isYankingNeck;
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("GOOD FORM: SQUEEZE YOUR ABS UP");
+                    } else {
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("READY: CRUNCH TORSO TOWARD KNEES");
+                    }
+                  } else if (tracker.repStage === 'CONCENTRIC') {
+                    if (hipAngle <= 90) {
+                      tracker.repStage = 'INFLECTION';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("PERFECT CORE CONTRACTION! LOWER SLOWLY");
+                    } else if (hipAngle > 120) {
+                      tracker.repStage = 'READY';
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                      setRealtimeWarning("GOOD POSTURE: CRUNCH HIGHER");
+                    }
+                  } else if (tracker.repStage === 'INFLECTION') {
+                    if (hipAngle > 102) {
+                      tracker.repStage = 'ECCENTRIC';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("GOOD FORM: LOWERING WITH CONTROL");
+                    }
+                  } else if (tracker.repStage === 'ECCENTRIC') {
+                    if (hipAngle >= 115) {
+                      const repDuration = now - tracker.repStartTime;
+                      if (repDuration >= 450 && tracker.repFormValid) {
+                        registerPerfectRep("CRUNCHES");
+                      } else if (!tracker.repFormValid) {
+                        rejectNoRep(tracker.badFormReason || "NECK STRAIN");
+                      } else {
+                        registerPerfectRep("CRUNCHES");
+                      }
+                      tracker.repStage = 'READY';
+                    } else {
+                      skeletonColor = tracker.repFormValid ? '#10b981' : '#ef4444';
+                    }
+                  }
+                } else {
+                  setRealtimeWarning("ALIGN UPPER BODY & HIPS ON MAT");
+                  skeletonColor = '#10b981';
+                }
+
+              } else if (targetExercise.includes('plank')) {
+                // PLANK: Isometric Core Alignment & Hold
+                const shoulder = lm[11] || lm[12];
+                const hip = lm[23] || lm[24];
+                const ankle = lm[27] || lm[28];
+
+                if (shoulder && hip) {
+                  const rawSpineAngle = ankle ? calculateAngle(shoulder, hip, ankle) : 180;
+                  const spineAngle = smoothAngle('plank_spine', rawSpineAngle);
+
+                  // Hips sagging: hip dips below shoulder-ankle line
+                  const hipsSagging = spineAngle < 150 && (hip.y > shoulder.y + 0.05);
+                  // Hips piked: hip rises into tent
+                  const hipsPiked = spineAngle < 150 && (hip.y < shoulder.y - 0.04);
+
+                  if (hipsSagging) {
+                    skeletonColor = '#ef4444';
+                    setRealtimeWarning("BAD POSTURE: HIPS SAGGING! ENGAGE CORE & GLUTES");
+                  } else if (hipsPiked) {
+                    skeletonColor = '#ef4444';
+                    setRealtimeWarning("BAD POSTURE: HIPS TOO HIGH! LOWER HIPS IN LINE");
+                  } else {
+                    skeletonColor = '#10b981';
+                    if (!tracker.plankStart) tracker.plankStart = now;
+                    const holdSecs = Math.floor((now - tracker.plankStart) / 1000);
+                    tracker.repCount = holdSecs;
+                    setRealtimeWarning(`PERFECT PLANK HOLD: ${holdSecs}s • SPINE ALIGNED`);
+                  }
+                } else {
+                  setRealtimeWarning("ALIGN BODY HORIZONTALLY FOR PLANK");
+                  skeletonColor = '#10b981';
+                }
+
+              } else if (targetExercise.includes('leg raise')) {
+                // LEG RAISES: Lower Abdominal Lift
+                const shoulder = lm[11] || lm[12];
+                const hip = lm[23] || lm[24];
+                const knee = lm[25] || lm[26];
+                const ankle = lm[27] || lm[28];
+
+                if (hip && (knee || ankle)) {
+                  const legPoint = ankle || knee;
+                  const rawHipAngle = shoulder ? calculateAngle(shoulder, hip, legPoint) : 180;
+                  const hipAngle = smoothAngle('legraise_hip', rawHipAngle);
+
+                  if (tracker.repStage === 'IDLE' || tracker.repStage === 'READY') {
+                    if (hipAngle > 135) {
+                      tracker.repStage = 'READY';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("READY: LIFT LEGS USING LOWER ABS");
+                    }
+                  } else if (tracker.repStage === 'READY') {
+                    if (hipAngle < 125) {
+                      tracker.repStage = 'CONCENTRIC';
+                      tracker.repStartTime = now;
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("GOOD FORM: RAISING LEGS");
+                    }
+                  } else if (tracker.repStage === 'CONCENTRIC') {
+                    if (hipAngle <= 100) {
+                      tracker.repStage = 'INFLECTION';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("PERFECT HEIGHT! LOWER SLOWLY");
+                    }
+                  } else if (tracker.repStage === 'INFLECTION') {
+                    if (hipAngle > 118) {
+                      tracker.repStage = 'ECCENTRIC';
+                      skeletonColor = '#10b981';
+                      setRealtimeWarning("CONTROL THE DESCENT - HOVER FEET");
+                    }
+                  } else if (tracker.repStage === 'ECCENTRIC') {
+                    if (hipAngle >= 135) {
+                      registerPerfectRep("LEG RAISES");
+                      tracker.repStage = 'READY';
+                    }
+                  }
+                } else {
+                  setRealtimeWarning("ALIGN LEGS & HIPS FOR LEG RAISES");
+                  skeletonColor = '#10b981';
+                }
+
+              } else if (targetExercise.includes('squat')) {
                 // SQUATS: Hip & Knee flexion + Torso Upright
                 const hip = lm[23] || lm[24];
                 const knee = lm[25] || lm[26];
@@ -1515,6 +1732,9 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                   >
                     <option value="Auto-Detect">✨ Auto-Detect</option>
                     <option value="Posture Diagnostic">🧍 Posture Diagnostic</option>
+                    <option value="Crunches / Abs">🔥 Crunches / Abs</option>
+                    <option value="Plank">🛡️ Plank (Core Hold)</option>
+                    <option value="Leg Raises">🦵 Leg Raises</option>
                     <option value="Squat">Squat</option>
                     <option value="Bicep Curl">Bicep Curl</option>
                     <option value="Deadlift">Deadlift</option>
@@ -2060,9 +2280,22 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">AI Form Coach</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Capture a photo of your exercise form. AI analyzes your joint angles to detect mistakes.</p>
-              <button className="btn-lime w-full py-2.5 text-xs font-extrabold">
-                OPEN WEBCAM
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => handleScanClick('form')} 
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                >
+                  OPEN WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleUploadClick('form')} 
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                >
+                  UPLOAD PHOTO
+                </button>
+              </div>
             </div>
           </div>
 
