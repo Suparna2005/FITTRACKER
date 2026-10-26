@@ -75,6 +75,14 @@ graph TD
 
 ### 1. 🤖 Precision AI Form Coach & Biomechanical Rep Engine
 * **Elimination of False Repetition Counting:** Eradicated false triggers from casual body shifts, finger twitches, sitting, or typing by introducing a **Setup Calibration Gate (`READY` Hold)** requiring athletes to hold a verified starting lockout for $\ge 4$ consecutive frames (~150ms).
+* **Dynamic Posture Quality Signals (`🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE`):** Real-time biomechanical analysis compares active joint kinematics against reference vectors:
+  * Proper form triggers `🟢 RIGHT POSTURE` with vibrant green UI indicators and audio encouragement ("Good form! Keep going").
+  * Form breaks (e.g. spinal flexion, excessive elbow drift, knee valgus) trigger `🔴 WRONG POSTURE` with crimson borders, warning tones, and audio coaching.
+  * Inactive/calibrating state displays `⚪ CALIBRATING FORM`.
+* **Glowing Yellow Biomechanical Joint Angle Signals:** Engineered an instantaneous joint visualizer (`drawYellowAngleSignal`) projecting glowing `#facc15` joint rings, circular degree arcs, and live numerical angle badges (`142°`, `88°`) across active anatomical pivots (Knees, Elbows, Hips, Shoulders), complemented by a dedicated bottom yellow HUD strip (`📐 KNEE: ... • ELBOW: ... • HIP: ...`).
+* **Mobile Edge AI Optimization:** Configured MediaPipe Pose and Hands to execute with `modelComplexity: 0` on mobile devices, ensuring steady 60 FPS performance without WebGL context loss or memory throttling.
+* **Multi-Camera Hardware Switching:** Added a one-click `🔄 Front / Back` toggle button to dynamically switch between smartphone selfie and rear high-resolution wide cameras.
+* **Floor & Abs Biomechanics Suite:** Real-time angular tracking and repetition/timer FSM for floor exercises including Crunches, Plank Hold timer, and Leg Raises.
 * **Multi-Frame Kinetic Exercise Classifier:** When in **Auto-Detect** mode, MediaPipe votes over a 15-frame rolling window to identify active exercises (Squats, Bicep Curls, Deadlifts, Overhead Press, Lunges) with a live UI confidence badge (`AI RECOGNIZING: [EXERCISE]`).
 * **Strict 4-Phase Rep FSM:** Repetitions require a full cycle:
   $$\text{Setup / Lockout} \longrightarrow \text{Eccentric / Concentric} \longrightarrow \text{Peak Inflection Depth} \longrightarrow \text{Return to Lockout}$$
@@ -84,8 +92,11 @@ graph TD
   * **Form Disqualification:** Collapsed chest, rounded spine, flared elbows, or valgus knees immediately disqualify the rep as `❌ NO REP` without incrementing the counter.
   * **Acoustic Real-Time Feedback:** Synthesizes pleasant harmonic chimes (587Hz $\to$ 880Hz) on perfect reps and low buzzes on form violations via the Web Audio API.
 
-### 2. 🖐️ Hands-Free Gesture & Voice Control System
-* **Orientation-Independent 3D Gesture Recognition:** Uses MediaPipe Hands with wrist-to-fingertip distance vectors to detect extended fingers (1 to 5).
+### 2. 🖐️ Hands-Free Gesture & Finger Posture Tracking
+* **MediaPipe Hands 21-Landmark Tracking:** Concurrent 60-FPS hand tracking on mobile and desktop devices rendering glowing cyan bones (`#38bdf8`) and yellow fingertip markers (`#facc15`).
+* **Real-Time Finger Posture Badges:** Live UI pills displaying recognized finger postures (`✌️ 2 FINGERS`, `☝️ 1 FINGER`, `🖐️ OPEN HAND`, `✊ FIST`).
+* **Direct Gesture Set Control:** Hand gestures directly control set lifecycles (`✌️ 2 Fingers` starts set, `✊ Fist` pauses/completes set).
+* **Dual-Layer Synchronization & Fallback:** Single-pass rendering via `latestHandLandmarksRef` prevents canvas flicker; automatic fallback to Pose wrist/finger landmarks (`lm[15]`–`lm[22]`) if Hands model is momentarily occluded.
 * **10-Frame Gesture Debounce:** Requires holding gestures steadily for $\ge 10$ consecutive frames (~350ms) to trigger a set start. Completely isolated from repetition counters.
 * **Continuous Voice AI Recognition:** Embedded browser `SpeechRecognition` API allowing hands-free voice commands ("Start set 1", "Set 2", "Go", "Begin") during active training.
 

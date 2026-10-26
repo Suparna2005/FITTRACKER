@@ -19,6 +19,8 @@ Critical for running zero-latency computer vision and biomechanics without trigg
 - `poseRef` & `handsRef`: Hold instantiated Google MediaPipe model pipelines.
 - `streamRef`: Manages the active `MediaStream` hardware camera connection.
 - `videoRef`, `canvasRef`, `canvasOverlayRef`: Direct DOM nodes for 60-FPS frame processing, video rendering, and skeletal overlay canvas painting.
+- `latestHandLandmarksRef`: Holds latest detected hand landmarks across asynchronous frames to enable atomic, single-pass rendering in `poseRef.onResults` without canvas wipes.
+- `cameraFacing`: React state (`'user'` vs `'environment'`) managing front selfie vs rear wide camera selection.
 - `liveTrackerRef`: The mutable biomechanical engine state:
   ```javascript
   {
@@ -38,7 +40,8 @@ Critical for running zero-latency computer vision and biomechanics without trigg
     exerciseHistory: [],       // Rolling 15-frame classifier buffer
     activeExercise: 'Squat',
     consecutiveSignalFrames: 0,// Hand gesture debounce counter
-    readyHoldFrames: 0         // Setup calibration lockout counter
+    readyHoldFrames: 0,        // Setup calibration lockout counter
+    postureStatus: 'RIGHT'     // 'RIGHT', 'WRONG', 'CALIBRATING'
   }
   ```
 - `workoutStatsRef`: Maintains current set/rep count state for instant database synchronization upon completing or closing sets.

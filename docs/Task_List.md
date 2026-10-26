@@ -69,6 +69,20 @@
 - [x] **Dedicated Smartphone Download Hub (`view === 'install'`):** Built full-featured interactive installation page in `App.jsx` with 1-click install banner (`beforeinstallprompt`), step-by-step Android/iOS install guides, and instant camera QR scanner.
 - [x] **Sidebar & Mobile Navigation Access:** Added direct "Download on Phone" buttons to both desktop sidebar and mobile navigation drawer.
 
+### Mobile Edge Vision Overhaul & Biomechanics Engine
+- [x] **Mobile Edge AI Optimization:** Configured MediaPipe Pose and Hands to run with `modelComplexity: 0` on mobile devices, ensuring steady 60 FPS performance without WebGL context loss or memory throttling.
+- [x] **Audio Lock Prevention:** Removed conflicting `audio: true` constraints from `getUserMedia`, preventing mobile browser audio hardware lockouts and unhandled permission rejections.
+- [x] **Dynamic MediaPipe CDN Script Loader:** Implemented resilient loader with 12s timeout and automatic DOM `<script>` injection fallback for `@mediapipe/pose@0.5.1675469404` and `@mediapipe/hands@0.4.1675469240`.
+- [x] **Multi-Camera Flipping (`🔄 Front / Back`):** Added a top-bar camera toggle enabling instant switching between front-facing selfie camera and rear primary camera using adaptive `facingMode` constraints.
+- [x] **Real-Time Dynamic Posture Indicators:** Added top status indicator flagging `🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE` vs `⚪ CALIBRATING FORM` with glowing viewport borders and voice coaching ("Good form! Keep going" / "Posture warning: keep spine straight").
+- [x] **Glowing Yellow Biomechanical Joint Angle Signals:** Engineered `drawYellowAngleSignal()` rendering glowing `#facc15` joint rings, angular arcs, and live degree badges (`142°`, `88°`) across active anatomical joints (Knees, Elbows, Hips, Shoulders).
+- [x] **Bottom Yellow HUD Telemetry Banner:** Integrated bottom strip continuously displaying live joint angles (`📐 KNEE: ... • ELBOW: ... • HIP: ...`) and hand gesture status (`🖐️ [X] FINGERS ACTIVE`).
+- [x] **Real-Time Hand Skeleton & Finger Posture Tracking:** Enabled MediaPipe Hands tracking on mobile and desktop, rendering glowing cyan bones (`#38bdf8`), yellow fingertip markers (`#facc15`), floating gesture badges (`✌️ 2 FINGERS`, `☝️ 1 FINGER`, `🖐️ OPEN HAND`, `✊ FIST`), and gesture set triggers (`✌️ 2 Fingers` to start set, `✊ Fist` to pause).
+- [x] **Dual-Layer Landmark Synchronization:** Rendered hand landmarks within the primary canvas callback alongside pose landmarks using `latestHandLandmarksRef`, preventing frame flickering and canvas wipes.
+- [x] **Fallback Wrist & Finger Skeleton:** Integrated automatic fallback rendering from Pose wrist, index, and pinky points (`lm[15]`–`lm[22]`) if Hands model is momentarily occluded.
+- [x] **Abs & Floor Workout Biomechanics Suite:** Implemented real-time tracking, range of motion validation, and repetition/timer FSM for floor exercises (Crunches, Plank Hold timer, Leg Raises).
+- [x] **Public Mobile Tunnel Deployment:** Deployed and verified active Cloudflare tunnel (`https://camel-accessibility-philip-examine.trycloudflare.com`) for direct mobile phone testing with zero SSL warning barriers.
+
 ---
 
 

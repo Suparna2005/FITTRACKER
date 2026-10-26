@@ -153,6 +153,33 @@ Tracks daily physical warfare and nutritional consumption.
 }
 ```
 
+#### Schema for `workout_data` JSON:
+```json
+{
+  "routine_title": "Legs & Core Biomechanical Session",
+  "exercises": [
+    {
+      "name": "Barbell Squats",
+      "target_sets": 3,
+      "completed_sets": 3,
+      "reps_per_set": [12, 10, 10],
+      "posture_quality": "RIGHT",
+      "form_score_percentage": 94,
+      "joint_metrics": { "min_knee_angle_deg": 88, "torso_incline_deg": 74 }
+    },
+    {
+      "name": "Plank Core Hold",
+      "target_sets": 3,
+      "completed_sets": 3,
+      "hold_duration_seconds": 60,
+      "posture_quality": "RIGHT",
+      "form_score_percentage": 98,
+      "joint_metrics": { "body_alignment_deg": 174 }
+    }
+  ]
+}
+```
+
 ---
 
 ### 3. `workout_plans` Table

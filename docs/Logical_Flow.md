@@ -64,7 +64,59 @@ When in **Auto-Detect** mode:
 1. When between sets or in rest mode, the tracker enters `WaitingForSignal` state with `waitingForSignal = Math.min(setCount, 5)`.
 2. MediaPipe Hands calculates distance from wrist (landmark 0) to fingertips (landmarks 8, 12, 16, 20) and pinky base to thumb (landmark 4) to count raised fingers.
 3. If `detected_fingers === waitingForSignal` for **10 consecutive frames (~350ms)**, the set unlocks (`waitingForSignal = 0`) and transitions to `IDLE` setup.
-4. Hand tracking is **completely isolated from repetition counting** and never increments reps.
+4. Gesture sets can also be triggered directly (`✌️ 2 Fingers` to start set, `✊ Fist` to pause).
+5. Hand tracking is **completely isolated from repetition counting** and never increments reps.
+
+---
+
+### 1.4 Dynamic Posture Quality Signals & Visual Feedback
+During active exercise, the posture evaluation engine computes real-time alignment and streams visual/acoustic signals:
+1. **`🟢 RIGHT POSTURE`:**
+   - **Trigger:** Spinal alignment within tolerance, symmetrical knee/elbow path, and clean inflection depth.
+   - **Feedback:** Vibrant emerald green top indicator badge, subtle green border glow, periodic audio affirmation ("Good form! Keep going").
+2. **`🔴 WRONG POSTURE`:**
+   - **Trigger:** Spinal flexion/rounding ($\ge 15^\circ$ drop), excessive elbow flare ($\ge 45^\circ$ swing), knee valgus, or hyperextension.
+   - **Feedback:** Pulsing crimson red top indicator badge, bright red canvas skeleton, warning tone (220Hz $\to$ 140Hz), and corrective speech synthesis ("Posture warning: keep spine straight").
+3. **`⚪ CALIBRATING FORM`:**
+   - **Trigger:** Athlete transitioning into position or holding setup gate.
+   - **Feedback:** Clean cyan `#38bdf8` top badge prompting athlete to stabilize lockout.
+
+---
+
+### 1.5 Glowing Yellow Biomechanical Angle Signal Engine
+The edge rendering loop executes `drawYellowAngleSignal(ctx, p1, p2, p3, angle, label)` for all active joint chains:
+1. **Joint Pivot Ring:** Draws a glowing `#facc15` circular marker ($r=10\text{px}$) with a 6px outer blur at joint vertex `p2`.
+2. **Angle Arc:** Calculates start and end radial angles between vector $\vec{p_1 - p_2}$ and vector $\vec{p_3 - p_2}$ and renders a smooth circular arc.
+3. **Degree Badge:** Projects a dark pill with a glowing `#facc15` border displaying `Math.round(angle) + "°"` offset radially from the joint.
+4. **Bottom HUD Telemetry:** Formats current smoothed angles into a prominent bottom yellow strip (`📐 KNEE: ...° • ELBOW: ...° • HIP: ...°`) alongside active finger count badges.
+
+---
+
+### 1.6 Floor & Abs Biomechanics State Flow
+1. **Crunches:**
+   - Setup: Athlete reclined on mat (torso angle $\le 20^\circ$).
+   - Concentric Phase: Athlete elevates upper torso until shoulder-hip angle exceeds $35^\circ$.
+   - Inflection & Return: Peaks at crunch contraction and returns to floor. Rep increments on lockout return.
+2. **Plank Hold:**
+   - Calibration: Shoulders, hips, and ankles must align in a straight line ($165^\circ \le \theta_{\text{body}} \le 180^\circ$).
+   - Active Hold: Stopwatch timer ticks forward every second posture criteria are continuously satisfied.
+   - Fault Detection: If hips sag below $150^\circ$ or pike above $195^\circ$, the timer immediately halts and flashes `🔴 WRONG POSTURE: ALIGN HIPS`.
+3. **Leg Raises:**
+   - Setup: Legs extended straight along floor ($< 20^\circ$ elevation).
+   - Incline Phase: Legs lifted smoothly until hip-to-ankle angle reaches $\ge 70^\circ$.
+   - Controlled Return: Rep completes when heels return to floor hover ($< 25^\circ$).
+
+---
+
+### 1.7 Multi-Camera Switching & Hardware Constraint Flow
+1. User clicks the `🔄 Front / Back` toggle button in the top HUD.
+2. System toggles internal `cameraFacing` state between `'user'` and `'environment'`.
+3. Existing `MediaStream` tracks are stopped via `track.stop()`.
+4. `navigator.mediaDevices.getUserMedia` is invoked with pure video constraints:
+   ```javascript
+   { video: { facingMode: { ideal: nextFacing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }
+   ```
+5. `videoRef.current.srcObject` is rebound and MediaPipe camera loops resume seamlessly.
 
 ---
 

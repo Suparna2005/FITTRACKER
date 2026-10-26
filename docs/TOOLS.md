@@ -4,7 +4,12 @@
 - **Framework:** React 18 (Single Page Application)
 - **Build Engine & Bundler:** Vite (for fast Hot Module Replacement and production bundling)
 - **Styling & Design System:** Tailwind CSS (utility-first, responsive layouts, glassmorphism, animated synthwave 3D laser meshes)
-- **Edge Computer Vision:** Google MediaPipe (Pose & Hands modules for 60-FPS zero-latency 3D skeletal landmark tracking in the browser)
+- **Edge Computer Vision:** 
+  - Google MediaPipe Pose (`@0.5.1675469404`) & Hands (`@0.4.1675469240`) modules for 60-FPS zero-latency 3D skeletal landmark tracking in the browser.
+  - MediaPipe Lite (`modelComplexity: 0`) optimized for mobile devices without WebGL context loss.
+  - Synchronized single-pass canvas rendering pipeline (`latestHandLandmarksRef`) with cyan bones (`#38bdf8`) and yellow fingertips (`#facc15`).
+- **Biomechanical Angle Engine:** Real-time trigonometric joint visualizer (`drawYellowAngleSignal`) rendering glowing `#facc15` joint rings, angular arcs, live degree badges, and a bottom HUD strip.
+- **Dynamic Posture Evaluation Engine:** Real-time posture status classification (`🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE` vs `⚪ CALIBRATING FORM`) with glowing boundary alerts and audio coaching.
 - **Acoustic Engine:** Web Audio API (real-time procedural audio synthesis for repetition and form feedback)
 - **Voice AI Engine:** Web SpeechRecognition API (continuous hands-free voice command recognition)
 - **Identity & Authentication:** Google Identity Services SDK (`accounts.id.initialize`, `renderButton`)
@@ -48,5 +53,6 @@
 - **Reverse Proxy & Web Server:** Nginx Alpine
 - **Encryption:** OpenSSL 2048-bit TLS/SSL certificates (`/etc/nginx/certs/`)
 - **Traffic Routing:** Automatic HTTP Port 80 to HTTPS Port 443 redirection; reverse proxy forwarding to FastAPI (`http://backend:8000`)
+- **Cloudflare Tunnel (`cloudflared`):** Active zero-warning secure public HTTPS ingress for instant smartphone access (`https://camel-accessibility-philip-examine.trycloudflare.com`)
 - **Containerization:** Docker & Docker Compose
 - **Production Server:** Linux Host `30.31.32.136`

@@ -60,3 +60,12 @@ This document outlines the complete end-to-end development journey executed acro
 * **Strict 4-Phase Rep FSM:** Enforced full range of motion, parallel depth, minimum rep duration $\ge 1.0\text{ s}$, and instant form violation disqualification (`❌ NO REP`).
 * **Acoustic Real-Time Feedback:** Added Web Audio API synthesized chimes for instant auditory rep confirmation.
 * **Hand Gesture Debounce:** Added 10-frame debounce (~350ms) to prevent accidental set starts.
+
+### Day 11: Mobile Vision Overhaul, Finger Postures, Yellow Joint Angles & Abs Suite
+* **Mobile Edge AI Optimization:** Deployed MediaPipe Lite (`modelComplexity: 0`) and clean video streams (`audio: false`) on mobile devices, achieving 60 FPS performance without WebGL context loss or memory throttling.
+* **Dynamic Posture Indicators (`🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE`):** Engineered real-time top status indicators and glowing viewport borders with active voice coaching ("Good form! Keep going" / "Posture warning: keep spine straight").
+* **Glowing Yellow Biomechanical Joint Angle Signals:** Integrated `drawYellowAngleSignal()` rendering glowing `#facc15` joint rings, angular arcs, and live numerical degree badges (`142°`, `88°`) on active joints (Knees, Elbows, Hips, Shoulders), plus a bottom yellow HUD telemetry strip.
+* **Real-Time Hand Skeleton & Finger Posture Tracking:** Activated MediaPipe Hands concurrently on mobile and desktop, displaying glowing cyan bones (`#38bdf8`), yellow fingertip markers (`#facc15`), floating gesture badges (`✌️ 2 FINGERS`, `☝️ 1 FINGER`, `🖐️ OPEN HAND`, `✊ FIST`), and gesture set triggers (`✌️ 2 Fingers` to start set, `✊ Fist` to pause).
+* **Multi-Camera Hardware Switching:** Added a one-click `🔄 Front / Back` camera toggle button to seamlessly flip between front selfie and rear primary cameras with adaptive `facingMode` constraints.
+* **Floor & Abs Biomechanics Suite:** Implemented real-time tracking, range of motion validation, and repetition/timer FSM for floor exercises (Crunches, Plank Hold timer, Leg Raises).
+* **Public Mobile Tunnel Deployment:** Configured and deployed active Cloudflare tunnel (`https://camel-accessibility-philip-examine.trycloudflare.com`) for direct mobile phone testing with zero SSL warning barriers.

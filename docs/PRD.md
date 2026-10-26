@@ -29,6 +29,20 @@ To deliver the world's most advanced, autonomous AI gym companion. IronForge AI 
 - **Setup Calibration Gate (`READY` Hold):** 
   - Prevents false rep counting from camera noise, casual body shifts, sitting down, typing, or finger twitches.
   - Requires the user to hold a verified, locked-out starting posture for $\ge 4$ consecutive frames (~150ms) before movement can initiate.
+- **Dynamic Posture Quality Signals (`🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE`):**
+  - Instantaneous feedback indicator dynamically rendering green for verified posture and flashing crimson red with corrective audio upon form breakdown (rounded spine, flared elbows, valgus knees).
+  - Displays `⚪ CALIBRATING FORM` during setup lockouts.
+- **Glowing Yellow Biomechanical Joint Angle Signals:**
+  - Real-time trigonometric visualizer projecting glowing `#facc15` joint rings, angle arcs, and live numerical degree badges (`142°`, `88°`) across active anatomical pivots (Knees, Elbows, Hips, Shoulders).
+  - Persistent bottom yellow HUD strip (`📐 KNEE: ... • ELBOW: ... • HIP: ...`) displaying active angular metrics.
+- **Real-Time Hand Skeleton & Finger Posture Tracking:**
+  - Dual-layer MediaPipe Hands running at 60 FPS on mobile and desktop devices.
+  - Renders glowing cyan bones (`#38bdf8`) and yellow fingertip markers (`#facc15`), with live finger badges (`✌️ 2 FINGERS`, `☝️ 1 FINGER`, `🖐️ OPEN HAND`, `✊ FIST`) and gesture set triggers (`✌️ 2 Fingers` to start set, `✊ Fist` to pause).
+- **Mobile Edge AI Optimization & Camera Flipping:**
+  - Operates on MediaPipe Lite (`modelComplexity: 0`) and clean video-only streams (`audio: false`) on mobile phones for 60 FPS without WebGL memory faults.
+  - Multi-camera hardware flipping toggle (`🔄 Front / Back`) to swap between selfie and high-resolution rear lenses.
+- **Floor & Abs Biomechanics Suite:**
+  - Kinematic detection and repetition/timer state machines for Crunches, Plank Hold timer, and Leg Raises.
 - **Kinetic Multi-Frame Exercise Auto-Classifier:**
   - In **Auto-Detect** mode, MediaPipe evaluates kinetic limb patterns across a 15-frame rolling window.
   - Dynamically classifies active movements (Squats, Bicep Curls, Deadlifts, Overhead Press, Lunges) with a live UI confidence badge.

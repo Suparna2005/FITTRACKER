@@ -76,7 +76,30 @@ Every counted repetition must satisfy:
 
 ### 2.4 Acoustic Feedback & Hand Gesture Set Control
 - **Web Audio API:** Generates real-time synthesized acoustic tones (587Hz $\to$ 880Hz harmonic ping on successful rep; 220Hz $\to$ 140Hz warning tone on form violation).
-- **Debounced Hand Gestures:** Detects raised finger counts using geometric distance vectors between fingertips and wrist base. Requires 10 consecutive frames (~350ms) to trigger a set start.
+- **Debounced Hand Gestures:** Detects raised finger counts using geometric distance vectors between fingertips and wrist base. Requires 10 consecutive frames (~350ms) to trigger a set start (`✌️ 2 Fingers` starts set, `✊ Fist` pauses).
+
+### 2.5 Synchronized Dual-Model Pipeline & Mobile Alternating Scheduler
+- **Zero-Flicker Single-Pass Canvas Rendering:** To prevent race conditions where `poseRef.onResults` and `handsRef.onResults` erase each other's canvas buffers with `ctx.clearRect()`, hand landmarks are buffered in `latestHandLandmarksRef`. The unified render loop paints both the full body skeleton and 21-point hand skeletons in a single atomic canvas frame.
+- **Mobile Edge Optimization (`modelComplexity: 0`):** Mobile devices dynamically select MediaPipe Lite to fit strictly within mobile browser WebGL memory limits, eliminating frame stutter and WebGL context losses.
+- **Alternating Frame Dispatcher:** Dispatches frames to the Pose model on every frame while routing alternating frames (`frameIndex % 2 === 0`) to the Hands model on mobile devices, ensuring fluid 60-FPS rendering without overheating or battery drain.
+- **Dual-Layer Hand Skeleton & Fallback:** Renders glowing cyan bones (`#38bdf8`) and yellow fingertip circles (`#facc15`). If hands are partially occluded or too distant for the dedicated hands model, the system seamlessly falls back to Pose wrist, pinky, and index points (`lm[15]`–`lm[22]`).
+
+### 2.6 Glowing Yellow Biomechanical Joint Angle Signals & Dynamic Posture Status
+- **Instantaneous Joint Signals (`drawYellowAngleSignal`):** For all active joints (Knees in squats/lunges, Elbows in curls/presses, Hips in deadlifts/crunches):
+  - Renders glowing yellow rings (`#facc15`) with a 6px blur directly over anatomical pivots.
+  - Draws dynamic yellow circular angle arcs connecting adjacent bone segments.
+  - Draws high-contrast yellow pill badges displaying the exact live angle (e.g. `142°`, `88°`).
+- **Dedicated Bottom Yellow HUD Strip:** A persistent yellow telemetry bar anchors the camera viewport, streaming real-time biomechanics: `📐 KNEE: ... • ELBOW: ... • HIP: ...` alongside active finger gesture status.
+- **Dynamic Posture Indicator:** The top HUD dynamically switches between:
+  - `🟢 RIGHT POSTURE`: Verified spinal alignment and proper joint trajectory.
+  - `🔴 WRONG POSTURE`: Active form violation with glowing red screen boundary and live audio coaching.
+  - `⚪ CALIBRATING FORM`: Hold lockout starting posture.
+
+### 2.7 Floor & Abs Workout Biomechanics Suite
+Specialized kinematic modules for horizontal and floor training:
+- **Crunches:** Measures hip-to-shoulder angle excursion; counts reps when torso elevates past $35^\circ$ inflection and returns to floor.
+- **Plank Hold:** Continuously verifies straight-line alignment between shoulders, hips, and ankles ($165^\circ$–$180^\circ$); increments an active hold stopwatch while posture is valid and pauses timer if hips sag or hike.
+- **Leg Raises:** Tracks hip-to-ankle elevation angle from $15^\circ$ up to $75^\circ$ with controlled descent.
 
 ---
 

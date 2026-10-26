@@ -7,10 +7,12 @@ This guide provides comprehensive instructions for deploying IronForge AI in bot
 ## 🌐 Production Server Information
 
 - **Host IP:** `30.31.32.136`
-- **Frontend URL:** [https://30.31.32.136](https://30.31.32.136)
+- **Frontend URL (Local / Campus HTTPS):** [https://30.31.32.136](https://30.31.32.136)
+- **Public Mobile App URL (Any Phone / Cloudflare Tunnel):** [https://camel-accessibility-philip-examine.trycloudflare.com](https://camel-accessibility-philip-examine.trycloudflare.com)
 - **API Swagger Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs)
 - **Internal Backend Port:** `8000` (Reverse proxied via Nginx)
 - **Database:** PostgreSQL 15 on port `5432`
+- **Current Production Frontend Bundle:** `dist/assets/index-CnF4rB60.js`
 
 ---
 
@@ -82,7 +84,19 @@ graph TD
 
 ## 🚀 Deploying to Production
 
-To deploy updates to the production server:
+### Method A: Fast SFTP Asset Sync (Zero Downtime)
+For rapid frontend updates without rebuilding the Docker container:
+```bash
+# 1. Compile the production bundle
+npm --prefix frontend run build
+
+# 2. Upload compiled /dist directly into Nginx web root and reload Nginx
+python scratch/deploy_dist_fast.py
+```
+This script uploads the production assets directly to `/opt/ironforge-ai/frontend/dist` on `30.31.32.136` via SFTP and copies them into the running `ironforge_frontend` container (`/usr/share/nginx/html`), immediately reloading Nginx in under 5 seconds.
+
+### Method B: Complete Multi-Container Rebuild
+For backend schema, dependency, or configuration changes:
 
 1. **SSH into the Server:**
    ```bash

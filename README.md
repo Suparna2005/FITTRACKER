@@ -12,7 +12,7 @@
 
 ## 🚀 Live Production Access
 - **Production URL (Campus Network):** [https://30.31.32.136](https://30.31.32.136) (Secured with TLS/SSL Nginx reverse proxy; HTTP auto-redirects to HTTPS)
-- **Public Mobile App URL (Any Phone / 4G / 5G):** [https://idaho-ion-congratulations-questions.trycloudflare.com](https://idaho-ion-congratulations-questions.trycloudflare.com)
+- **Public Mobile App URL (Any Phone / 4G / 5G):** [https://camel-accessibility-philip-examine.trycloudflare.com](https://camel-accessibility-philip-examine.trycloudflare.com) (Instant zero-warning HTTPS access)
 - **Interactive API Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs) (Swagger UI)
 
 ---
@@ -32,7 +32,13 @@ Unlike traditional fitness apps that demand tedious manual logging, IronForge AI
 
 ### 1. 🤖 Precision AI Form Coach & Rep Counter
 - **Setup Calibration Gate (`READY` Hold):** Prevents false reps from casual shifts, sitting down, typing, or finger twitches. Athletes must hold a verified, locked-out starting posture for $\ge 4$ consecutive frames (~150ms) to calibrate.
+- **Dynamic Posture Quality Signals:** Real-time visual posture indicator dynamically flags `🟢 RIGHT POSTURE` vs `🔴 WRONG POSTURE` vs `⚪ CALIBRATING FORM` with high-contrast glowing viewport borders and real-time voice corrections ("Good form! Keep going" vs "Posture warning: keep spine straight").
+- **Glowing Yellow Biomechanical Joint Angle Signals:** Instantaneous biomechanical feedback engine rendering glowing `#facc15` joint rings, angle arcs, and live degree badges (`142°`, `88°`) across active joints (Knees, Elbows, Hips, Shoulders), plus a dedicated bottom yellow HUD strip (`📐 KNEE: ... • ELBOW: ... • HIP: ...`).
+- **Real-Time Hand Skeleton & Finger Posture Tracking:** Dual-layer MediaPipe Hands and Pose tracking running at 60 FPS on mobile and desktop. Renders glowing cyan bones (`#38bdf8`), yellow fingertip markers (`#facc15`), floating gesture badges (`✌️ 2 FINGERS`, `☝️ 1 FINGER`, `🖐️ OPEN HAND`, `✊ FIST`), and gesture set triggers (`✌️ 2 Fingers` to start set, `✊ Fist` to pause).
+- **Mobile Edge Vision Optimization:** Mobile devices automatically operate on MediaPipe Lite (`modelComplexity: 0`), clean video-only streams (`audio: false`), and interleaved frame dispatch to maintain a fluid 60 FPS without WebGL memory exhaustion or thermal throttling.
+- **Multi-Camera Support (`🔄 Front / Back` Camera Toggle):** Quick-toggle button in the HUD to seamlessly switch between front selfie and rear primary smartphone cameras with dynamic `facingMode` constraints.
 - **Dynamic Multi-Frame Exercise Classifier:** In **Auto-Detect** mode, MediaPipe votes over a 15-frame rolling window to identify active exercises (Squats, Bicep Curls, Deadlifts, Overhead Press, Lunges) with a live UI confidence badge.
+- **Floor & Abs Biomechanics Suite:** Real-time tracking and repetition/timer FSM for floor exercises including Crunches, Plank Hold timer, and Leg Raises.
 - **Strict 4-Phase Rep FSM:** Reps require a full biomechanical cycle:
   $$\text{Setup / Lockout} \longrightarrow \text{Eccentric / Concentric} \longrightarrow \text{Peak Inflection Depth} \longrightarrow \text{Return to Lockout}$$
   Reversing early without reaching parallel/depth flags `⚠️ NO REP: INCOMPLETE DEPTH`.
