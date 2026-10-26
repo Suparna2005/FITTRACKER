@@ -348,39 +348,35 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
 
     prompts = {
         "food": (
-            "Analyze this food image scientifically. Identify all individual ingredients, portion weights in grams, total calories, macro & micronutrient breakdowns. "
+            "Identify this food dish scientifically and accurately, recognizing authentic global and Indian regional cuisines "
+            "(e.g. Chicken/Mutton Biryani, Paneer Tikka, Dosa, Dal Makhani, Roti, Chole, etc.). Identify the true dish name. "
+            "Break down total dish weight in grams, total calories, macros (protein, carbs, fats, fiber, sugar), key vitamins and minerals for the dish, glycemic index, and itemized ingredients with individual portion weights and macros. "
             "Return a raw JSON object (no markdown, no backticks) with keys: "
-            "'food_name' (string, full descriptive dish name), "
+            "'food_name' (string, authentic specific dish name e.g. 'Chicken Biryani'), "
             "'serving_weight_g' (integer, total dish weight count in grams), "
             "'estimated_calories' (integer, total calorie count in kcal), "
-            "'calories_per_g' (number, calories per gram for the entire dish, e.g. 1.24), "
-            "'calories_per_100g' (number, calories per 100g for the entire dish, e.g. 124.0), "
+            "'calories_per_g' (number, calories per gram for the dish), "
+            "'calories_per_100g' (number, calories per 100g for the dish), "
             "'protein_g' (number, total protein in grams), "
             "'carbs_g' (number, total carbs in grams), "
             "'fats_g' (number, total fats in grams), "
             "'fiber_g' (number, dietary fiber in grams), "
             "'sugar_g' (number, total sugars in grams), "
-            "'vitamins' (array of strings, e.g. ['Vitamin A (25%)', 'Vitamin C (60%)', 'Vitamin B12 (40%)', 'Vitamin K (80%)']), "
-            "'minerals' (array of strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)', 'Magnesium (85mg)', 'Zinc (18%)']), "
-            "'glycemic_index' (string, e.g. 'Low (GI 38)'), "
-            "'health_score' (integer out of 100, e.g. 94), "
-            "'confidence' (string, e.g. '95% High Vision Confidence - Scientific Micro & Macro Breakdown'), "
-            "'scientific_notes' (string, detailed nutritional density assessment), "
-            "'ingredients_detected_count' (integer, total count of detected ingredients), and "
-            "'ingredients' (array of objects, each containing: "
-            "'name' (string, specific and accurate ingredient name), "
-            "'weight_g' (integer, ingredient portion weight in grams), "
-            "'calories' (integer, ingredient calories in kcal), "
-            "'calories_per_g' (number, calories per gram for this specific ingredient, e.g. 1.65), "
-            "'calories_per_100g' (number, calories per 100g for this specific ingredient, e.g. 165.0), "
-            "'protein_g' (number, protein in grams), "
-            "'carbs_g' (number, carbohydrates in grams), "
-            "'fats_g' (number, fats in grams), "
-            "'fiber_g' (number, dietary fiber in grams), "
-            "'sugar_g' (number, sugars in grams), "
-            "'vitamins' (array of strings, key vitamins in this ingredient), "
-            "'minerals' (array of strings, key minerals in this ingredient), "
-            "'health_benefits' (string, physiological and health benefits of this ingredient))."
+            "'vitamins' (array of 3-5 strings, e.g. ['Vitamin A (25%)', 'Vitamin C (15%)', 'Vitamin B12 (40%)']), "
+            "'minerals' (array of 3-5 strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)']), "
+            "'glycemic_index' (string, e.g. 'Medium (GI 56)'), "
+            "'health_score' (integer out of 100), "
+            "'confidence' (string, e.g. '96% High Vision Confidence - Authentic Recipe Match'), "
+            "'scientific_notes' (string, concise nutritional density assessment), "
+            "'ingredients_detected_count' (integer), "
+            "'ingredients' (array of 3-6 components, each with: "
+            "'name' (string, ingredient name), "
+            "'weight_g' (integer, grams), "
+            "'calories' (integer, kcal), "
+            "'protein_g' (number, grams), "
+            "'carbs_g' (number, grams), "
+            "'fats_g' (number, grams), "
+            "'fiber_g' (number, grams))."
         ),
         "equipment": "Analyze this image of a gym or workout area. Return a raw JSON object (no markdown, no backticks) with keys: 'detected_equipment' (array of strings, e.g. ['Dumbbells', 'Bench', 'Cable Machine']), 'environment_type' (string, e.g. 'Home Gym', 'Commercial Gym', 'Hotel Gym'), and 'suggested_workout_focus' (string).",
         "physique": "Describe the person in the image. Return a raw JSON object (no markdown) with keys: 'estimated_body_fat_percentage' (string, e.g. '22-25%'), 'obesity_count' (string, e.g. '22-25% (Optimal Healthy Range)' or '32% (Stage 1 Obesity)'), 'body_type_category' (string, choose one: Shredded, Athletic, Fit, Average, Heavy, Obese), and 'notable_features' (string).",
@@ -404,6 +400,7 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         print(f"Could not fetch models: {e}")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
+    token_limits = {"equipment": 450, "physique": 400, "form": 400, "food": 700}
     payload = {
         "model": active_vision_model,
         "messages": [
@@ -416,7 +413,7 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
             }
         ],
         "temperature": 0.2,
-        "max_tokens": 2048
+        "max_tokens": token_limits.get(mode, 600)
     }
 
     req_data = json.dumps(payload).encode('utf-8')
@@ -427,11 +424,11 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
     }
 
     err_msg = ""
-    # Attempt up to 3 times to mitigate transient 503 / 429 over-capacity errors
-    for attempt in range(1, 4):
+    # Attempt up to 4 times with smart backoff on 429/503 rate limits
+    for attempt in range(1, 5):
         try:
             req = urllib.request.Request(url, data=req_data, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=35) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 content = result["choices"][0]["message"]["content"].strip()
                 
@@ -455,125 +452,29 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                     return parsed
 
         except urllib.error.HTTPError as he:
-            error_body = he.read().decode('utf-8')
+            error_body = he.read().decode('utf-8', errors='replace')
             err_msg = f"HTTP {he.code}: {error_body}"
             print(f"Vision API Error (Attempt {attempt}): {err_msg}")
-            if he.code in (429, 503) and attempt < 3:
-                time.sleep(1.5 * attempt)
+            if he.code in (429, 503) and attempt < 4:
+                m = re.search(r"try again in ([0-9.]+)s", error_body)
+                wait_sec = (float(m.group(1)) + 0.6) if m else (2.0 * attempt)
+                print(f"Vision API rate limited/busy. Backing off {wait_sec:.1f}s before attempt #{attempt+1}...")
+                time.sleep(wait_sec)
                 continue
             break
         except Exception as e:
             err_msg = str(e)
             print(f"Vision API Error (Attempt {attempt}): {err_msg}")
-            if attempt < 3:
+            if attempt < 4:
                 time.sleep(1.5 * attempt)
                 continue
             break
         
-    # Return fallback mock data based on mode
-    if mode == "physique":
-        return {
-            "body_type_category": "Average",
-            "estimated_body_fat_percentage": "22-25%",
-            "obesity_count": "22-25% (Optimal Healthy Range)",
-            "notable_features": "Mock Data (API Error or Safety Refusal)"
-        }
-    elif mode == "equipment":
-        return {
-            "environment_type": "Home Workout Space",
-            "detected_equipment": ["Dumbbells", "Yoga Mat"],
-            "suggested_workout_focus": "Dumbbell HIIT (Mock Data)"
-        }
-    elif mode == "form":
-        return {
-            "detected_exercise": "API Error (Mock)",
-            "form_score": 0,
-            "critique": f"API FAILED: {err_msg}",
-            "correction_advice": "The Vision model refused to process this image or crashed."
-        }
-    else:
-        fallback_food = {
-            "food_name": "Grilled Chicken & Quinoa Energy Bowl",
-            "serving_weight_g": 420,
-            "estimated_calories": 520,
-            "calories_per_g": 1.24,
-            "calories_per_100g": 123.8,
-            "protein_g": 46,
-            "carbs_g": 54,
-            "fats_g": 12,
-            "fiber_g": 8.5,
-            "sugar_g": 4.2,
-            "vitamins": ["Vitamin A (25%)", "Vitamin C (60%)", "Vitamin B12 (40%)", "Vitamin K (80%)"],
-            "minerals": ["Iron (20%)", "Calcium (15%)", "Potassium (520mg)", "Magnesium (85mg)", "Zinc (18%)"],
-            "glycemic_index": "Low (GI 38)",
-            "health_score": 94,
-            "confidence": "95% (High Vision Confidence - Scientific Micro & Macro Breakdown)",
-            "scientific_notes": "High-protein lean meal rich in bioavailable amino acids, complex low-GI carbohydrates, essential dietary fiber, key vitamins (A, C, B12, K), and vital minerals (Iron, Potassium, Zinc). Excellent for muscle recovery and metabolic health.",
-            "ingredients_detected_count": 4,
-            "ingredients": [
-                {
-                    "name": "Lean Grilled Chicken Breast",
-                    "weight_g": 180,
-                    "calories": 297,
-                    "calories_per_g": 1.65,
-                    "calories_per_100g": 165.0,
-                    "protein_g": 41,
-                    "carbs_g": 0,
-                    "fats_g": 6,
-                    "fiber_g": 0,
-                    "sugar_g": 0,
-                    "vitamins": ["Vitamin B12", "Vitamin B6", "Niacin"],
-                    "minerals": ["Phosphorus", "Selenium", "Zinc"],
-                    "health_benefits": "High bioavailable muscle-building protein, low in saturated fat"
-                },
-                {
-                    "name": "Steamed Quinoa & Brown Rice",
-                    "weight_g": 140,
-                    "calories": 156,
-                    "calories_per_g": 1.11,
-                    "calories_per_100g": 111.4,
-                    "protein_g": 4,
-                    "carbs_g": 32,
-                    "fats_g": 2,
-                    "fiber_g": 4.5,
-                    "sugar_g": 1,
-                    "vitamins": ["Vitamin B1", "Folate", "Vitamin E"],
-                    "minerals": ["Magnesium", "Potassium", "Manganese"],
-                    "health_benefits": "Sustained glucose release, rich in complete plant amino acids and fiber"
-                },
-                {
-                    "name": "Steamed Broccoli & Carrots",
-                    "weight_g": 85,
-                    "calories": 35,
-                    "calories_per_g": 0.41,
-                    "calories_per_100g": 41.2,
-                    "protein_g": 2,
-                    "carbs_g": 7,
-                    "fats_g": 0.5,
-                    "fiber_g": 3.2,
-                    "sugar_g": 2.5,
-                    "vitamins": ["Vitamin C (60%)", "Vitamin A (25%)", "Vitamin K"],
-                    "minerals": ["Calcium", "Potassium", "Iron"],
-                    "health_benefits": "Antioxidant cellular protection and immune system defense"
-                },
-                {
-                    "name": "Extra Virgin Olive Oil Dressing",
-                    "weight_g": 15,
-                    "calories": 132,
-                    "calories_per_g": 8.80,
-                    "calories_per_100g": 880.0,
-                    "protein_g": 0,
-                    "carbs_g": 0,
-                    "fats_g": 15,
-                    "fiber_g": 0,
-                    "sugar_g": 0,
-                    "vitamins": ["Vitamin E (15%)", "Vitamin K"],
-                    "minerals": ["Traces of Iron"],
-                    "health_benefits": "Heart-healthy monounsaturated fatty acids and polyphenols"
-                }
-            ]
-        }
-        return _normalize_food_data(fallback_food)
+    # Return actionable error instead of deceptive mock data
+    return {
+        "error": "AI Vision service is momentarily busy with high traffic. Please tap Scan or Upload again in a moment."
+    }
+
 
 def analyze_discomfort(user_data, exercise_name: str, feeling_description: str, severity: str = "Moderate", timing: str = "During exercise"):
     """
