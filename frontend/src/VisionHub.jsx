@@ -2046,11 +2046,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     onChange={(e) => setSelectedExercise(e.target.value)}
                     className="bg-black/75 backdrop-blur-xl text-[#C7F36B] font-bold border border-[#C7F36B]/40 rounded-xl px-3 py-1.5 outline-none text-xs md:text-sm shadow-xl cursor-pointer hover:border-[#C7F36B] transition-colors"
                   >
-                    <option value="Auto-Detect">✨ Auto-Detect</option>
-                    <option value="Posture Diagnostic">🧍 Posture Diagnostic</option>
-                    <option value="Crunches / Abs">🔥 Crunches / Abs</option>
-                    <option value="Plank">🛡️ Plank (Core Hold)</option>
-                    <option value="Leg Raises">🦵 Leg Raises</option>
+                    <option value="Auto-Detect">Auto-Detect</option>
+                    <option value="Posture Diagnostic">Posture Diagnostic</option>
+                    <option value="Crunches / Abs">Crunches / Abs</option>
+                    <option value="Plank">Plank (Core Hold)</option>
+                    <option value="Leg Raises">Leg Raises</option>
                     <option value="Squat">Squat</option>
                     <option value="Bicep Curl">Bicep Curl</option>
                     <option value="Deadlift">Deadlift</option>
