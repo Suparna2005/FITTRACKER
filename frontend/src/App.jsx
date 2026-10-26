@@ -1750,7 +1750,7 @@ function App() {
               <div className="mt-6 p-6 rounded-2xl bg-[#10181D] border border-[#304149] flex flex-col sm:flex-row items-center gap-6">
                 <div className="p-3 bg-[#C7F36B] rounded-2xl shrink-0 shadow-xl">
                   <img 
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://idaho-ion-congratulations-questions.trycloudflare.com&color=10-24-29&bgcolor=c7f36b" 
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://camel-accessibility-philip-examine.trycloudflare.com&color=10-24-29&bgcolor=c7f36b" 
                     alt="Scan QR to open app on phone" 
                     className="w-36 h-36 rounded-lg"
                   />
@@ -1763,11 +1763,11 @@ function App() {
                   </p>
                   <div className="pt-2 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
                     <span className="font-mono text-xs text-[#C7F36B] bg-black/60 px-3 py-1.5 rounded-lg border border-[#304149] break-all">
-                      https://idaho-ion-congratulations-questions.trycloudflare.com
+                      https://camel-accessibility-philip-examine.trycloudflare.com
                     </span>
                     <button 
                       onClick={() => {
-                        navigator.clipboard?.writeText('https://idaho-ion-congratulations-questions.trycloudflare.com');
+                        navigator.clipboard?.writeText('https://camel-accessibility-philip-examine.trycloudflare.com');
                         showToast('Mobile URL copied to clipboard!');
                       }}
                       className="text-xs font-bold text-[#ACBAC2] hover:text-white bg-[#172127] border border-[#304149] px-3 py-1.5 rounded-lg"
