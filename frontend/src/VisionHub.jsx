@@ -444,10 +444,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 sc.onerror = () => res(false);
                 document.head.appendChild(sc);
               });
-              let wH = 0;
-              while (!window.Hands && wH < 30) {
+              let waitH = 0;
+              while (!window.Hands && waitH < 30) {
                 await new Promise(r => setTimeout(r, 100));
-                wH++;
+                waitH++;
               }
             }
 
@@ -457,7 +457,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               });
               handsRef.current.setOptions({
                 maxNumHands: 2,
-                modelComplexity: 0, // Lite model for smooth mobile & desktop performance
+                modelComplexity: 0, // Lite model for mobile 60fps
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5
               });
@@ -468,6 +468,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                    latestHandLandmarksRef.current = results.multiHandLandmarks;
                    const landmarks = results.multiHandLandmarks[0];
                    let count = 0;
+                   
                    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
                    
                    // A finger is raised if its tip is further from the wrist (0) than its PIP joint is
@@ -560,7 +561,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 return tracker.smoothedAngles[key];
               };
 
-              // Key Biomechanical Landmarks
+              // ── 2. Automatic Exercise & Posture Classifier ──
               const lShoulder = lm[11], rShoulder = lm[12];
               const lElbow = lm[13], rElbow = lm[14];
               const lWrist = lm[15], rWrist = lm[16];
@@ -570,7 +571,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               const nose = lm[0];
               const ear = lm[7] || lm[8];
 
-              // Live Joint Angles Computation
               const rawLeftKneeAngle = (lHip && lKnee && lAnkle) ? calculateAngle(lHip, lKnee, lAnkle) : 180;
               const rawRightKneeAngle = (rHip && rKnee && rAnkle) ? calculateAngle(rHip, rKnee, rAnkle) : 180;
               const leftKneeAngle = smoothAngle('knee_l', rawLeftKneeAngle);
@@ -592,12 +592,11 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               const rawSpineAngle = (ear && (lShoulder || rShoulder) && (lHip || rHip)) ? calculateAngle(ear, lShoulder || rShoulder, lHip || rHip) : 180;
               const spineAngle = smoothAngle('spine', rawSpineAngle);
 
-              if (now - lastAngleUpdateTimeRef.current > 120) {
+              if (now - lastAngleUpdateTimeRef.current > 150) {
                 lastAngleUpdateTimeRef.current = now;
-                setLiveAnglesText(`KNEE: ${Math.round(avgKneeAngle)}° • ELBOW: ${Math.round(avgElbowAngle)}° • HIP: ${Math.round(avgHipAngle)}° • SPINE: ${Math.round(spineAngle)}°`);
+                setLiveAnglesText(`KNEE: ${Math.round(avgKneeAngle)}° • ELBOW: ${Math.round(avgElbowAngle)}° • HIP: ${Math.round(avgHipAngle)}°`);
               }
 
-              // ── 2. Automatic Exercise & Posture Classifier ──
               const classifyCurrentPose = () => {
                 const upperVis = (isPtVisible(lShoulder) || isPtVisible(rShoulder)) &&
                                  (isPtVisible(lElbow) || isPtVisible(rElbow));
@@ -1376,7 +1375,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 }
               }
 
-              // ── 1. Dynamic Posture Skeleton Rendering (Green for Good, Red for Bad) ──
+              // ── Dynamic Posture Skeleton Rendering (Green for Good, Red for Bad) ──
               if (window.drawConnectors && window.drawLandmarks && window.POSE_CONNECTIONS) {
                 window.drawConnectors(ctx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: skeletonColor, lineWidth: 5 });
                 window.drawLandmarks(ctx, results.poseLandmarks, { 
@@ -1480,7 +1479,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 ctx.restore();
               };
 
-              // Draw Yellow Signals on Visible Joints (Knees, Elbows, Hips)
+              // Draw Yellow Signals on Visible Joints
               if (lHip && lKnee && lAnkle && isPtVisible(lKnee)) {
                 drawYellowAngleSignal(lHip, lKnee, lAnkle, leftKneeAngle, 'Knee');
               }
@@ -1532,7 +1531,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                     const isTip = [4, 8, 12, 16, 20].includes(idx);
                     ctx.beginPath();
                     ctx.arc(pt.x * canvas.width, pt.y * canvas.height, isTip ? 6.5 : 3.5, 0, 2 * Math.PI);
-                    ctx.fillStyle = isTip ? '#facc15' : '#e0f2fe'; // Yellow fingertips!
+                    ctx.fillStyle = isTip ? '#facc15' : '#e0f2fe';
                     ctx.shadowColor = isTip ? '#facc15' : 'transparent';
                     ctx.shadowBlur = isTip ? 10 : 0;
                     ctx.fill();
@@ -1587,7 +1586,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
                         ctx.beginPath();
                         ctx.arc(f.x * canvas.width, f.y * canvas.height, 5.5, 0, 2 * Math.PI);
-                        ctx.fillStyle = '#facc15'; // yellow fingertip highlights
+                        ctx.fillStyle = '#facc15';
                         ctx.shadowColor = '#facc15';
                         ctx.shadowBlur = 8;
                         ctx.fill();
@@ -1625,7 +1624,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 try {
                   await poseRef.current.send({ image: vid });
                   if (handsRef.current) {
-                    // Send to hands: on mobile run every 2nd frame for 60fps balance, on desktop every frame
                     if (!isMobile || frameIndex % 2 === 0) {
                       await handsRef.current.send({ image: vid });
                     }
@@ -2176,19 +2174,19 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-20" />
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* LIVE BIOMECHANICAL ANGLES (YELLOW SIGNALS) & FINGER POSTURES HUD */}
+          {/* LIVE BIOMECHANICAL ANGLES & FINGER STATUS HUD (YELLOW SIGNALS) */}
           {activeMode === 'form' && (
             <div className="absolute bottom-4 left-4 right-4 z-30 flex items-center justify-between gap-2 flex-wrap pointer-events-none">
-              <div className="bg-black/90 backdrop-blur-xl border border-yellow-400/70 px-3.5 py-1.5 rounded-xl flex items-center gap-2 shadow-[0_0_20px_rgba(250,204,21,0.25)] pointer-events-auto">
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse shrink-0"></span>
+              <div className="bg-black/85 backdrop-blur-xl border border-yellow-400/70 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-2xl">
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
                 <span className="text-[11px] sm:text-xs font-black text-yellow-300 tracking-wider uppercase font-mono">
                   📐 {liveAnglesText || 'CALIBRATING JOINT ANGLES...'}
                 </span>
               </div>
               {detectedFingers > 0 && (
-                <div className="bg-black/90 backdrop-blur-xl border border-sky-400/80 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-[0_0_20px_rgba(56,189,248,0.3)] pointer-events-auto animate-pulse">
+                <div className="bg-black/85 backdrop-blur-xl border border-sky-400/80 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xl">
                   <span className="text-sm">🖐️</span>
-                  <span className="text-[11px] sm:text-xs font-black text-sky-300 tracking-wider uppercase font-mono">
+                  <span className="text-[11px] sm:text-xs font-black text-sky-300 tracking-wide">
                     {handGestureText || `${detectedFingers} FINGERS ACTIVE`}
                   </span>
                 </div>
