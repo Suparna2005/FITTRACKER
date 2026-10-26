@@ -25,6 +25,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const todaysExercises = plan?.workout_plan?.exercises || [];
   const defaultExercise = todaysExercises.length > 0 ? todaysExercises[0].name : 'Auto-Detect';
   const [selectedExercise, setSelectedExercise] = useState(defaultExercise);
+  const [isExpandedCamera, setIsExpandedCamera] = useState(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -89,8 +90,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   };
 
   const formatWaitingMessage = (targetSet) => {
-    const fingerText = targetSet === 1 ? '1 FINGER' : `${targetSet} FINGERS`;
-    return `[WAITING FOR ${fingerText} OR SAY 'START' FOR SET ${targetSet}]`;
+    return `SET ${targetSet || 1} • READY`;
   };
 
   const startSet = (targetSet = null, source = 'VOICE') => {
@@ -105,10 +105,10 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     tracker.lastRepTime = Date.now();
     workoutStatsRef.current = { sets: tracker.setCount, reps: tracker.repCount };
 
-    setRealtimeWarning(`${source} DETECTED! STARTING SET ${tracker.setCount}`);
+    setRealtimeWarning(`SET ${tracker.setCount} ACTIVE`);
     const repEl = document.getElementById('repCounter');
     if (repEl) {
-      repEl.innerText = `SET: ${tracker.setCount} | REPS: ${tracker.repCount}`;
+      repEl.innerText = `SET ${tracker.setCount} • ${tracker.repCount} REPS`;
     }
     const restTimerEl = document.getElementById('restTimer');
     if (restTimerEl) restTimerEl.style.display = 'none';
@@ -1022,7 +1022,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
                 if (tracker.waitingForSignal > 0) {
                   repCounterEl.innerText = formatWaitingMessage(tracker.waitingForSignal);
                 } else {
-                  repCounterEl.innerText = `SET: ${tracker.setCount} | REPS: ${tracker.repCount}`;
+                  repCounterEl.innerText = `SET ${tracker.setCount} • ${tracker.repCount} REPS`;
                 }
               }
 
@@ -1033,7 +1033,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
               if (restTimerEl) {
                 if (tracker.isResting) {
                   const restSeconds = Math.floor((now - tracker.restStartTime) / 1000);
-                  restTimerEl.innerText = `REST GAP: ${restSeconds}s`;
+                  restTimerEl.innerText = `REST: ${restSeconds}s`;
                   restTimerEl.style.display = 'block';
                 } else {
                   restTimerEl.style.display = 'none';
@@ -1457,7 +1457,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
       {/* LIVE CAMERA INTERFACE */}
       {showCamera && (
-        <div className="mb-8 rounded-3xl overflow-hidden border border-[#C7F36B]/50 relative fade-up bg-black ">
+        <div className={`mb-8 rounded-3xl overflow-hidden border border-[#C7F36B]/40 relative fade-up bg-black shadow-2xl transition-all duration-300 ${isExpandedCamera ? 'h-[88vh] min-h-[680px]' : 'h-[75vh] md:h-[82vh] min-h-[560px] max-h-[860px]'}`}>
           <style>{`
             @keyframes scanline {
               0% { top: 0%; opacity: 0; }
@@ -1467,164 +1467,140 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             }
           `}</style>
           
-          {/* DYNAMIC TOP BAR AND DROPDOWN */}
-          <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 self-start">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <span className="text-xs font-bold text-white uppercase tracking-widest">Live: {activeMode} Scanner</span>
-            </div>
-            {activeMode === 'form' && (
-              <div className="flex flex-col gap-1.5">
-                <select 
-                  id="exerciseSelector"
-                  value={selectedExercise}
-                  onChange={(e) => setSelectedExercise(e.target.value)}
-                  className="bg-black/80 backdrop-blur-md text-[#C7F36B] font-bold border border-[#C7F36B]/50 rounded-xl px-3 py-2.5 outline-none text-sm shadow-xl cursor-pointer"
-                >
-                  <option value="Auto-Detect">✨ Auto-Detect Exercise</option>
-                  <option value="Posture Diagnostic">🧍 Posture Diagnostic (Spine Alignment)</option>
-                  <option value="Squat">Squat</option>
-                  <option value="Bicep Curl">Bicep Curl</option>
-                  <option value="Deadlift">Deadlift</option>
-                  <option value="Overhead Press">Overhead Press</option>
-                  <option value="Lunges">Lunges</option>
-                  {todaysExercises.length > 0 ? (
-                    <optgroup label="Today's AI Plan">
-                      {todaysExercises.map((ex, i) => <option key={i} value={ex.name}>{ex.name}</option>)}
-                    </optgroup>
-                  ) : (
-                    <optgroup label="Today's AI Plan">
-                      <option disabled>Generate a plan on Dashboard first!</option>
-                    </optgroup>
+          {/* UNIFIED CLEAN TOP HUD BAR */}
+          <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3 pointer-events-auto">
+            {/* Left: Mode / Exercise & Voice Status */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {activeMode === 'form' ? (
+                <>
+                  <select 
+                    id="exerciseSelector"
+                    value={selectedExercise}
+                    onChange={(e) => setSelectedExercise(e.target.value)}
+                    className="bg-black/75 backdrop-blur-xl text-[#C7F36B] font-bold border border-[#C7F36B]/40 rounded-xl px-3 py-1.5 outline-none text-xs md:text-sm shadow-xl cursor-pointer hover:border-[#C7F36B] transition-colors"
+                  >
+                    <option value="Auto-Detect">✨ Auto-Detect</option>
+                    <option value="Posture Diagnostic">🧍 Posture Diagnostic</option>
+                    <option value="Squat">Squat</option>
+                    <option value="Bicep Curl">Bicep Curl</option>
+                    <option value="Deadlift">Deadlift</option>
+                    <option value="Overhead Press">Overhead Press</option>
+                    <option value="Lunges">Lunges</option>
+                    {todaysExercises.length > 0 ? (
+                      <optgroup label="Today's AI Plan">
+                        {todaysExercises.map((ex, i) => <option key={i} value={ex.name}>{ex.name}</option>)}
+                      </optgroup>
+                    ) : (
+                      <optgroup label="Today's AI Plan">
+                        <option disabled>Generate a plan on Dashboard first!</option>
+                      </optgroup>
+                    )}
+                  </select>
+
+                  {selectedExercise === 'Auto-Detect' && (
+                    <div className="bg-black/75 backdrop-blur-xl px-2.5 py-1.5 rounded-xl border border-[#C7F36B]/30 flex items-center gap-1.5 shadow-md">
+                      <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse"></span>
+                      <span className="text-[11px] font-bold text-white tracking-wide">
+                        {detectedExerciseDisplay}
+                      </span>
+                    </div>
                   )}
-                </select>
 
-                {selectedExercise === 'Auto-Detect' && (
-                  <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg border border-[#C7F36B]/40 flex items-center gap-2 shadow-lg">
-                    <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse"></span>
-                    <span className="text-[10px] font-extrabold text-white tracking-widest uppercase">
-                      AI RECOGNIZING: <span className="text-[#C7F36B]">{detectedExerciseDisplay}</span>
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {activeMode === 'form' && (
-              <div className="flex flex-wrap gap-2 items-center">
-                <div className="bg-[#54D8CF]/20 border border-[#54D8CF]/50 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-max ">
-                  <svg className="w-3.5 h-3.5 text-[#54D8CF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-[10px] font-bold text-[#54D8CF] uppercase tracking-widest">Biomechanical Skeleton Active</span>
-                </div>
-
-                <div className="bg-[#C7F36B]/20 border border-[#C7F36B]/50 backdrop-blur-md px-3.5 py-2 rounded-xl flex items-center gap-2.5 ">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isVoiceActive ? 'bg-[#C7F36B] animate-ping' : 'bg-amber-400'}`}></span>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-[#C7F36B] uppercase tracking-widest flex items-center gap-1">
-                      AI Voice Commander Active
-                    </span>
-                    <span className="text-[11px] font-extrabold text-white max-w-[280px] truncate">
-                      {voiceTranscript || 'Say "Start set 1", "Set 2", "Go"...'}
-                    </span>
-                  </div>
                   <button 
                     onClick={startVoiceRecognition}
-                    className="ml-1 text-[10px] font-bold bg-[#C7F36B]/30 hover:bg-[#C7F36B]/50 text-[#C7F36B] border border-[#C7F36B]/40 px-2 py-1 rounded-lg transition-all active:scale-95 flex items-center gap-1"
-                    title="Restart Deepgram Nova-3 AI Voice Engine"
+                    className="bg-black/75 backdrop-blur-xl border border-white/10 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    title="Voice Commander (Say 'Start', 'Next set', 'Stop'). Click to reset mic."
                   >
-                    ↻ Mic
+                    <span className={`w-2 h-2 rounded-full ${isVoiceActive ? 'bg-[#C7F36B] animate-pulse' : 'bg-amber-400'}`}></span>
+                    <span className="hidden sm:inline text-[11px] font-bold">Voice</span>
+                    <span className="text-[10px] text-zinc-400">↻</span>
                   </button>
+                </>
+              ) : (
+                <div className="bg-black/75 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  <span className="text-xs font-bold text-white uppercase tracking-widest">{activeMode} Scanner</span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            
+            {/* Right: Counter, Expand & Close */}
+            <div className="flex items-center gap-2">
+              {activeMode === 'form' && (
+                <>
+                  <div 
+                    id="repCounter" 
+                    onClick={() => startSet(liveTrackerRef.current.waitingForSignal || 1, 'TAP / CLICK')}
+                    title="Click or tap to start set immediately"
+                    className="bg-black/80 backdrop-blur-xl border border-[#C7F36B] text-[#C7F36B] font-display font-black text-sm md:text-base px-3.5 py-1.5 rounded-xl cursor-pointer hover:bg-black/95 transition-all shadow-xl active:scale-95 text-center flex items-center gap-2"
+                  >
+                    SET 1 • READY
+                  </div>
+                  <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border border-[#54D8CF] text-[#54D8CF] font-display font-black text-xs md:text-sm px-3 py-1.5 rounded-xl animate-pulse">
+                    REST: 0s
+                  </div>
+                </>
+              )}
+
+              <button 
+                type="button"
+                onClick={() => setIsExpandedCamera(!isExpandedCamera)} 
+                className="bg-black/75 backdrop-blur-xl px-2.5 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors"
+                title={isExpandedCamera ? "Collapse camera" : "Expand camera height"}
+              >
+                {isExpandedCamera ? "⤓" : "⤢"}
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => { setShowCamera(false); stopCamera(); }} 
+                className="bg-black/75 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors"
+                title="Close Camera"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           
-          {activeMode === 'form' && (
-            <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
-              <button onClick={() => { setShowCamera(false); stopCamera(); }} className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-white transition-colors hover:bg-white/10">
-                Cancel ✕
-              </button>
-              <div 
-                id="repCounter" 
-                onClick={() => startSet(liveTrackerRef.current.waitingForSignal || 1, 'TAP / CLICK')}
-                title="Click or tap to start set immediately"
-                className="bg-black/80 backdrop-blur-xl border-2 border-[#C7F36B] text-[#C7F36B] font-display font-black text-2xl md:text-3xl px-6 py-2 rounded-xl cursor-pointer hover:border-white transition-all shadow-xl active:scale-95 text-center"
-              >
-                [WAITING FOR 1 FINGER OR SAY 'START' FOR SET 1]
-              </div>
-              <div id="restTimer" style={{display: 'none'}} className="bg-black/80 backdrop-blur-xl border-2 border-[#54D8CF] text-[#54D8CF] font-display font-black text-xl px-6 py-2 rounded-xl  animate-pulse">
-                REST GAP: 0s
-              </div>
-            </div>
-          )}
-          {activeMode !== 'form' && (
-            <button onClick={() => { setShowCamera(false); stopCamera(); }} className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs font-bold text-white transition-colors hover:bg-white/10">
-              Cancel ✕
-            </button>
-          )}
-          
-          <video ref={videoRef} autoPlay playsInline muted className="w-full h-[60vh] object-cover" />
-          <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-[60vh] object-cover pointer-events-none z-20" />
+          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+          <canvas ref={canvasOverlayRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none z-20" />
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* UNIVERSAL SPATIAL MESH BACKGROUND */}
-          <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center overflow-hidden">
-            <style>{`
-              @keyframes meshMove {
-                0% { background-position: 0 0; }
-                100% { background-position: 0 40px; }
-              }
-              @keyframes meshPulse {
-                0%, 100% { opacity: 0.3; }
-                50% { opacity: 0.8; }
-              }
-            `}</style>
-            <div className="absolute inset-0 z-0 mix-blend-screen" style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(16, 185, 129, 0.2) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(16, 185, 129, 0.2) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px',
-              transform: 'perspective(600px) rotateX(60deg) translateY(-50px) scale(2)',
-              animation: 'meshMove 2s linear infinite, meshPulse 4s ease-in-out infinite',
-              transformOrigin: 'bottom'
-            }}></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black z-10 pointer-events-none"></div>
-            
-            {/* DYNAMIC HUD OVERLAYS */}
-            {activeMode === 'form' && (
-              <div className={`absolute top-[10%] px-5 py-2.5 rounded-full border backdrop-blur-md shadow-2xl transition-all duration-200 z-30 flex items-center gap-2.5 ${
+          {/* DYNAMIC POSTURE / FORM WARNING (CLEAN FLOATING PILL AT BOTTOM CENTER) */}
+          {activeMode === 'form' && realtimeWarning && (
+            <div className="absolute bottom-28 left-0 right-0 z-30 flex justify-center pointer-events-none px-4">
+              <div className={`px-4 py-2 rounded-full border backdrop-blur-xl shadow-2xl transition-all duration-200 flex items-center gap-2 max-w-[90%] pointer-events-auto ${
                 (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
                   ? 'bg-rose-500/25 border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(244,63,94,0.5)]' 
-                  : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('DETECTED'))
+                  : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('DETECTED') || realtimeWarning.includes('ACTIVE'))
                   ? 'bg-emerald-500/25 border-emerald-500 text-[#C7F36B] shadow-[0_0_25px_rgba(16,185,129,0.5)]'
                   : 'bg-amber-500/25 border-amber-500 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
               }`}>
-                <span className={`w-3 h-3 rounded-full shrink-0 ${
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
                   (realtimeWarning.includes('BAD') || realtimeWarning.includes('ISSUE') || realtimeWarning.includes('NO REP') || realtimeWarning.includes('ALERT') || realtimeWarning.includes('SLOUCH') || realtimeWarning.includes('DO NOT'))
                     ? 'bg-rose-500 shadow-[0_0_12px_#ef4444] animate-ping'
-                    : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT'))
+                    : (realtimeWarning.includes('PERFECT') || realtimeWarning.includes('GOOD') || realtimeWarning.includes('READY') || realtimeWarning.includes('STANDING') || realtimeWarning.includes('LOCKOUT') || realtimeWarning.includes('ACTIVE'))
                     ? 'bg-[#C7F36B] shadow-[0_0_12px_#C7F36B] animate-pulse'
                     : 'bg-amber-400'
                 }`}></span>
-                <span className="text-[11px] font-black tracking-widest uppercase">{realtimeWarning}</span>
+                <span className="text-[11px] font-black tracking-wider uppercase truncate">{realtimeWarning}</span>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* SUBTLE MESH & OVERLAYS */}
+          <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 z-10 pointer-events-none"></div>
 
             {activeMode === 'physique' && (
               <div className="relative w-full h-full flex items-center justify-center z-20">
-                {/* SVG Human Silhouette Outline */}
-                <svg viewBox="0 0 200 300" className="w-64 h-96 opacity-60 drop-">
+                <svg viewBox="0 0 200 300" className="w-64 h-96 opacity-60">
                   <circle cx="100" cy="80" r="45" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
                   <path d="M 68 115 Q 20 130 10 220 L 10 300 L 190 300 L 190 220 Q 180 130 132 115" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray="10 5" className="animate-[pulse_2s_infinite]" />
                 </svg>
-                {/* Animated Scan Line */}
-                <div className="absolute left-0 right-0 h-1 bg-[#C7F36B] " 
+                <div className="absolute left-0 right-0 h-1 bg-[#C7F36B]" 
                      style={{ animation: 'scanline 3s cubic-bezier(0.4, 0, 0.2, 1) infinite', width: '100%', maxWidth: '300px', margin: '0 auto' }}></div>
-                
-                <div className="absolute top-[10%] text-[10px] font-black tracking-widest text-[#C7F36B] uppercase bg-black/50 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm">
+                <div className="absolute top-[12%] text-[10px] font-black tracking-widest text-[#C7F36B] uppercase bg-black/60 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm">
                   Align Head & Shoulders
                 </div>
               </div>
@@ -1638,16 +1614,21 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             
             {activeMode === 'equipment' && (
               <div className="relative w-full h-full flex items-center justify-center z-20">
-                <div className="z-20 text-[10px] font-black tracking-[0.3em] text-[#C7F36B] uppercase bg-black/50 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm animate-pulse">
+                <div className="z-20 text-[10px] font-black tracking-[0.3em] text-[#C7F36B] uppercase bg-black/60 px-4 py-2 rounded-full border border-[#C7F36B]/30 backdrop-blur-sm animate-pulse">
                   SPATIAL MESH SCANNER ACTIVE
                 </div>
               </div>
             )}
           </div>
           
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent flex justify-center z-20">
-            <button onClick={captureFrame} className="w-20 h-20 rounded-full border-4 border-[#C7F36B] flex items-center justify-center hover:scale-105 transition-transform bg-black/50 backdrop-blur-sm ">
-              <div className="w-14 h-14 rounded-full bg-[#C7F36B] hover:bg-[#C7F36B] transition-colors"></div>
+          {/* BOTTOM CONTROL / SHUTTER BAR */}
+          <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black via-black/70 to-transparent flex justify-center z-20">
+            <button 
+              onClick={captureFrame} 
+              className="w-16 h-16 rounded-full border-4 border-[#C7F36B] flex items-center justify-center hover:scale-105 transition-transform bg-black/50 backdrop-blur-sm shadow-[0_0_20px_rgba(199,243,107,0.3)] active:scale-95"
+              title={activeMode === 'form' ? "Finish & Log Workout" : "Capture"}
+            >
+              <div className="w-11 h-11 rounded-full bg-[#C7F36B] hover:bg-[#b5e05c] transition-colors"></div>
             </button>
           </div>
         </div>
