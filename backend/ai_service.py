@@ -12,6 +12,12 @@ def _repair_json(s: str) -> str:
     # Quote unquoted ranges like "reps": 6-8 -> "reps": "6-8", "reps": Failure -> "reps": "Failure"
     s = re.sub(r'("reps"\s*:\s*)([0-9]+\s*-\s*[0-9]+|Failure|failure)', r'\1"\2"', s)
     s = re.sub(r'("rest(_s)?"\s*:\s*)(\d+)(?=\s*[,}])', r'\1"\3s"', s)
+    s = s.strip()
+    if s.startswith("```"):
+        s = s.strip("`")
+        if s.startswith("json"):
+            s = s[4:]
+        s = s.strip()
     return s
 
 def _deep_parse(obj):
@@ -348,35 +354,12 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
 
     prompts = {
         "food": (
-            "Identify this food dish scientifically and accurately, recognizing authentic global and Indian regional cuisines "
-            "(e.g. Chicken/Mutton Biryani, Paneer Tikka, Dosa, Dal Makhani, Roti, Chole, etc.). Identify the true dish name. "
-            "Break down total dish weight in grams, total calories, macros (protein, carbs, fats, fiber, sugar), key vitamins and minerals for the dish, glycemic index, and itemized ingredients with individual portion weights and macros. "
-            "Return a raw JSON object (no markdown, no backticks) with keys: "
-            "'food_name' (string, authentic specific dish name e.g. 'Chicken Biryani'), "
-            "'serving_weight_g' (integer, total dish weight count in grams), "
-            "'estimated_calories' (integer, total calorie count in kcal), "
-            "'calories_per_g' (number, calories per gram for the dish), "
-            "'calories_per_100g' (number, calories per 100g for the dish), "
-            "'protein_g' (number, total protein in grams), "
-            "'carbs_g' (number, total carbs in grams), "
-            "'fats_g' (number, total fats in grams), "
-            "'fiber_g' (number, dietary fiber in grams), "
-            "'sugar_g' (number, total sugars in grams), "
-            "'vitamins' (array of 3-5 strings, e.g. ['Vitamin A (25%)', 'Vitamin C (15%)', 'Vitamin B12 (40%)']), "
-            "'minerals' (array of 3-5 strings, e.g. ['Iron (20%)', 'Calcium (15%)', 'Potassium (520mg)']), "
-            "'glycemic_index' (string, e.g. 'Medium (GI 56)'), "
-            "'health_score' (integer out of 100), "
-            "'confidence' (string, e.g. '96% High Vision Confidence - Authentic Recipe Match'), "
-            "'scientific_notes' (string, concise nutritional density assessment), "
-            "'ingredients_detected_count' (integer), "
-            "'ingredients' (array of 3-6 components, each with: "
-            "'name' (string, ingredient name), "
-            "'weight_g' (integer, grams), "
-            "'calories' (integer, kcal), "
-            "'protein_g' (number, grams), "
-            "'carbs_g' (number, grams), "
-            "'fats_g' (number, grams), "
-            "'fiber_g' (number, grams))."
+            "Identify this food dish accurately (including global and Indian dishes like Biryani, Paneer Tikka, Dosa, Dal, Roti, etc.). "
+            "Return ONLY a compact raw JSON object (no markdown, no backticks, no extra text): "
+            "{\"food_name\": \"exact dish name\", \"serving_weight_g\": 0, \"estimated_calories\": 0, \"protein_g\": 0, \"carbs_g\": 0, \"fats_g\": 0, \"fiber_g\": 0, \"sugar_g\": 0, "
+            "\"vitamins\": [\"Vit A\", \"Vit C\", \"Vit B12\"], \"minerals\": [\"Iron\", \"Calcium\", \"Zinc\"], \"glycemic_index\": \"Medium\", \"health_score\": 80, \"confidence\": \"96% Vision Match\", "
+            "\"scientific_notes\": \"Nutrient-rich traditional recipe.\", "
+            "\"ingredients\": [{\"name\": \"...\", \"weight_g\": 0, \"calories\": 0, \"protein_g\": 0, \"carbs_g\": 0, \"fats_g\": 0, \"fiber_g\": 0}]}"
         ),
         "equipment": "Analyze this image of a gym or workout area. Return a raw JSON object (no markdown, no backticks) with keys: 'detected_equipment' (array of strings, e.g. ['Dumbbells', 'Bench', 'Cable Machine']), 'environment_type' (string, e.g. 'Home Gym', 'Commercial Gym', 'Hotel Gym'), and 'suggested_workout_focus' (string).",
         "physique": "Describe the person in the image. Return a raw JSON object (no markdown) with keys: 'estimated_body_fat_percentage' (string, e.g. '22-25%'), 'obesity_count' (string, e.g. '22-25% (Optimal Healthy Range)' or '32% (Stage 1 Obesity)'), 'body_type_category' (string, choose one: Shredded, Athletic, Fit, Average, Heavy, Obese), and 'notable_features' (string).",
@@ -400,7 +383,7 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
         print(f"Could not fetch models: {e}")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
-    token_limits = {"equipment": 450, "physique": 400, "form": 400, "food": 700}
+    token_limits = {"equipment": 350, "physique": 350, "form": 350, "food": 500}
     payload = {
         "model": active_vision_model,
         "messages": [
@@ -412,8 +395,8 @@ def analyze_vision_image(base64_image: str, mode: str = "food"):
                 ]
             }
         ],
-        "temperature": 0.2,
-        "max_tokens": token_limits.get(mode, 600)
+        "temperature": 0.1,
+        "max_tokens": token_limits.get(mode, 500)
     }
 
     req_data = json.dumps(payload).encode('utf-8')
