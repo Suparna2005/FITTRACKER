@@ -12,7 +12,7 @@ This guide provides comprehensive instructions for deploying IronForge AI in bot
 - **API Swagger Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs)
 - **Internal Backend Port:** `8000` (Reverse proxied via Nginx)
 - **Database:** PostgreSQL 15 on port `5432`
-- **Current Production Frontend Bundle:** `dist/assets/index-CnF4rB60.js`
+- **Current Production Frontend Bundle:** `dist/assets/index-C70bS5gP.js`
 
 ---
 
