@@ -69,3 +69,10 @@ This document outlines the complete end-to-end development journey executed acro
 * **Multi-Camera Hardware Switching:** Added a one-click `🔄 Front / Back` camera toggle button to seamlessly flip between front selfie and rear primary cameras with adaptive `facingMode` constraints.
 * **Floor & Abs Biomechanics Suite:** Implemented real-time tracking, range of motion validation, and repetition/timer FSM for floor exercises (Crunches, Plank Hold timer, Leg Raises).
 * **Public Mobile Tunnel Deployment:** Configured and deployed active Cloudflare tunnel (`https://camel-accessibility-philip-examine.trycloudflare.com`) for direct mobile phone testing with zero SSL warning barriers.
+
+### Day 12: Production Authentication Hardening, Distance Fallback & End-User Guide
+* **Mixed Content Resolution & API Proxy:** Configured dynamic `API_URL = '/api'` over HTTPS to route requests through Nginx port 443, eliminating mixed-content blocks on production host `30.31.32.136`.
+* **Credential Whitespace Trimming & Dual-Sided Sanitization:** Implemented automatic `.strip()` and case-insensitivity on email and password inputs to prevent mobile auto-fill whitespace rejections.
+* **Inline Login Error Alerts & 1-Click Recovery:** Enhanced authentication card with prominent inline alert banners (`⚠️`) and dynamic one-click action buttons to instantly create accounts or reset passwords.
+* **Dual-Tier Long-Range Gesture Detection:** Extended hands-free set triggering with Pose landmark wrist elevation fallback, enabling reliable gesture detection when standing 2+ meters away from the camera.
+* **Comprehensive End-User Manual:** Authored `docs/USER_GUIDE.md` covering onboarding, PWA home screen installation, camera placement, color signal interpretation, and troubleshooting.

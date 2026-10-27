@@ -117,7 +117,7 @@ The backend provides high-performance, asynchronous RESTful API services:
   - Endpoint `PUT /users/{user_id}/notification_preferences` allows immediate toggling without full profile mutation.
   - Background cron scheduler checks `user.email_notifications_enabled != "false"` before initiating SMTP connections via `email_service.send_email`.
   - In-app notification records (`models.Notification`) are **always committed** to the database ledger (`channel="app"`), guaranteeing that athletes who prefer checking their routines within the app have uninterrupted access via the in-app notification center.
-
+- **Multimodal Vision AI Pipeline (`POST /analyze_vision/`):**
   - Accepts compressed Base64 images from frontend webcam or file uploads.
   - Injects structured JSON schemas into Groq system prompts (`qwen/qwen3.8-27b` / `llama-3.2-11b-vision`).
   - Implements multi-model fallback and transient error retry logic with exponential backoff.

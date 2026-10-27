@@ -104,6 +104,7 @@ Stores athlete identity credentials, physiological attributes, medical history, 
 | `blood_pressure` | String | Nullable | Clinical safety metric |
 | `diet_cuisine` | String | Default: 'Generic Indian'| Cuisine preference driving AI meal plans |
 | `diet_type` | String | Default: 'No Preference'| Dietary restriction (Vegan, Vegetarian, Keto, etc.) |
+| `email_notifications_enabled` | String | Default: 'true' | Toggle for receiving daily routine and diet emails |
 | `created_at` | DateTime | Default: UTC Now | Account creation timestamp |
 
 ---
