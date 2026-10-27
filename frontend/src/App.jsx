@@ -87,6 +87,7 @@ function App() {
   const DEFAULT_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '125158095092-f3lq0t79bh98glf7hlq7td2scee0m34f.apps.googleusercontent.com'
   const [googleConfig, setGoogleConfig] = useState({ client_id: DEFAULT_GOOGLE_CLIENT_ID, configured: Boolean(DEFAULT_GOOGLE_CLIENT_ID) })
   const [loginForm, setLoginForm] = useState({ identifier: '', password: '' })
+  const [loginError, setLoginError] = useState(null)
   const [useSplit, setUseSplit] = useState(true)
   const [mySplit, setMySplit] = useState(null)
   const [notifs, setNotifs] = useState({ unread: 0, items: [] })
@@ -302,17 +303,32 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
+      const payload = {
+        identifier: (resetForm.identifier || '').trim(),
+        new_password: (resetForm.new_password || '').trim()
+      }
       const res = await fetch(`${API_URL}/reset_password/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resetForm)
+        body: JSON.stringify(payload)
       })
-      if (!res.ok) throw new Error('Account not found')
-      showToast('Password reset successfully! Please log in.')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || 'No account found with this email or phone number.')
+      }
+      showToast('Password reset successfully! Ready to enter.')
+      setLoginForm({
+        identifier: payload.identifier,
+        password: payload.new_password
+      })
+      setLoginError(null)
       setView('login')
       setResetForm({ identifier: '', new_password: '' })
-    } catch { showToast('Account not found with that email/phone.') }
-    setLoading(false)
+    } catch (err) { 
+      showToast(err.message || 'Account not found with that email/phone.') 
+    } finally {
+      setLoading(false)
+    }
   }
 
   const [profileForm, setProfileForm] = useState({
@@ -500,55 +516,75 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    setLoginError(null)
     setLoading(true)
     try {
+      const payload = {
+        identifier: (loginForm.identifier || '').trim(),
+        password: (loginForm.password || '').trim()
+      }
       const res = await fetch(`${API_URL}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm)
+        body: JSON.stringify(payload)
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'Failed to log in.')
+        const err = await res.json().catch(() => ({}))
+        const msg = err.detail || 'Login failed. Please check your credentials.'
+        setLoginError(msg)
+        showToast(msg)
+        return
       }
       const data = await res.json()
       setUser(data)
       try { localStorage.setItem('fitnessUserId', String(data.id)) } catch {}
       setView('dashboard')
-    } catch (err) { showToast(err.message) }
-    setLoading(false)
+    } catch (err) { 
+      const msg = err.message || 'Login failed. Please check your network connection.'
+      setLoginError(msg)
+      showToast(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSignup = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
+      const payload = {
+        name: (signupForm.name || '').trim(),
+        email: (signupForm.email || '').trim().toLowerCase(),
+        phone_number: (signupForm.phone_number || '').trim(),
+        password: (signupForm.password || '').trim()
+      }
       const res = await fetch(`${API_URL}/users/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupForm)
+        body: JSON.stringify(payload)
       })
       if (!res.ok) {
-        const errorData = await res.json()
+        const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.detail || 'Failed to sign up.')
       }
       const data = await res.json()
       
-      // Do NOT directly log the user into the app.
-      // Prefill login identifier with their registered email/phone:
+      // Prefill login identifier and password
       setLoginForm({
-        identifier: signupForm.email || signupForm.phone_number || '',
-        password: ''
+        identifier: payload.email || payload.phone_number || '',
+        password: payload.password || ''
       })
+      setLoginError(null)
       
       // Reset signup form
       setSignupForm({ name: '', email: '', phone_number: '', password: '' })
       
-      // Open the registration success modal
+      // Open the registration success modal with full user data
       setRegisteredUserModal({
         name: data.name || 'Athlete',
         email: data.email,
-        phone_number: data.phone_number
+        phone_number: data.phone_number,
+        user: data
       })
     } catch (err) { showToast(err.message) }
     setLoading(false)
@@ -835,12 +871,18 @@ function App() {
           <button
             type="button"
             onClick={() => {
+              if (registeredUserModal.user) {
+                setUser(registeredUserModal.user)
+                try { localStorage.setItem('fitnessUserId', String(registeredUserModal.user.id)) } catch {}
+                setView('dashboard')
+              } else {
+                setView('login')
+              }
               setRegisteredUserModal(null)
-              setView('login')
             }}
             className="btn-lime w-full text-base py-4 shadow-lg font-black tracking-wider flex items-center justify-center gap-2"
           >
-            PROCEED TO LOGIN →
+            ENTER THE FORGE →
           </button>
         </div>
       </div>
@@ -884,20 +926,96 @@ function App() {
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <input type="text" placeholder="Email or Phone Number" value={loginForm.identifier}
-            onChange={e => setLoginForm({ ...loginForm, identifier: e.target.value })} className="field-dark" required />
-          <input type="password" placeholder="Password" value={loginForm.password}
-            onChange={e => setLoginForm({ ...loginForm, password: e.target.value })} className="field-dark" required />
-          <div className="flex justify-end -mt-1">
-            <span onClick={() => setView('forgot_password')}
-              className="text-xs text-[#54D8CF] cursor-pointer hover:underline font-semibold">Forgot Password?</span>
+          {loginError && (
+            <div className="p-4 rounded-2xl bg-[#2D1515] border border-red-500/60 text-red-200 text-xs font-medium flex items-start gap-3 shadow-xl fade-up">
+              <span className="text-lg leading-none mt-0.5">⚠️</span>
+              <div className="flex-1 space-y-2">
+                <p className="font-bold text-red-100 text-xs leading-relaxed">{loginError}</p>
+                {loginError.toLowerCase().includes('create') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSignupForm(prev => ({ ...prev, email: loginForm.identifier }));
+                      setLoginError(null);
+                      setView('signup');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C7F36B] text-[#0B1014] text-xs font-black shadow hover:brightness-110 transition-all"
+                  >
+                    Create Account with this email →
+                  </button>
+                )}
+                {loginError.toLowerCase().includes('forgot') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetForm(prev => ({ ...prev, identifier: loginForm.identifier }));
+                      setLoginError(null);
+                      setView('forgot_password');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#54D8CF] text-[#0B1014] text-xs font-black shadow hover:brightness-110 transition-all"
+                  >
+                    Reset Password now →
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          <input 
+            type="text" 
+            placeholder="Email or Phone Number" 
+            value={loginForm.identifier}
+            onChange={e => {
+              if (loginError) setLoginError(null);
+              setLoginForm({ ...loginForm, identifier: e.target.value });
+            }} 
+            className="field-dark" 
+            required 
+            autoComplete="username"
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={loginForm.password}
+            onChange={e => {
+              if (loginError) setLoginError(null);
+              setLoginForm({ ...loginForm, password: e.target.value });
+            }} 
+            className="field-dark" 
+            required 
+            autoComplete="current-password"
+          />
+          <div className="flex justify-between items-center -mt-1">
+            <span 
+              onClick={() => {
+                setSignupForm(prev => ({ ...prev, email: loginForm.identifier }));
+                setLoginError(null);
+                setView('signup');
+              }}
+              className="text-xs text-[#ACBAC2] cursor-pointer hover:text-[#C7F36B] transition-colors"
+            >
+              Don't have an account?
+            </span>
+            <span 
+              onClick={() => {
+                setResetForm(prev => ({ ...prev, identifier: loginForm.identifier }));
+                setLoginError(null);
+                setView('forgot_password');
+              }}
+              className="text-xs text-[#54D8CF] cursor-pointer hover:underline font-semibold"
+            >
+              Forgot Password?
+            </span>
           </div>
           <button type="submit" disabled={loading} className="btn-lime w-full text-base py-4 mt-2">
             {loading ? 'Entering the forge...' : 'ENTER THE FORGE →'}
           </button>
         </form>
         <p className="mt-7 text-sm text-[#ACBAC2] text-center">New athlete?{' '}
-          <span className="font-bold text-[#C7F36B] cursor-pointer hover:underline" onClick={() => setView('signup')}>Create account</span>
+          <span className="font-bold text-[#C7F36B] cursor-pointer hover:underline" onClick={() => {
+            setSignupForm(prev => ({ ...prev, email: loginForm.identifier }));
+            setLoginError(null);
+            setView('signup');
+          }}>Create account</span>
         </p>
       </AuthShell>
       </>
@@ -2326,9 +2444,9 @@ function App() {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 fade-up bg-[#172127] border border-[#C7F36B] text-[#F4F7F8] px-4 py-3 rounded-xl shadow-xl text-sm font-bold flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse" />
-          {toast}
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-50 fade-up bg-[#172127]/95 backdrop-blur-md border border-[#C7F36B] text-[#F4F7F8] px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-2.5 max-w-[92vw] pointer-events-none">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#C7F36B] animate-pulse flex-shrink-0" />
+          <span className="break-words">{toast}</span>
         </div>
       )}
     </div>

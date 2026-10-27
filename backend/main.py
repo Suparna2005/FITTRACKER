@@ -205,26 +205,43 @@ def update_notification_preferences(user_id: int, pref: NotificationPrefUpdate, 
 
 @app.post("/login/")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    clean_id = user.identifier.strip().lower()
+    raw_id = (user.identifier or "").strip()
+    clean_id = raw_id.lower()
+    clean_pass = (user.password or "").strip()
     from sqlalchemy import func
+    print(f"[AUTH ATTEMPT] identifier='{clean_id}', pass_len={len(clean_pass)}")
+    
     db_user = db.query(models.User).filter(
-        (func.lower(models.User.email) == clean_id) | (models.User.phone_number == user.identifier.strip())
+        (func.lower(func.trim(models.User.email)) == clean_id) | 
+        (func.trim(models.User.phone_number) == raw_id)
     ).first()
     if not db_user:
-        raise HTTPException(status_code=401, detail="Invalid email or password. Please check your credentials or create a new account.")
+        print(f"[AUTH FAIL] No account matching '{clean_id}'")
+        raise HTTPException(
+            status_code=401, 
+            detail="No account found with this email or phone number. Click 'Create account' below to sign up."
+        )
     
-    # If account was registered via Google OAuth:
-    if db_user.password == "google_oauth_authenticated":
-        # If user supplied a password when logging in, link this password directly to the account so they are never locked out!
-        if user.password and user.password != "google_oauth_authenticated":
-            db_user.password = user.password
+    # If account was registered via Google OAuth or has no password set:
+    if db_user.password == "google_oauth_authenticated" or not db_user.password:
+        if clean_pass and clean_pass != "google_oauth_authenticated":
+            db_user.password = clean_pass
             db.commit()
             db.refresh(db_user)
+            print(f"[AUTH AUTO-LINK] Linked password for user ID={db_user.id}, email={db_user.email}")
             return db_user
 
-    if db_user.password != user.password:
-        raise HTTPException(status_code=401, detail="Invalid password. Click 'Forgot Password?' below if you need to reset it.")
+    db_pass = (db_user.password or "").strip()
+    if db_pass != clean_pass and db_user.password != user.password:
+        print(f"[AUTH FAIL] Incorrect password for user ID={db_user.id}, email={db_user.email}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Incorrect password. Click 'Forgot Password?' below to reset your password, or try again."
+        )
+        
+    print(f"[AUTH SUCCESS] Logged in user ID={db_user.id}, email={db_user.email}")
     return db_user
+
 
 class GoogleLoginRequest(BaseModel):
     credential: str
@@ -304,21 +321,6 @@ def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
         
     return db_user
 
-class PasswordReset(BaseModel):
-    identifier: str
-    new_password: str
-
-@app.post("/reset_password/")
-def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(
-        (models.User.phone_number == data.identifier) | (models.User.email == data.identifier)
-    ).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Account not found.")
-    
-    db_user.password = data.new_password
-    db.commit()
-    return {"status": "success", "message": "Password reset successfully."}
 
 @app.post("/log_history/")
 def log_history(log: ManualLog, db: Session = Depends(get_db)):
