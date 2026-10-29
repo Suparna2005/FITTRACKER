@@ -901,4 +901,27 @@ def transcribe_audio_base64(payload: AudioPayload):
         print(f"Error in transcribe_audio_base64: {e}")
         return {"error": str(e)}
 
+# ── Static Frontend SPA Mounting (Standalone / No-Docker Mode) ──
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+dist_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+if os.path.exists(dist_dir):
+    assets_dir = os.path.join(dist_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    tutorial_dir = os.path.join(dist_dir, "tutorial")
+    if os.path.exists(tutorial_dir):
+        app.mount("/tutorial", StaticFiles(directory=tutorial_dir), name="tutorial")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path in ["docs", "openapi.json", "redoc"]:
+            raise HTTPException(status_code=404)
+        target = os.path.join(dist_dir, full_path)
+        if os.path.exists(target) and os.path.isfile(target):
+            return FileResponse(target)
+        return FileResponse(os.path.join(dist_dir, "index.html"))
+
 

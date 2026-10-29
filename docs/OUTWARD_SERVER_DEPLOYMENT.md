@@ -61,3 +61,4 @@ You should see:
 ### Step 5: Access the Application
 - **Frontend App (Laptop & Mobile Phone):** [http://187.127.178.161:3010](http://187.127.178.161:3010)
 - **Backend Swagger API Docs:** [http://187.127.178.161:3010/docs](http://187.127.178.161:3010/docs)
+
