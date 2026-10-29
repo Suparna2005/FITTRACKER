@@ -8,11 +8,11 @@ This guide provides comprehensive instructions for deploying IronForge AI in bot
 
 - **Host IP:** `30.31.32.136`
 - **Frontend URL (Local / Campus HTTPS):** [https://30.31.32.136](https://30.31.32.136)
-- **Public Mobile App URL (Any Phone / Cloudflare Tunnel):** [https://camel-accessibility-philip-examine.trycloudflare.com](https://camel-accessibility-philip-examine.trycloudflare.com)
+- **Public Mobile App URL (Any Phone / Cloudflare Tunnel):** [https://first-winner-thomas-gossip.trycloudflare.com](https://first-winner-thomas-gossip.trycloudflare.com)
 - **API Swagger Documentation:** [https://30.31.32.136/docs](https://30.31.32.136/docs)
 - **Internal Backend Port:** `8000` (Reverse proxied via Nginx)
 - **Database:** PostgreSQL 15 on port `5432`
-- **Current Production Frontend Bundle:** `dist/assets/index-CfkJw-aZ.js`
+- **Current Production Frontend Bundle:** `dist/assets/index-CGM8LhD2.js`
 
 ---
 
