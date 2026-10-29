@@ -35,6 +35,8 @@ services:
     restart: always
     ports:
       - "${FRONTEND_PORT:-3010}:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
 
