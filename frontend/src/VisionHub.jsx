@@ -12,12 +12,21 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   }, [activeMode]);
 
   const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
   const [realtimeWarning, setRealtimeWarning] = useState("Calibrating Biomechanics...");
   const [detectedExerciseDisplay, setDetectedExerciseDisplay] = useState('Squat');
 
+  const cameraCaptureInputRef = useRef(null);
+  const selfieCaptureInputRef = useRef(null);
+
   useEffect(() => {
     if (initialMode) {
-      handleScanClick(initialMode);
+      setActiveMode(initialMode);
+      activeModeRef.current = initialMode;
+      const isSecure = typeof window !== 'undefined' ? (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') : true;
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && isSecure) {
+        handleScanClick(initialMode);
+      }
     }
   }, [initialMode]);
   
@@ -318,11 +327,40 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     return angle;
   };
 
+  const handleNativeCameraClick = (mode) => {
+    setActiveMode(mode);
+    activeModeRef.current = mode;
+    setImgPreview(null);
+    setResult(null);
+    setCameraError(null);
+    setShowCamera(false);
+    stopCamera();
+
+    if (mode === 'physique') {
+      if (selfieCaptureInputRef.current) {
+        selfieCaptureInputRef.current.value = '';
+        selfieCaptureInputRef.current.click();
+      } else if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+        fileInputRef.current.click();
+      }
+    } else {
+      if (cameraCaptureInputRef.current) {
+        cameraCaptureInputRef.current.value = '';
+        cameraCaptureInputRef.current.click();
+      } else if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+        fileInputRef.current.click();
+      }
+    }
+  };
+
   const handleUploadClick = (mode) => {
     setActiveMode(mode);
     activeModeRef.current = mode;
     setImgPreview(null);
     setResult(null);
+    setCameraError(null);
     setShowCamera(false);
     stopCamera();
     if (fileInputRef.current) {
@@ -336,6 +374,23 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     activeModeRef.current = mode;
     setImgPreview(null);
     setResult(null);
+    setCameraError(null);
+
+    const isSecure = typeof window !== 'undefined' ? (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') : true;
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setShowCamera(false);
+      stopCamera();
+      setCameraError({
+        type: 'no_mediadevices',
+        mode: mode,
+        message: !isSecure
+          ? "Live webcam stream requires a secure HTTPS connection on remote servers. You can use 'Take Photo' (Phone Camera), 'Upload Photo', or open via secure HTTPS."
+          : "Webcam video is not supported or accessible in this browser. Please use 'Take Photo' or 'Upload Photo'."
+      });
+      return;
+    }
+
     setShowCamera(true);
     await new Promise(r => setTimeout(r, 100));
     
@@ -344,10 +399,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
         window.innerWidth < 768
       );
-      const isSecure = typeof window !== 'undefined' ? (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') : true;
-      if (!isSecure) {
-        console.warn("Insecure context detected on mobile network; camera requires HTTPS or localhost.");
-      }
       const targetFacing = facingOverride || cameraFacingRef.current || (mode === 'form' ? 'user' : 'environment');
 
       let stream;
@@ -1757,7 +1808,26 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     } catch (err) {
       console.error("Camera access denied or unavailable", err);
       setShowCamera(false);
-      if (fileInputRef.current) fileInputRef.current.click();
+      stopCamera();
+
+      const isSecure = typeof window !== 'undefined' ? (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') : true;
+
+      let msg = "Camera could not be accessed.";
+      if (!isSecure) {
+        msg = "Modern web browsers block live webcam video on insecure HTTP IP addresses. Please switch to HTTPS, or use 'Take Photo' (Phone Camera) / 'Upload Photo'.";
+      } else if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+        msg = "Camera permission was blocked. Please tap the camera/lock icon in your browser address bar and grant camera permission.";
+      } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+        msg = "No camera or webcam was detected on this device. You can upload a photo instead.";
+      } else if (err?.name === 'NotReadableError' || err?.name === 'TrackStartError') {
+        msg = "Camera is currently being used by another application (Zoom, Teams, or another tab).";
+      }
+
+      setCameraError({
+        type: 'camera_failed',
+        mode: mode,
+        message: msg
+      });
     }
   };
 
@@ -2116,6 +2186,71 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
           Close Hub ✕
         </button>
       </div>
+
+      {/* INSECURE CONTEXT / HTTPS NOTICE */}
+      {typeof window !== 'undefined' && window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname) && (
+        <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-[#54D8CF]/10 border border-[#54D8CF]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[#54D8CF] fade-up">
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">🔒</span>
+            <span>
+              <strong className="text-white">Camera Notice:</strong> Browsers require HTTPS for real-time live webcam streams on remote IPs. You can use <strong className="text-white">📸 Take Photo</strong> (Phone Camera) or <strong className="text-white">📁 Upload Photo</strong> below, or open via secure HTTPS.
+            </span>
+          </div>
+          <a 
+            href="https://eye-compliance-problems-harper.trycloudflare.com" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="shrink-0 px-3 py-1.5 rounded-xl bg-[#54D8CF] text-black font-extrabold text-[11px] hover:bg-[#45c0b7] transition-colors flex items-center gap-1 shadow-md"
+          >
+            Open Secure HTTPS ↗
+          </a>
+        </div>
+      )}
+
+      {/* CAMERA ERROR NOTIFICATION */}
+      {cameraError && (
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 fade-up">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">⚠️</span>
+              <div>
+                <h4 className="font-bold text-white text-base mb-1">Camera Notice</h4>
+                <p className="text-xs text-amber-200/90 leading-relaxed mb-3">{cameraError.message}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleNativeCameraClick(cameraError.mode || 'food')}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#C7F36B] text-black font-extrabold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  >
+                    <span>📸</span> Take Photo (Phone Camera)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUploadClick(cameraError.mode || 'food')}
+                    className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/20 active:scale-95 transition-all"
+                  >
+                    <span>📁</span> Upload Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScanClick(cameraError.mode || 'food')}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1.5 border border-amber-500/40 active:scale-95 transition-all"
+                  >
+                    <span>🔄</span> Retry Live Camera
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button 
+              onClick={() => setCameraError(null)} 
+              className="text-zinc-400 hover:text-white text-sm p-1"
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
 
       {/* LIVE CAMERA INTERFACE */}
@@ -2715,36 +2850,68 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         </div>
       )}
 
-      {/* Fallback hidden file input if camera is denied */}
-      <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+      {/* Hidden inputs: Mobile native rear camera, front selfie camera, and general file upload */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={cameraCaptureInputRef} 
+        className="hidden" 
+        onChange={handleFileChange} 
+      />
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="user" 
+        ref={selfieCaptureInputRef} 
+        className="hidden" 
+        onChange={handleFileChange} 
+      />
+      <input 
+        type="file" 
+        accept="image/*" 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={handleFileChange} 
+      />
 
       {!showCamera && !imgPreview && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Module 1: Form Coach */}
-          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all cursor-pointer" onClick={() => handleScanClick('form')}>
+          <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
             <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=600" className="absolute w-full h-full object-cover opacity-30 mix-blend-luminosity group-hover:opacity-50 transition" alt="Coach" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 / Qwen Vision</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live Biomechanics</div>
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">AI Form Coach</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Capture a photo of your exercise form. AI analyzes your joint angles to detect mistakes.</p>
-              <div className="flex gap-2">
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Real-time skeleton tracking, posture angles, reps & form critique.</p>
+              <div className="flex flex-wrap gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('form')} 
-                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  title="Open live webcam with real-time skeleton overlay"
                 >
-                  OPEN WEBCAM
+                  <span>📹</span> LIVE WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleNativeCameraClick('form')} 
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Open phone camera directly to snap exercise form photo"
+                >
+                  <span>📸</span> TAKE PHOTO
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('form')} 
-                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Upload an existing workout photo or video"
                 >
-                  UPLOAD PHOTO
+                  <span>📁</span> UPLOAD
                 </button>
               </div>
             </div>
@@ -2752,29 +2919,39 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
           {/* Module 2: Auto-Food Logger */}
           <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('food')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600" className="absolute w-full h-full object-cover opacity-40 group-hover:opacity-60 transition" alt="Food" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 / Qwen Vision</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Smart Nutrition</div>
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Auto-Food Logger</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap or upload a photo of your plate. AI detects all ingredients, gram weights, total calories, macros & vitamins.</p>
-              <div className="flex gap-2">
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap or upload a photo of your plate. AI detects all ingredients, weights, calories, macros & vitamins.</p>
+              <div className="flex flex-wrap gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('food')} 
-                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  title="Open live webcam to scan food plate"
                 >
-                  OPEN WEBCAM
+                  <span>📹</span> LIVE WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleNativeCameraClick('food')} 
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Open phone camera directly to take photo of food"
+                >
+                  <span>📸</span> TAKE PHOTO
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('food')} 
-                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Upload a meal photo from your gallery"
                 >
-                  UPLOAD PHOTO
+                  <span>📁</span> UPLOAD
                 </button>
               </div>
             </div>
@@ -2782,29 +2959,39 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
           {/* Module 3: Obesity Count Scanner */}
           <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('physique')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://wger.de/static/images/muscles/muscular_system_front.svg" className="absolute w-full h-full object-contain filter invert opacity-30 mt-4 transition group-hover:opacity-50" alt="Anatomy" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 / Qwen Vision</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Body Composition</div>
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Obesity Count Scanner</h4>
-              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie or webcam. AI estimates your exact obesity count and body composition stage.</p>
-              <div className="flex gap-2">
+              <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie or webcam scan. AI estimates your exact body fat % and physique classification.</p>
+              <div className="flex flex-wrap gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('physique')} 
-                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  title="Open live webcam to scan posture and body composition"
                 >
-                  OPEN WEBCAM
+                  <span>📹</span> LIVE WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleNativeCameraClick('physique')} 
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Open phone camera to take front selfie"
+                >
+                  <span>📸</span> TAKE PHOTO
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('physique')} 
-                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Upload a physique photo from files"
                 >
-                  UPLOAD PHOTO
+                  <span>📁</span> UPLOAD
                 </button>
               </div>
             </div>
@@ -2812,29 +2999,39 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
 
           {/* Module 4: Gym Equipment Scanner */}
           <div className="group relative rounded-2xl border border-[#304149] bg-[#172127] overflow-hidden hover:border-[#54D8CF] transition-all">
-            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => handleScanClick('equipment')}>
+            <div className="h-40 relative bg-[#10181D] border-b border-[#304149] overflow-hidden flex items-center justify-center">
               <img src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=600" className="absolute w-full h-full object-cover opacity-30 mix-blend-luminosity transition group-hover:opacity-50" alt="Gym" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#10181D] to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 Vision (Backend)</div>
-              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Live</div>
+              <div className="absolute bottom-4 left-4 text-xs font-bold uppercase tracking-wider text-[#54D8CF]">Llama-3.2 / Qwen Vision</div>
+              <div className="absolute top-4 right-4 bg-[#C7F36B] text-[#0B1014] text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">Spatial Mesh</div>
             </div>
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Equipment Scanner</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Pan camera or upload gym photo. AI detects all equipment and builds a tailored routine.</p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('equipment')} 
-                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                  title="Open live webcam to scan gym equipment"
                 >
-                  OPEN WEBCAM
+                  <span>📹</span> LIVE WEBCAM
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleNativeCameraClick('equipment')} 
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Open phone camera to take photo of gym equipment"
+                >
+                  <span>📸</span> TAKE PHOTO
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('equipment')} 
-                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
+                  title="Upload a gym photo from files"
                 >
-                  UPLOAD PHOTO
+                  <span>📁</span> UPLOAD
                 </button>
               </div>
             </div>
