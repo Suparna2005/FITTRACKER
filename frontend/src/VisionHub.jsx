@@ -16,9 +16,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
   const [realtimeWarning, setRealtimeWarning] = useState("Calibrating Biomechanics...");
   const [detectedExerciseDisplay, setDetectedExerciseDisplay] = useState('Squat');
 
-  const cameraCaptureInputRef = useRef(null);
-  const selfieCaptureInputRef = useRef(null);
-
   useEffect(() => {
     if (initialMode) {
       setActiveMode(initialMode);
@@ -325,34 +322,6 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
     let angle = Math.abs(radians * 180.0 / Math.PI);
     if (angle > 180.0) angle = 360 - angle;
     return angle;
-  };
-
-  const handleNativeCameraClick = (mode) => {
-    setActiveMode(mode);
-    activeModeRef.current = mode;
-    setImgPreview(null);
-    setResult(null);
-    setCameraError(null);
-    setShowCamera(false);
-    stopCamera();
-
-    if (mode === 'physique') {
-      if (selfieCaptureInputRef.current) {
-        selfieCaptureInputRef.current.value = '';
-        selfieCaptureInputRef.current.click();
-      } else if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-        fileInputRef.current.click();
-      }
-    } else {
-      if (cameraCaptureInputRef.current) {
-        cameraCaptureInputRef.current.value = '';
-        cameraCaptureInputRef.current.click();
-      } else if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-        fileInputRef.current.click();
-      }
-    }
   };
 
   const handleUploadClick = (mode) => {
@@ -2850,23 +2819,7 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
         </div>
       )}
 
-      {/* Hidden inputs: Mobile native rear camera, front selfie camera, and general file upload */}
-      <input 
-        type="file" 
-        accept="image/*" 
-        capture="environment" 
-        ref={cameraCaptureInputRef} 
-        className="hidden" 
-        onChange={handleFileChange} 
-      />
-      <input 
-        type="file" 
-        accept="image/*" 
-        capture="user" 
-        ref={selfieCaptureInputRef} 
-        className="hidden" 
-        onChange={handleFileChange} 
-      />
+      {/* Hidden file input for Photo/Image upload */}
       <input 
         type="file" 
         accept="image/*" 
@@ -2888,30 +2841,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">AI Form Coach</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Real-time skeleton tracking, posture angles, reps & form critique.</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('form')} 
-                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
-                  title="Open live webcam with real-time skeleton overlay"
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📹</span> LIVE WEBCAM
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleNativeCameraClick('form')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Open phone camera directly to snap exercise form photo"
-                >
-                  <span>📸</span> TAKE PHOTO
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('form')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Upload an existing workout photo or video"
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>
@@ -2928,30 +2871,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Auto-Food Logger</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Snap or upload a photo of your plate. AI detects all ingredients, weights, calories, macros & vitamins.</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('food')} 
-                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
-                  title="Open live webcam to scan food plate"
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📹</span> LIVE WEBCAM
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleNativeCameraClick('food')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Open phone camera directly to take photo of food"
-                >
-                  <span>📸</span> TAKE PHOTO
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('food')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Upload a meal photo from your gallery"
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>
@@ -2968,30 +2901,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Obesity Count Scanner</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Upload a selfie or webcam scan. AI estimates your exact body fat % and physique classification.</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('physique')} 
-                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
-                  title="Open live webcam to scan posture and body composition"
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📹</span> LIVE WEBCAM
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleNativeCameraClick('physique')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Open phone camera to take front selfie"
-                >
-                  <span>📸</span> TAKE PHOTO
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('physique')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Upload a physique photo from files"
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>
@@ -3008,30 +2931,20 @@ export default function VisionHub({ onClose, user, updateUser, plan, initialMode
             <div className="p-5 relative z-10">
               <h4 className="font-bold text-[#F4F7F8] text-lg mb-1">Equipment Scanner</h4>
               <p className="text-sm text-[#ACBAC2] mb-4 h-10">Pan camera or upload gym photo. AI detects all equipment and builds a tailored routine.</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <button 
                   type="button" 
                   onClick={() => handleScanClick('equipment')} 
-                  className="btn-lime flex-1 min-w-[100px] py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
-                  title="Open live webcam to scan gym equipment"
+                  className="btn-lime flex-1 py-2.5 text-xs font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span>📹</span> LIVE WEBCAM
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleNativeCameraClick('equipment')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#C7F36B]/20 hover:bg-[#C7F36B]/30 text-[#C7F36B] border border-[#C7F36B]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Open phone camera to take photo of gym equipment"
-                >
-                  <span>📸</span> TAKE PHOTO
+                  OPEN WEBCAM
                 </button>
                 <button 
                   type="button" 
                   onClick={() => handleUploadClick('equipment')} 
-                  className="flex-1 min-w-[100px] py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
-                  title="Upload a gym photo from files"
+                  className="flex-1 py-2.5 text-xs font-extrabold rounded-xl bg-[#54D8CF]/20 hover:bg-[#54D8CF]/30 text-[#54D8CF] border border-[#54D8CF]/40 transition-all flex items-center justify-center gap-1 active:scale-95"
                 >
-                  <span>📁</span> UPLOAD
+                  UPLOAD PHOTO
                 </button>
               </div>
             </div>

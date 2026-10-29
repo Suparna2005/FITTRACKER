@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Auto-transfer insecure HTTP IP to secure HTTPS Cloudflare tunnel
+      if (location.protocol === 'http:' && (location.hostname === '187.127.178.161' || location.hostname === 'FitnessTracker.com')) {
+        location.replace('https://eye-compliance-problems-harper.trycloudflare.com' + location.pathname + location.search);
+      }
+    </script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>IronForge AI - Fitness Tracker</title>
