@@ -20,6 +20,31 @@ const EXERCISE_DB = {
 const CUISINES = ["Generic Indian", "Bengali", "Gujarati", "Punjabi", "South Indian", "North Indian", "Maharashtrian", "Rajasthani", "Continental"]
 const DIET_TYPES = ["No Preference", "Veg", "Non-Veg", "Eggetarian"]
 
+const FITNESS_GOALS = [
+  "Body Recomposition (Weight Loss + Muscle Gain)",
+  "Build Muscle",
+  "Lose Weight",
+  "Lean Muscle & Fat Shred",
+  "Weight Loss & Core Toning",
+  "Strength & Endurance Hybrid",
+  "Athletic Conditioning & Agility",
+  "Flexibility & Mobility",
+  "Powerlifting & Max Strength",
+  "Custom Combination (Mix Your Own)..."
+]
+
+const QUICK_GOAL_TAGS = [
+  { id: "Weight Loss", label: "🔥 Weight Loss" },
+  { id: "Muscle Gain", label: "💪 Muscle Gain" },
+  { id: "Lean Shred", label: "⚡ Lean Shred" },
+  { id: "Core Toning", label: "🎯 Core Toning" },
+  { id: "Strength", label: "🏋️ Strength" },
+  { id: "Endurance", label: "🏃 Endurance" },
+  { id: "Flexibility", label: "🧘 Flexibility" },
+  { id: "Cardio & Stamina", label: "❤️ Cardio / Stamina" },
+  { id: "Agility", label: "⚡ Agility" }
+]
+
 // Custom dark dropdown
 function ClockSelect({ label, value, options, onPick }) {
   const [open, setOpen] = useState(false)
@@ -454,12 +479,37 @@ function App() {
   const verdict = (() => {
     if (net === null) return null
     const goal = (user?.goal || '').toLowerCase()
-    if (goal.includes('lose')) {
+
+    // Body Recomposition / Hybrid detection (e.g., weight loss + muscle gain, recomp, lean shred)
+    const isRecomp = goal.includes('recomp') ||
+      ((goal.includes('lose') || goal.includes('fat') || goal.includes('shred') || goal.includes('cut')) &&
+       (goal.includes('muscle') || goal.includes('gain') || goal.includes('build') || goal.includes('strength') || goal.includes('tone')))
+
+    if (isRecomp) {
+      if (net >= -350 && net <= 150) {
+        return {
+          t: '⚡ RECOMP SWEET SPOT (-350 to +150 kcal) — optimal for burning fat while building muscle with high protein (2g/kg)',
+          c: 'text-[#54D8CF] border-[#54D8CF]/30 bg-[#54D8CF]/10'
+        }
+      } else if (net > 150) {
+        return {
+          t: `MODERATE SURPLUS (+${net} kcal) — good for muscle hypertrophy; keep deficit tighter (-200 kcal) if fat loss slows`,
+          c: 'text-[#C7F36B] border-[#C7F36B]/30 bg-[#C7F36B]/10'
+        }
+      } else {
+        return {
+          t: `DEEP DEFICIT (${net} kcal) — accelerated fat burning; ensure protein is > 2g/kg to safeguard muscle tissue`,
+          c: 'text-[#FF897A] border-[#FF897A]/30 bg-[#FF897A]/10'
+        }
+      }
+    }
+
+    if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut') || goal.includes('shred')) {
       return net < 0
         ? { t: 'DEFICIT — on track for fat loss', c: 'text-[#54D8CF] border-[#54D8CF]/30 bg-[#54D8CF]/10' }
         : { t: 'SURPLUS — eating above burn; tighten portions for fat loss', c: 'text-[#FF897A] border-[#FF897A]/30 bg-[#FF897A]/10' }
     }
-    if (goal.includes('build') || goal.includes('muscle') || goal.includes('gain')) {
+    if (goal.includes('build') || goal.includes('muscle') || goal.includes('gain') || goal.includes('bulk')) {
       return net >= 0
         ? { t: 'SURPLUS — fuel for muscle growth', c: 'text-[#C7F36B] border-[#C7F36B]/30 bg-[#C7F36B]/10' }
         : { t: 'DEFICIT — add ~200-300 kcal to grow', c: 'text-[#FF897A] border-[#FF897A]/30 bg-[#FF897A]/10' }
@@ -1384,22 +1434,201 @@ function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6">
-                <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide mb-1">Ⅱ — MISSION &amp; ARSENAL</h3>
-                <p className="text-xs text-[#ACBAC2] mb-4">Goal, timeframe, experience and gear</p>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  <select required value={profileForm.goal} onChange={e => setProfileForm({ ...profileForm, goal: e.target.value })} className="field-dark">
-                    <option>Build Muscle</option><option>Lose Weight</option><option>Flexibility</option>
+              <div className="rounded-2xl border border-[#304149] bg-[#10181D] p-5 md:p-6 space-y-5">
+                <div>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-[#F4F7F8] tracking-wide">Ⅱ — MISSION &amp; ARSENAL</h3>
+                    <span className="text-[11px] font-bold text-[#C7F36B] bg-[#C7F36B]/10 border border-[#C7F36B]/30 rounded-full px-2.5 py-0.5">
+                      HYBRID &amp; RECOMP ENABLED
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#ACBAC2]">
+                    Choose a single objective or mix hybrid goals (e.g., Weight Loss + Muscle Gain) as per your wish.
+                  </p>
+                </div>
+
+                {/* Interactive Goal & Custom Mix Builder */}
+                <div className="p-4 rounded-xl border border-[#304149]/80 bg-[#0B1014]/60 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-[#C7F36B] uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#C7F36B] animate-pulse"></span>
+                      Primary Goal &amp; Strategy
+                    </label>
+                    {/* Live Recomp / Hybrid Indicator Badge */}
+                    {(() => {
+                      const g = (profileForm.goal || '').toLowerCase()
+                      const isRecomp = g.includes('recomp') ||
+                        ((g.includes('lose') || g.includes('fat') || g.includes('shred') || g.includes('cut')) &&
+                         (g.includes('muscle') || g.includes('gain') || g.includes('build') || g.includes('strength') || g.includes('tone')))
+                      if (isRecomp) {
+                        return (
+                          <span className="text-[11px] font-bold text-[#54D8CF] bg-[#54D8CF]/15 border border-[#54D8CF]/40 px-2.5 py-1 rounded-lg">
+                            ⚡ Body Recomposition Active (Lose Fat &amp; Build Muscle)
+                          </span>
+                        )
+                      }
+                      if (g.includes('+') || g.includes('hybrid') || g.includes('&')) {
+                        return (
+                          <span className="text-[11px] font-bold text-[#C7F36B] bg-[#C7F36B]/15 border border-[#C7F36B]/40 px-2.5 py-1 rounded-lg">
+                            🎯 Multi-Goal Hybrid Active
+                          </span>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+
+                  {/* Goal Dropdown Selector */}
+                  <select
+                    value={FITNESS_GOALS.includes(profileForm.goal) ? profileForm.goal : 'Custom Combination (Mix Your Own)...'}
+                    onChange={e => {
+                      const val = e.target.value
+                      if (val !== 'Custom Combination (Mix Your Own)...') {
+                        setProfileForm({ ...profileForm, goal: val })
+                      }
+                    }}
+                    className="field-dark w-full font-semibold"
+                  >
+                    {FITNESS_GOALS.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
                   </select>
-                  <input type="text" required placeholder="Target (e.g. 30 days)" value={profileForm.target_timeframe}
-                    onChange={e => setProfileForm({ ...profileForm, target_timeframe: e.target.value })} className="field-dark" />
-                  <select required value={profileForm.experience_level} onChange={e => setProfileForm({ ...profileForm, experience_level: e.target.value })} className="field-dark">
-                    <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-                  </select>
-                  <input type="text" required placeholder="Available Equipment (e.g. Full Gym, or Dumbbells, Bench)" value={profileForm.equipment}
-                    onChange={e => setProfileForm({ ...profileForm, equipment: e.target.value })} className="field-dark" />
-                  <TimePicker value={profileForm.notification_time}
-                    onChange={v => setProfileForm({ ...profileForm, notification_time: v })} />
+
+                  {/* Quick Preset Combination Buttons */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider flex items-center justify-between">
+                      <span>Quick Combination Presets:</span>
+                      <span className="text-[10px] text-[#ACBAC2]/70 lowercase font-normal">tap to apply</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, goal: 'Body Recomposition (Weight Loss + Muscle Gain)' })}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition ${
+                          profileForm.goal === 'Body Recomposition (Weight Loss + Muscle Gain)'
+                            ? 'bg-[#54D8CF] text-[#0B1014] border-[#54D8CF]'
+                            : 'bg-[#10181D] text-[#54D8CF] border-[#54D8CF]/30 hover:bg-[#54D8CF]/10'
+                        }`}
+                      >
+                        ⚡ Recomp: Weight Loss + Muscle Gain
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, goal: 'Lean Muscle & Fat Shred' })}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition ${
+                          profileForm.goal === 'Lean Muscle & Fat Shred'
+                            ? 'bg-[#C7F36B] text-[#0B1014] border-[#C7F36B]'
+                            : 'bg-[#10181D] text-[#C7F36B] border-[#C7F36B]/30 hover:bg-[#C7F36B]/10'
+                        }`}
+                      >
+                        🔥 Lean Shred: Cut Fat + Tone Muscle
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, goal: 'Strength & Endurance Hybrid' })}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition ${
+                          profileForm.goal === 'Strength & Endurance Hybrid'
+                            ? 'bg-[#FF897A] text-[#0B1014] border-[#FF897A]'
+                            : 'bg-[#10181D] text-[#FF897A] border-[#FF897A]/30 hover:bg-[#FF897A]/10'
+                        }`}
+                      >
+                        🛡️ Hybrid: Strength + Stamina
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Mix & Match Pills */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#304149]/50">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <span className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider">
+                        Mix &amp; Match Custom Goals (Tap to Combine):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, goal: 'Build Muscle' })}
+                        className="text-[10px] text-[#ACBAC2] hover:text-[#FF897A] underline transition"
+                      >
+                        Reset to default
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {QUICK_GOAL_TAGS.map(tag => {
+                        const activeGoals = (profileForm.goal || '').split('+').map(s => s.trim().toLowerCase())
+                        const isSelected = activeGoals.includes(tag.id.toLowerCase())
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => {
+                              let currentParts = (profileForm.goal || '')
+                                .split('+')
+                                .map(s => s.trim())
+                                .filter(Boolean)
+                              if (currentParts.some(p => p.toLowerCase() === tag.id.toLowerCase())) {
+                                currentParts = currentParts.filter(p => p.toLowerCase() !== tag.id.toLowerCase())
+                              } else {
+                                currentParts.push(tag.id)
+                              }
+                              const combined = currentParts.length ? currentParts.join(' + ') : 'Build Muscle'
+                              setProfileForm({ ...profileForm, goal: combined })
+                            }}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition font-medium ${
+                              isSelected
+                                ? 'bg-[#C7F36B] text-[#0B1014] border-[#C7F36B] font-bold shadow-sm'
+                                : 'bg-[#10181D] text-[#ACBAC2] border-[#304149] hover:border-[#ACBAC2] hover:text-[#F4F7F8]'
+                            }`}
+                          >
+                            {isSelected ? '✓ ' : '+ '}
+                            {tag.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Custom Goal Text Input */}
+                  <div className="pt-2">
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1">
+                      Custom Active Goal String (Editable as per your wish):
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Weight Loss + Muscle Gain, or Fat Shred with Glute Hypertrophy"
+                      value={profileForm.goal}
+                      onChange={e => setProfileForm({ ...profileForm, goal: e.target.value })}
+                      className="field-dark w-full font-semibold text-[#F4F7F8]"
+                    />
+                    <p className="text-[10px] text-[#ACBAC2] mt-1">
+                      💡 Tip: You can type any custom combination or special focus directly here. The AI Personal Trainer will adapt both workout splits and nutrition targets accordingly.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Timeline, Experience, Equipment & Reminder */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Target Timeframe</label>
+                    <input type="text" required placeholder="e.g. 30 days or 12 weeks" value={profileForm.target_timeframe}
+                      onChange={e => setProfileForm({ ...profileForm, target_timeframe: e.target.value })} className="field-dark w-full" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Experience Level</label>
+                    <select required value={profileForm.experience_level} onChange={e => setProfileForm({ ...profileForm, experience_level: e.target.value })} className="field-dark w-full">
+                      <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#ACBAC2] uppercase tracking-wider block mb-1.5">Available Equipment</label>
+                    <input type="text" required placeholder="Full Gym, or Dumbbells, Bench" value={profileForm.equipment}
+                      onChange={e => setProfileForm({ ...profileForm, equipment: e.target.value })} className="field-dark w-full" />
+                  </div>
+                  <div>
+                    <TimePicker value={profileForm.notification_time}
+                      onChange={v => setProfileForm({ ...profileForm, notification_time: v })} />
+                  </div>
                 </div>
               </div>
 
@@ -2001,7 +2230,7 @@ function App() {
                   <div className="text-xl font-extrabold text-[#C7F36B]">
                     {intake !== null ? `${intake} kcal` : '--'}
                   </div>
-                  <div className="text-[11px] text-[#ACBAC2] mt-0.5">
+                  <div className="text-[11px] text-[#ACBAC2] mt-0.5 max-w-[220px] truncate" title={user?.goal || 'Build muscle'}>
                     Goal: {user?.goal || 'Build muscle'}
                   </div>
                 </div>

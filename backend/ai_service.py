@@ -74,6 +74,34 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     SAFETY MANDATE: You MUST modify today's workout plan to protect the athlete! Exclude or modify aggravating exercises, replace them with safer alternatives, or focus on non-injured body parts. Add a key "adapted_for_discomfort" inside "workout_plan" object with a short summary string describing how the plan was modified to keep the athlete safe.
     """
 
+    goal_str = (str(getattr(user_data, 'goal', '')) or '').lower()
+    recomp_or_hybrid_txt = ""
+    is_recomp = any(k in goal_str for k in ['recomp', 'recomposition']) or (
+        any(k in goal_str for k in ['lose', 'loss', 'fat', 'cut', 'shred']) and
+        any(k in goal_str for k in ['muscle', 'gain', 'build', 'strength', 'hypertrophy', 'tone'])
+    )
+    is_strength_endurance = any(k in goal_str for k in ['endurance', 'stamina', 'cardio']) and any(k in goal_str for k in ['strength', 'muscle', 'power'])
+
+    if is_recomp:
+        recomp_or_hybrid_txt = f"""
+    SPECIAL PROTOCOL — BODY RECOMPOSITION (SIMULTANEOUS WEIGHT LOSS & MUSCLE GAIN):
+    The athlete has selected a Body Recomposition or Hybrid goal: "{user_data.goal}".
+    Medical & Sports Science Directives:
+    1. DIET / NUTRITION:
+       - Prescribe a slight, controlled deficit of -200 to -300 kcal below maintenance (NOT a severe starvation deficit, to preserve lean mass).
+       - Prescribe HIGH PROTEIN (2.0 to 2.2g per kg bodyweight) to maximize muscle protein synthesis and prevent catabolism.
+       - Focus carbs peri-workout and clean fats for hormonal and joint health.
+    2. WORKOUT ARCHITECTURE:
+       - Focus: Progressive overload hypertrophy resistance training (3-4 sets of 8-12 reps near RPE 8-9) on compound movements to trigger muscle growth signals.
+       - Finisher: 10-15 minutes of zone-2 aerobic conditioning or metabolic HIIT circuits to maximize caloric expenditure and fat oxidation without impeding muscle recovery.
+    """
+    elif is_strength_endurance:
+        recomp_or_hybrid_txt = f"""
+    SPECIAL PROTOCOL — CONCURRENT STRENGTH & ENDURANCE HYBRID:
+    The athlete has selected a hybrid goal: "{user_data.goal}".
+    Protocol: Pair heavy compound resistance training (3-5 or 6-8 reps) with cardiovascular conditioning and metabolic threshold work.
+    """
+
     prompt = f"""
     You are an expert AI personal trainer, doctor, and nutritionist. Return valid json only.
     
@@ -85,7 +113,7 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     - Initial Weight: {user_data.weight} | Initial Height: {user_data.height}
     - Body Fat/Structure: {getattr(user_data, 'body_fat', 'Unknown')}
     - Blood Pressure: {user_data.blood_pressure} | Blood Group: {user_data.blood_group}
-    - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}{discomfort_txt}
+    - Medical Conditions / Injuries: {user_data.medical_conditions}{split_txt}{day_txt}{diet_txt}{discomfort_txt}{recomp_or_hybrid_txt}
     
     History of last 7 days (Includes Daily Weight, Diet Followed, Supplements, and Workouts):
     {history_data}
@@ -102,6 +130,32 @@ def generate_plan(user_data, history_data, plan_type="1-day", workout_split=None
     
     # Fallback mock data in case of errors
     def _get_mock(err):
+        if is_recomp:
+            return {
+                "API_ERROR": f"Groq API failed: {err} (Showing Recomposition Mock Data)",
+                "workout_plan": {
+                    "day": target_day or "Monday",
+                    "focus": "Body Recomposition — Compound Hypertrophy + Metabolic Conditioning",
+                    "exercises": [
+                        {"name": "Barbell Squats", "sets": 4, "reps": "8-10", "rest": "90s"},
+                        {"name": "Incline Dumbbell Bench Press", "sets": 4, "reps": "8-12", "rest": "75s"},
+                        {"name": "Chest-Supported Dumbbell Rows", "sets": 3, "reps": "10-12", "rest": "60s"},
+                        {"name": "Romanian Deadlifts", "sets": 3, "reps": "10-12", "rest": "75s"},
+                        {"name": "HIIT Finisher: Kettlebell Swings / Jump Rope", "sets": 4, "reps": "45s work / 45s rest", "rest": "60s"}
+                    ]
+                },
+                "diet_chart": {
+                    "daily_calories": 2100,
+                    "macros": {"protein": "165g", "carbs": "190g", "fats": "60g"},
+                    "notes": "Body Recomposition Protocol: High protein (2.0g/kg) with mild -250 kcal controlled deficit for simultaneous fat loss and muscle gain.",
+                    "meals": [
+                        {"name": "Breakfast", "meal": "Egg white & whole egg scramble with spinach, avocado on whole grain toast"},
+                        {"name": "Lunch", "meal": "Grilled chicken breast or tofu bowl with quinoa, steamed broccoli, and olive oil"},
+                        {"name": "Pre/Post Workout", "meal": "Whey protein isolate or plant protein shake with blueberries and oats"},
+                        {"name": "Dinner", "meal": "Wild salmon or paneer stir-fry with mixed vegetables and baked sweet potato"}
+                    ]
+                }
+            }
         return {
             "API_ERROR": f"Groq API failed: {err} (Showing Mock Data)",
             "workout_plan": {
