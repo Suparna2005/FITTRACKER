@@ -123,6 +123,8 @@ function App() {
   const [historyDate, setHistoryDate] = useState('')
   const [chartTimeframe, setChartTimeframe] = useState('weekly') // 'weekly' or 'monthly'
   const [planTab, setPlanTab] = useState('workout') // 'workout' or 'nutrition'
+  const [tutorialFilter, setTutorialFilter] = useState('all')
+  const [expandedFaq, setExpandedFaq] = useState(null) // 'workout' or 'nutrition'
   const planRef = useRef(null)
 
   const fetchNotifs = async () => {
@@ -1867,128 +1869,558 @@ function App() {
         )}
 
         {view === 'tutorial' && (
-          <div className="max-w-5xl mx-auto fade-up">
-<Panel kicker="SYSTEM TRAINING & MANUAL" title="IRONFORGE VISUAL TUTORIAL" sub="Step-by-step visual process guide to master all AI modules and hands-free camera controls.">
-            <div className="grid grid-cols-1 gap-8 mt-6">
-              
-              {/* Step 1: AI Vision & Hands-Free Controls */}
-              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">1</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Vision Hub &amp; Hands-Free Controls</h3>
+          <div className="max-w-5xl mx-auto fade-up space-y-8">
+            <Panel 
+              kicker="SYSTEM TRAINING & USER GUIDE" 
+              title="IRONFORGE MASTER VISUAL TUTORIAL" 
+              sub="Complete step-by-step interactive manual covering 60 FPS skeletal vision, dual webcam/upload modes, multimodal scanners, custom AI splits, and mobile app installation."
+              action={
+                <button 
+                  onClick={() => setView('dashboard')} 
+                  className="px-3.5 py-1.5 rounded-xl border border-[#304149] bg-[#10181D] hover:bg-[#172127] text-xs font-bold text-[#ACBAC2] hover:text-[#F4F7F8] transition-all flex items-center gap-1.5"
+                >
+                  <span>←</span> Back to Dashboard
+                </button>
+              }
+            >
+              {/* Category Filter Pills */}
+              <div className="mt-4 pb-2 border-b border-[#304149]/60 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                {[
+                  { id: 'all', label: '🌟 All Modules' },
+                  { id: 'vision', label: '👁️ AI Vision (4 Tools)' },
+                  { id: 'workout', label: '💪 Workouts & Splits' },
+                  { id: 'recovery', label: '🩺 Recovery & Doctor' },
+                  { id: 'guide', label: '🧬 Muscle Anatomy' },
+                  { id: 'mobile', label: '📱 Phone App (PWA)' },
+                  { id: 'faq', label: '❓ FAQ & Controls' },
+                ].map(cat => {
+                  const isActive = tutorialFilter === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setTutorialFilter(cat.id)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider whitespace-nowrap transition-all ${
+                        isActive
+                          ? 'bg-[#C7F36B] text-[#0B1014] shadow-sm scale-105'
+                          : 'bg-[#10181D] hover:bg-[#172127] text-[#ACBAC2] hover:text-[#F4F7F8] border border-[#304149]'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Notice Banner: The 2 Options Explained */}
+              {(tutorialFilter === 'all' || tutorialFilter === 'vision') && (
+                <div className="mt-6 rounded-2xl border-2 border-[#54D8CF]/40 bg-[#54D8CF]/10 p-5 md:p-6 relative overflow-hidden">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-[#54D8CF] mb-1">
+                        <span className="w-2 h-2 rounded-full bg-[#54D8CF] animate-ping"></span>
+                        HOW TO USE AI SCANNERS • 2 SIMPLE CHOICES
+                      </div>
+                      <h4 className="text-lg md:text-xl font-black text-[#F4F7F8]">
+                        "OPEN WEBCAM" vs "UPLOAD PHOTO"
+                      </h4>
+                      <p className="text-xs md:text-sm text-[#ACBAC2] mt-1 max-w-2xl leading-relaxed">
+                        Every AI Vision scanner features two dedicated options designed for maximum speed and browser security:
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => { setVisionMode(null); setView('vision'); }}
+                      className="btn-lime text-xs font-extrabold py-2.5 px-5 shrink-0 self-start md:self-auto"
+                    >
+                      LAUNCH VISION HUB →
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="bg-[#10181D]/80 border border-[#304149] p-4 rounded-xl">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-2 py-0.5 rounded bg-[#C7F36B] text-[#0B1014] text-[10px] font-black uppercase">OPTION 1</span>
+                        <h5 className="font-bold text-sm text-[#F4F7F8]">OPEN WEBCAM (Live Camera)</h5>
+                      </div>
+                      <p className="text-xs text-[#ACBAC2] leading-relaxed">
+                        Launches your live desktop or smartphone camera stream with <strong>60 FPS real-time MediaPipe skeletal tracking</strong>, voice rep counts, and instant posture cue overlays. Powered over secure HTTPS.
+                      </p>
+                    </div>
+                    <div className="bg-[#10181D]/80 border border-[#304149] p-4 rounded-xl">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="px-2 py-0.5 rounded bg-[#54D8CF] text-[#0B1014] text-[10px] font-black uppercase">OPTION 2</span>
+                        <h5 className="font-bold text-sm text-[#F4F7F8]">UPLOAD PHOTO (Static Analysis)</h5>
+                      </div>
+                      <p className="text-xs text-[#ACBAC2] leading-relaxed">
+                        Allows selecting or snapping any high-resolution image from your phone gallery or files for deep multimodal AI inspection (meal macros, body fat analysis, gym machines).
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* Grid of Tutorial Steps */}
+              <div className="grid grid-cols-1 gap-8 mt-6">
                 
-                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
-                  <img 
-                    src="/tutorial/vision_tutorial.jpg" 
-                    alt="AI Vision & Hands-Free Process Diagram" 
-                    className="w-full h-auto object-cover"
-                  />
-                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    Process Diagram
-                  </div>
-                </div>
+                {/* Step 1: AI Vision & Hands-Free Controls */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'vision') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">1</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#54D8CF]">Module 01 • Vision Coach</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Vision Hub &amp; Live Form Coach</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => { setVisionMode('form'); setView('vision'); }}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        TRY FORM COACH →
+                      </button>
+                    </div>
+                    
+                    <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                      <img 
+                        src="/tutorial/vision_tutorial.jpg" 
+                        alt="AI Vision & Hands-Free Process Diagram" 
+                        className="w-full h-auto object-cover"
+                      />
+                      <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                        Process Diagram
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">60 FPS Biomechanics</div>
-                    <div className="text-xs text-[#ACBAC2]">Tracks skeletal joints in real-time. Flashes green for posture and red for bad form cues.</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">60 FPS Biomechanics</div>
+                        <div className="text-xs text-[#ACBAC2]">Tracks 33 skeletal joints in real-time. Flashes <span className="text-[#C7F36B] font-bold">🟢 Green</span> for optimal form and <span className="text-[#FF897A] font-bold">🔴 Red</span> for bad posture cues.</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">Hand Signal Control</div>
+                        <div className="text-xs text-[#ACBAC2]">Hold up <strong>🖐️ Open Palm</strong> for 3s countdown, <strong>✌️ 2 Fingers</strong> to start set, and <strong>✊ Fist</strong> to pause without touching screen!</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">Voice Recognition</div>
+                        <div className="text-xs text-[#ACBAC2]">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, <em>"Go"</em>, or <em>"Stop"</em> to change sets and rep tracking completely hands-free!</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">Hand Signal Control</div>
-                    <div className="text-xs text-[#ACBAC2]">Hold up <strong>1 finger for Set 1</strong>, <strong>2 fingers for Set 2</strong>, <strong>3 fingers for Set 3</strong> without touching screen!</div>
+                )}
+
+                {/* Step 2: Auto-Food Vision Logger */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'vision' || tutorialFilter === 'nutrition') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#FF897A] text-[#0B1014] flex items-center justify-center font-black text-lg">2</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#FF897A]">Module 02 • Multimodal Nutrition</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Auto-Food Vision Logger &amp; Macro Analysis</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => { setVisionMode('food'); setView('vision'); }}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        TRY FOOD SCANNER →
+                      </button>
+                    </div>
+
+                    <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                      <img 
+                        src="/tutorial/food_tutorial.jpg" 
+                        alt="Auto Food Vision Logger Diagram" 
+                        className="w-full h-auto object-cover"
+                      />
+                      <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                        Vision Macro AI
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#FF897A] text-base">Action: Click "AI Vision" → Select "Auto-Food Logger".</strong></p>
+                      <p>1. Tap <strong>"OPEN WEBCAM"</strong> to take a photo or <strong>"UPLOAD PHOTO"</strong> from your phone gallery.</p>
+                      <p>2. Multimodal AI automatically detects dishes, estimates portion weights in grams, and computes total Calories, Protein, Carbs, and Fats.</p>
+                      <p>3. Tap <strong>"✓ Save to Profile"</strong> to log nutrition directly to your daily diary and automatically balance your remaining calorie budget!</p>
+                    </div>
                   </div>
-                  <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
-                    <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">Voice Recognition</div>
-                    <div className="text-xs text-[#ACBAC2]">Say <em>"Start set 1"</em>, <em>"Set 2"</em>, or <em>"Go"</em> to change sets hands-free using AI voice!</div>
+                )}
+
+                {/* Step 3: Obesity Count & Body Composition Scanner */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'vision') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">3</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#54D8CF]">Module 03 • Body Recomposition</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Obesity Count &amp; Body Composition Scanner</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => { setVisionMode('physique'); setView('vision'); }}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        TRY OBESITY SCANNER →
+                      </button>
+                    </div>
+
+                    {/* Visual Body Fat Spectrum */}
+                    <div className="my-4 p-5 rounded-xl border border-[#304149] bg-[#0B1014]">
+                      <div className="text-xs font-extrabold uppercase tracking-widest text-[#54D8CF] mb-3">Physique Archetype Spectrum</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                        {[
+                          { range: '6-9%', label: 'Shredded', color: '#C7F36B' },
+                          { range: '10-14%', label: 'Athletic', color: '#54D8CF' },
+                          { range: '15-19%', label: 'Fit', color: '#54D8CF' },
+                          { range: '20-24%', label: 'Average', color: '#F4F7F8' },
+                          { range: '25-29%', label: 'Heavy', color: '#FF897A' },
+                          { range: '30%+', label: 'Obese', color: '#FF897A' },
+                        ].map((tier, idx) => (
+                          <div key={idx} className="bg-[#172127] border border-[#304149] p-3 rounded-lg text-center">
+                            <div className="font-extrabold text-sm" style={{ color: tier.color }}>{tier.range}</div>
+                            <div className="text-[11px] text-[#ACBAC2] font-semibold mt-0.5">{tier.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#54D8CF] text-base">Action: Click "AI Vision" → Select "Obesity Count Scanner".</strong></p>
+                      <p>1. Stand in a well-lit room and snap or upload a full-body standing photo (front view in athletic wear).</p>
+                      <p>2. Computer vision evaluates muscular definition, vascularity, waist-to-hip ratio, and estimated Body Fat %.</p>
+                      <p>3. Tap <strong>"Apply to Profile"</strong>: Your athlete diagnostics immediately update, automatically adjusting your daily target calorie deficit or surplus to optimize fat loss and lean muscle retention!</p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Step 4: Gym Equipment & Machine AI Scanner */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'vision') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">4</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#C7F36B]">Module 04 • Machine Vision</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Gym Equipment &amp; Machine AI Scanner</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => { setVisionMode('equipment'); setView('vision'); }}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        TRY EQUIPMENT SCANNER →
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">Instant Machine ID</div>
+                        <div className="text-xs text-[#ACBAC2]">Point camera or upload photo of cables, leg press, smith machine, or dumbbells. AI identifies the apparatus immediately.</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">Target Muscles &amp; Setup</div>
+                        <div className="text-xs text-[#ACBAC2]">Shows primary agonist muscles, secondary synergists, seat height, pad alignment, and pin adjustment instructions.</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">Form Cues &amp; Mistakes</div>
+                        <div className="text-xs text-[#ACBAC2]">Gives step-by-step biomechanical execution cues and warns against common rookie mistakes like elbow flare or spine rounding.</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#C7F36B] text-base">Action: Click "AI Vision" → Select "Equipment Scanner".</strong></p>
+                      <p>1. Tap <strong>"OPEN WEBCAM"</strong> or <strong>"UPLOAD PHOTO"</strong> to scan any gym machine or free weight setup.</p>
+                      <p>2. Review the full biomechanical breakdown: setup tips, safety locks, and recommended sets/reps tailored to your profile!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: AI Doctor & Injury Management */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'recovery') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">5</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#54D8CF]">Module 05 • Clinical Protocols</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Doctor &amp; Sports Trainer (Discomfort Logger)</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setView('discomfort')}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        OPEN RECOVERY →
+                      </button>
+                    </div>
+
+                    <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                      <img 
+                        src="/tutorial/doctor_tutorial.jpg" 
+                        alt="AI Doctor & Injury Logger Process Diagram" 
+                        className="w-full h-auto object-cover"
+                      />
+                      <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#54D8CF] border border-[#54D8CF]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                        Medical Protocol
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#54D8CF] text-base">Action: Click "Recovery" in sidebar whenever feeling pain or joint stress.</strong></p>
+                      <p>1. Select the affected movement (e.g. Squat, Overhead Press) and specify symptoms or pain severity.</p>
+                      <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (immediate care RICE instructions) and a <strong>Master Trainer</strong> (form cues & safe exercise substitutions).</p>
+                      <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 text-[11px] font-extrabold px-2 py-0.5 rounded">ADAPTED FOR RECOVERY</span> badge to safeguard your joints!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 6: AI Workout Split Builder */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'workout') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">6</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#C7F36B]">Module 06 • Periodization</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Workout Split Builder &amp; Muscle Activation</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setView('split')}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        BUILD WORKOUT SPLIT →
+                      </button>
+                    </div>
+
+                    <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
+                      <img 
+                        src="/tutorial/split_tutorial.jpg" 
+                        alt="AI Workout Split Builder Diagram" 
+                        className="w-full h-auto object-cover"
+                      />
+                      <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                        Custom AI Protocols
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#C7F36B] text-base">Action: Click "Workout Split" on Sidebar or Dashboard.</strong></p>
+                      <p>1. Select your target goal (Build Muscle, Fat Loss, Powerlifting) and available gym equipment.</p>
+                      <p>2. The AI generates a 7-day personalized split with target muscle recovery cycles.</p>
+                      <p>3. Click <strong>"Save &amp; Apply Split"</strong> to synchronize scheduled workouts with your daily dashboard!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 7: Interactive 3D Muscle Anatomy Guide */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'workout' || tutorialFilter === 'guide') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">7</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#54D8CF]">Module 07 • 3D Anatomy</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Interactive 3D Muscle Guide &amp; Fiber Activation</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setView('guide')}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        EXPLORE MUSCLE GUIDE →
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#54D8CF] uppercase mb-1">Anterior &amp; Posterior Maps</div>
+                        <div className="text-xs text-[#ACBAC2]">Toggle between front and back muscular systems to inspect primary and secondary fibers.</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#C7F36B] uppercase mb-1">Fiber Head Isolation</div>
+                        <div className="text-xs text-[#ACBAC2]">Click any muscle (Chest, Lats, Quads, Delts, Arms, Core) to highlight exact fiber orientation.</div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#FF897A] uppercase mb-1">Exercise ROI Library</div>
+                        <div className="text-xs text-[#ACBAC2]">Reveals top compound and isolation exercises specifically engineered to stimulate that exact muscle.</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#54D8CF] text-base">Action: Click "Muscle Guide" in the sidebar navigation.</strong></p>
+                      <p>Explore anatomical diagrams and optimize your exercise selection based on biomechanical leverage and target muscle contraction!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 8: Daily Workout Logging & Performance Tracker */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'workout') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">8</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#C7F36B]">Module 08 • Progression</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Daily Workout Logging &amp; Progression Tracker</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setView('dashboard')}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        VIEW DASHBOARD →
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
+                      <p><strong className="text-[#C7F36B] text-base">Action: Log workouts directly from the Dashboard.</strong></p>
+                      <p>1. Record your sets, reps, weight (kg/lbs), and RPE (Rate of Perceived Exertion).</p>
+                      <p>2. The engine computes your <strong>Total Training Volume</strong> (Sets × Reps × Weight) to guarantee progressive overload.</p>
+                      <p>3. Monitor your daily hydration, calories burned, and keep your consistency streak alive!</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 9: Mobile App Installation (PWA Guide) */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'mobile') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">9</span>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#54D8CF]">Module 09 • Standalone App</div>
+                          <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Download &amp; Install as Smartphone App (PWA)</h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setView('install')}
+                        className="btn-lime text-xs font-bold py-2 px-4 flex items-center gap-1.5"
+                      >
+                        INSTALL PAGE →
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                      <div className="bg-[#172127] border border-[#304149] p-5 rounded-xl">
+                        <div className="text-sm font-bold text-[#54D8CF] uppercase mb-2">Android (Chrome / Edge)</div>
+                        <ol className="text-xs text-[#ACBAC2] space-y-1.5 list-decimal list-inside">
+                          <li>Open the web app in Chrome.</li>
+                          <li>Tap the <strong>three dots menu (⋮)</strong> in the top right.</li>
+                          <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong>.</li>
+                          <li>Launch from your phone home screen in full-screen standalone mode!</li>
+                        </ol>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-5 rounded-xl">
+                        <div className="text-sm font-bold text-[#C7F36B] uppercase mb-2">iPhone &amp; iPad (Safari)</div>
+                        <ol className="text-xs text-[#ACBAC2] space-y-1.5 list-decimal list-inside">
+                          <li>Open the web app in <strong>Safari</strong>.</li>
+                          <li>Tap the <strong>Share icon</strong> (square with arrow pointing up).</li>
+                          <li>Scroll down and tap <strong>"Add to Home Screen"</strong>.</li>
+                          <li>Enjoy hardware-accelerated 60 FPS camera coaching!</li>
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* FAQ & Quick-Reference Controls Section */}
+                {(tutorialFilter === 'all' || tutorialFilter === 'faq') && (
+                  <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="flex items-center gap-3 mb-6">
+                      <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">?</span>
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#C7F36B]">Troubleshooting &amp; Reference</div>
+                        <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Frequently Asked Questions &amp; Cheat Sheet</h3>
+                      </div>
+                    </div>
+
+                    {/* Quick Cheat Sheet */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#C7F36B] uppercase mb-2">🖐️ Hand Gestures</div>
+                        <div className="text-xs text-[#ACBAC2] space-y-1">
+                          <div><strong>🖐️ Open Palm:</strong> 3s countdown</div>
+                          <div><strong>✌️ 2 Fingers:</strong> Start set</div>
+                          <div><strong>✊ Closed Fist:</strong> Pause / Stop</div>
+                          <div><strong>1, 2, 3 Fingers:</strong> Set 1 / 2 / 3</div>
+                        </div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#54D8CF] uppercase mb-2">🎙️ Voice Commands</div>
+                        <div className="text-xs text-[#ACBAC2] space-y-1">
+                          <div><em>"Start set"</em> or <em>"Go"</em></div>
+                          <div><em>"Set 1"</em> or <em>"Set 2"</em></div>
+                          <div><em>"Pause set"</em></div>
+                          <div><em>"Stop workout"</em></div>
+                        </div>
+                      </div>
+                      <div className="bg-[#172127] border border-[#304149] p-4 rounded-xl">
+                        <div className="text-xs font-bold text-[#FF897A] uppercase mb-2">🟢 Form HUD Colors</div>
+                        <div className="text-xs text-[#ACBAC2] space-y-1">
+                          <div><strong>🟢 Green:</strong> Optimal Form</div>
+                          <div><strong>🔴 Red:</strong> Warning / Bad Cue</div>
+                          <div><strong>🟡 Yellow:</strong> Live Joint Degrees</div>
+                          <div><strong>⚪ White:</strong> Setup Lockout</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expandable FAQs */}
+                    <div className="space-y-3">
+                      {[
+                        {
+                          q: "Why is the camera asking for permission or showing a black screen?",
+                          a: "Web browsers strictly require an encrypted HTTPS connection (or localhost) to grant camera access. Ensure you are accessing via the secure HTTPS link. If prompted, tap 'Allow' when your browser asks for camera permissions. On mobile, tap the '🔄 Flip Camera' button to switch between selfie and back cameras."
+                        },
+                        {
+                          q: "Why did the AI Form Coach miss or not count my reps?",
+                          a: "1) Make sure your full body (head to feet) is visible in the frame from 1.5 to 2.5 meters away. 2) Stand still in the starting position for 1 second until the badge turns 🟢 READY. 3) Achieve full range of motion (e.g. parallel squat depth). Incomplete half-reps are flagged to protect your knees and back!"
+                        },
+                        {
+                          q: "How does the AI Doctor protect my joints after an injury?",
+                          a: "When you log pain in the Recovery Hub, the AI engine flags those exercises as high-risk and automatically marks your upcoming daily battle plan with an 'ADAPTED FOR RECOVERY' shield. It automatically replaces risky movements with joint-friendly alternatives (e.g., swapping Barbell Back Squats with Bulgarian Split Squats or Leg Extensions)."
+                        },
+                        {
+                          q: "Can I log mixed home-cooked meals with the Food Vision scanner?",
+                          a: "Yes! Llama-3.2 Vision is trained to detect complex plates with multiple dishes (rice, chicken curry, lentils, roti, salads). Simply take a clear photo of the entire plate under good lighting. You can review and adjust the estimated calorie and macro breakdown before saving to your profile."
+                        },
+                        {
+                          q: "Can I use the app on multiple phones or computers?",
+                          a: "Yes! Your profile, workout history, custom splits, and meal logs are safely stored in your cloud database. Simply sign in with your email or Google account on any phone, tablet, or PC to access your synchronized fitness data."
+                        }
+                      ].map((faq, idx) => {
+                        const isOpen = expandedFaq === idx;
+                        return (
+                          <div 
+                            key={idx} 
+                            className="bg-[#172127] border border-[#304149] rounded-xl overflow-hidden transition-all"
+                          >
+                            <button
+                              onClick={() => setExpandedFaq(isOpen ? null : idx)}
+                              className="w-full p-4 text-left font-bold text-sm text-[#F4F7F8] flex items-center justify-between gap-3 hover:text-[#C7F36B] transition-colors"
+                            >
+                              <span>{faq.q}</span>
+                              <span className="text-[#54D8CF] font-black text-base shrink-0">{isOpen ? '−' : '+'}</span>
+                            </button>
+                            {isOpen && (
+                              <div className="px-4 pb-4 pt-1 text-xs text-[#ACBAC2] leading-relaxed border-t border-[#304149]/40">
+                                {faq.a}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
               </div>
-
-              {/* Step 2: AI Doctor & Injury Management */}
-              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-[#54D8CF] text-[#0B1014] flex items-center justify-center font-black text-lg">2</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Doctor &amp; Sports Trainer (Discomfort Logger)</h3>
-                </div>
-
-                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
-                  <img 
-                    src="/tutorial/doctor_tutorial.jpg" 
-                    alt="AI Doctor & Injury Logger Process Diagram" 
-                    className="w-full h-auto object-cover"
-                  />
-                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#54D8CF] border border-[#54D8CF]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    Medical Protocol
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
-                  <p><strong className="text-[#54D8CF] text-base">Action: Click "Recovery" button in sidebar whenever feeling pain.</strong></p>
-                  <p>1. Select the exercise (e.g. Squat, Overhead Press) and describe your symptoms or pain severity.</p>
-                  <p>2. The dual AI engine acts as a <strong>Sports Medicine Doctor</strong> (giving immediate care RICE instructions) and a <strong>Master Trainer</strong> (giving joint form cues & safe exercise substitutions).</p>
-                  <p>3. Today's and tomorrow's workout plans automatically receive an <span className="bg-[#54D8CF]/20 text-[#54D8CF] border border-[#54D8CF]/40 text-[11px] font-extrabold px-2 py-0.5 rounded">ADAPTED FOR RECOVERY</span> badge to keep you safe!</p>
-                </div>
-              </div>
-
-              {/* Step 3: Auto-Food Vision Logger */}
-              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-[#FF897A] text-[#0B1014] flex items-center justify-center font-black text-lg">3</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">Auto-Food Vision Logger &amp; Macro Analysis</h3>
-                </div>
-
-                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
-                  <img 
-                    src="/tutorial/food_tutorial.jpg" 
-                    alt="Auto Food Vision Logger Diagram" 
-                    className="w-full h-auto object-cover"
-                  />
-                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#FF897A] border border-[#FF897A]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    Vision Macro AI
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
-                  <p><strong className="text-[#FF897A] text-base">Action: Click "AI Vision" → Select "Auto-Food Logger".</strong></p>
-                  <p>1. Snap a quick photo of your plate or meal.</p>
-                  <p>2. Llama-3.2 Vision automatically detects dish items, calculates estimated calories, and breaks down Protein, Carbs, and Fats macros.</p>
-                  <p>3. Click <strong>"✓ Save to Profile"</strong> to log nutrition directly to your database logs!</p>
-                </div>
-              </div>
-
-              {/* Step 4: AI Workout Split Builder */}
-              <div className="bg-[#10181D] border border-[#304149] rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-8 h-8 rounded-xl bg-[#C7F36B] text-[#0B1014] flex items-center justify-center font-black text-lg">4</span>
-                  <h3 className="text-xl md:text-2xl font-bold text-[#F4F7F8]">AI Workout Split Builder &amp; Muscle Guide</h3>
-                </div>
-
-                <div className="my-4 rounded-xl overflow-hidden border border-[#304149] bg-[#0B1014] relative group">
-                  <img 
-                    src="/tutorial/split_tutorial.jpg" 
-                    alt="AI Workout Split Builder Diagram" 
-                    className="w-full h-auto object-cover"
-                  />
-                  <div className="absolute top-4 right-4 bg-[#0B1014]/90 backdrop-blur-md text-[#C7F36B] border border-[#C7F36B]/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
-                    Custom AI Protocols
-                  </div>
-                </div>
-
-                <div className="space-y-3 bg-[#172127] border border-[#304149] p-5 rounded-xl text-sm text-[#ACBAC2] leading-relaxed">
-                  <p><strong className="text-[#C7F36B] text-base">Action: Click "Workout Split" on Sidebar or Dashboard.</strong></p>
-                  <p>1. Select your target goal (Build Muscle, Fat Loss, Powerlifting) and gym equipment available.</p>
-                  <p>2. The AI engine generates a 7-day personalized split with target muscle activation maps.</p>
-                  <p>3. Explore the <strong>"Muscle Guide"</strong> tab anytime to inspect 3D muscle anatomy fiber targets!</p>
-                </div>
-              </div>
-
-            </div>
-          </Panel>
+            </Panel>
           </div>
-        )}
-
-        {view === 'install' && (
+        )}{view === 'install' && (
           <div className="max-w-4xl mx-auto fade-up space-y-6">
             <Panel 
               kicker="SMARTPHONE APPLICATION" 
